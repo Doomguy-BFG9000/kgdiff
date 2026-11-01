@@ -468,7 +468,8 @@ kbd {
   gap: 2px;
 }
 
-.nav-links a {
+.nav-links a,
+.nav-docs {
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 14px;
@@ -478,9 +479,14 @@ kbd {
     background var(--fast) var(--ease);
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-docs:hover {
   color: var(--text);
   background: var(--hover);
+}
+
+.nav-docs {
+  white-space: nowrap;
 }
 
 .nav-end {

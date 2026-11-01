@@ -9,3 +9,4 @@ coverage/
 .env
 .env.*
 examples/generated/
+docs/.vitepress/cache/

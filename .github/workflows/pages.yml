@@ -1,8 +1,9 @@
 name: Pages
 
-# Builds apps/site (landing page + playground) and deploys it to GitHub Pages.
-# The base path comes from the Pages configuration (`/<repo>/` for project sites, `/` with a
-# custom domain) and is passed to Vite as KGDIFF_SITE_BASE.
+# Builds apps/site (landing page + playground) and the docs/ VitePress site, which lands in
+# apps/site/dist/docs, and deploys them to GitHub Pages. The base path comes from the Pages
+# configuration (`/<repo>/` for project sites, `/` with a custom domain) and is passed to both
+# builds as KGDIFF_SITE_BASE.
 
 on:
   push:
@@ -41,8 +42,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - name: Build
-        run: pnpm vite build --config apps/site/vite.config.ts
+      - name: Build the site and the docs
+        run: pnpm build:site
         env:
           KGDIFF_SITE_BASE: ${{ steps.pages.outputs.base_path }}/
           KGDIFF_SITE_URL: ${{ steps.pages.outputs.base_url }}/

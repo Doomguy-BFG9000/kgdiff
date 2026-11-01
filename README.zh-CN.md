@@ -141,6 +141,7 @@ pnpm install                    # Node.js ≥ 22，pnpm 11
 pnpm check                      # lint + 类型检查 + 测试
 pnpm bench                      # 性能预算
 pnpm dev:site                   # 官网和在线体验页
+pnpm dev:docs                   # 文档站（docs/）
 pnpm tsx packages/cli/src/bin.ts examples/datasets/enterprise-kg/before.json \
   examples/datasets/enterprise-kg/after.json
 ```

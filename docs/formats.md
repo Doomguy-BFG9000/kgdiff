@@ -1,0 +1,134 @@
+# Formats
+
+| Format      | Extensions                         | Notes                                                                              |
+| ----------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
+| Turtle      | `.ttl`                             |                                                                                    |
+| N-Triples   | `.nt`                              |                                                                                    |
+| N-Quads     | `.nq`                              | named graphs are merged, with a warning                                            |
+| TriG        | `.trig`                            | named graphs are merged, with a warning                                            |
+| RDF/XML     | `.rdf`, `.owl`                     | the whole RDF 1.1 XML syntax, as Protégé and ROBOT write it                        |
+| JSON-LD 1.1 | `.jsonld`, `.json` with `@context` | contexts must be inline: nothing is fetched                                        |
+| OBO 1.4     | `.obo`                             | synonyms, `is_a`, relationships, obsoletion with `replaced_by`, `alt_id`           |
+| JSON graphs | `.json`                            | kgdiff, d3 / NetworkX node-link, Cytoscape.js, AntV G6 v5, graphology, vis-network |
+
+Any of them may be gzip-compressed (`.gz`) and encoded in UTF-8 or UTF-16.
+
+## Detection
+
+The format comes from the extension or, for other names and for standard input (`-`), from the
+content. Two extensions get a second look: a `.json` file holding JSON-LD is read as JSON-LD, and
+an `.owl` file is read in whatever syntax it contains, since Protégé also saves Turtle, OWL/XML
+and Functional Syntax under that extension.
+
+To skip detection, pass `--format <fmt>` for both inputs or `--before-format` /
+`--after-format` for one: `json`, `jsonld`, `turtle`, `ntriples`, `nquads`, `trig`, `rdfxml` or
+`obo`.
+
+## Recognised but not read
+
+| Format                                            | What to do                                                                       |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| OWL/XML, OWL Functional Syntax, Manchester Syntax | Convert to RDF/XML or Turtle: `robot convert --input onto.owx --output onto.owl` |
+| GraphML, GEXF                                     | Export JSON instead, e.g. NetworkX node-link data or Cytoscape.js JSON           |
+
+kgdiff names the format and the way out in its error message.
+
+## kgdiff JSON
+
+kgdiff's own format, and what `kgdiff apply` writes:
+
+```json
+{
+  "meta": { "name": "zoo", "version": "v2" },
+  "nodes": [
+    { "id": "animal", "label": "Animal" },
+    { "id": "mammal", "label": "Mammal" },
+    {
+      "id": "cat",
+      "label": "Domestic cat",
+      "type": "Species",
+      "aliases": ["house cat"],
+      "attrs": { "legs": 4 }
+    },
+    { "id": "dog", "label": "Dog", "type": "Species" }
+  ],
+  "edges": [
+    { "source": "mammal", "target": "animal", "predicate": "subClassOf" },
+    { "source": "cat", "target": "mammal", "predicate": "subClassOf" },
+    { "source": "dog", "target": "mammal", "predicate": "subClassOf" }
+  ]
+}
+```
+
+| Field                                    | Meaning                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `meta.name`, `meta.version`              | Shown in headers and titles                                                                |
+| `nodes[].id`                             | Required and unique                                                                        |
+| `nodes[].label`                          | The display name; a changed label is a rename                                              |
+| `nodes[].type`                           | A type, or an array of types                                                               |
+| `nodes[].aliases`                        | Synonyms                                                                                   |
+| `nodes[].attrs`                          | Any other values: strings, numbers, booleans, arrays                                       |
+| `nodes[].deprecated`                     | `true` for an obsolete node                                                                |
+| `nodes[].replacedBy`, `nodes[].replaces` | Ids of replacement nodes, which turn removals into merges                                  |
+| `edges[].source`, `edges[].target`       | Node ids, required                                                                         |
+| `edges[].predicate`                      | The relation; [hierarchy predicates](./guide/ontologies.md#recommended-options) make moves |
+| `edges[].id`, `label`, `attrs`           | Optional                                                                                   |
+
+Against a first version where cats and dogs were directly under “Animal” and the cat was just
+“Cat”, this reports:
+
+```
+kgdiff  zoo v1 → v2                                    3 → 4 nodes · 2 → 3 edges
+
+  +1 added   ~1 modified   ⇄1 restructured                  6 changes in 3 hunks
+  ++~~⇄⇄
+
+  Restructured 1
+  ⇄ Moved “Dog” under “Mammal”       structure · from “Animal”
+  Modified 1
+  ~ Renamed “Cat” → “Domestic cat”   content · +1 synonym · moved under “Mammal”
+  Added 1
+  + Added “Mammal” and 1 relation    added · linked to “Animal”
+```
+
+## Other JSON graph shapes
+
+kgdiff recognises the shape of the JSON (d3 / NetworkX node-link, Cytoscape.js, AntV G6 v5,
+graphology, vis-network) and reads these fields:
+
+| Concept                  | Fields                             |
+| ------------------------ | ---------------------------------- |
+| node id                  | `id`, `key`, `data.id`             |
+| label                    | `label`, `name`, `title`           |
+| types                    | `type`, `types`, `category`, …     |
+| aliases                  | `aliases`, `synonyms`              |
+| edges                    | `edges`, `links`, `elements.edges` |
+| deprecation, replacement | `deprecated`, `replacedBy`         |
+
+Other node fields become attributes. Fields that only matter for drawing (rendering state, styles,
+shape types) are dropped with a warning.
+
+## RDF and OBO
+
+- Subjects become nodes. OBO PURLs are shortened to CURIEs such as `GO:0008150`.
+- Labels come from `rdfs:label`, `skos:prefLabel`, `schema:name` and similar; `--lang` picks the
+  language. OBO uses `name`.
+- `rdf:type` gives the node types; types are not edges.
+- Literal values become attributes; values that are IRIs become edges.
+- OWL existential restrictions (`C SubClassOf R some D`) become edges from `C` to `D`.
+- `owl:deprecated` and `IAO:0100001` ("term replaced by"), and OBO `is_obsolete`, `replaced_by`
+  and `alt_id`, become deprecation and replacement links.
+- Blank nodes get stable ids derived from their content and context.
+- Annotations on statements (`owl:Axiom`, `rdf:Statement`) are folded into the edge they
+  annotate.
+
+The same graph in any RDF syntax gives the same result. [Architecture: mapping
+conventions](./architecture.md#formats-mapping-conventions) has the complete rules.
+
+## Inputs and limits
+
+- One side may come from standard input, as `-`.
+- An empty input is an error unless `--allow-empty`, which reads it as an empty graph.
+- Inputs may be up to 1 GB after decompression; `KGDIFF_MAX_INPUT` raises the limit, e.g.
+  `KGDIFF_MAX_INPUT=4G`.
+- Invalid UTF-8 is an error, and syntax errors report the line.

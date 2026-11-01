@@ -162,6 +162,7 @@ pnpm install                    # Node.js ≥ 22, pnpm 11
 pnpm check                      # lint + typecheck + tests
 pnpm bench                      # performance budgets
 pnpm dev:site                   # landing page and playground
+pnpm dev:docs                   # documentation site (docs/)
 pnpm tsx packages/cli/src/bin.ts examples/datasets/enterprise-kg/before.json \
   examples/datasets/enterprise-kg/after.json
 ```

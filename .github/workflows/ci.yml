@@ -45,3 +45,6 @@ jobs:
       - name: Check the packed packages (README, LICENSE, source maps, publint, attw)
         if: matrix.os == 'ubuntu-latest' && matrix.node == 24
         run: pnpm check:packages
+      - name: Build the site and the docs (a dead link in the docs fails the build)
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: pnpm build:site

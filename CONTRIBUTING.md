@@ -8,6 +8,7 @@ Thanks for helping make graph changes reviewable.
 pnpm install
 pnpm check        # lint + typecheck + test
 pnpm dev:site     # landing page and playground
+pnpm dev:docs     # documentation site (docs/)
 ```
 
 Node.js ≥ 22 (the `engines` range; CI tests 22, 24 and 26 on Linux, and 24 on Windows and

@@ -1,0 +1,16 @@
+{
+  "name": "@kgdiff/docs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "kgdiff documentation site (VitePress), published under /docs/ next to the landing page.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}
