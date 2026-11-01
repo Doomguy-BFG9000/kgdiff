@@ -9,7 +9,7 @@ abstract: >-
   shows them on one stable layout in a web component, a command-line tool and HTML reports.
 authors:
   - alias: iiwish
-repository-code: "https://github.com/TODO-OWNER/kgdiff"
+repository-code: "https://github.com/iiwish/kgdiff"
 license: MIT
 version: 0.1.0
 keywords:

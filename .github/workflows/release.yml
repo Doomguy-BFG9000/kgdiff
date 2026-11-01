@@ -20,9 +20,10 @@ concurrency:
 jobs:
   release:
     name: Version or publish
-    # Not in forks. TODO-OWNER is a placeholder (docs/releasing.md); until it is replaced, this
-    # job never runs.
-    if: github.repository == 'TODO-OWNER/kgdiff'
+    # Not in forks, and not before the first release, which is published by hand: set the
+    # repository variable RELEASE_ENABLED to true once trusted publishing is configured
+    # (docs/releasing.md).
+    if: github.repository == 'iiwish/kgdiff' && vars.RELEASE_ENABLED == 'true'
     runs-on: ubuntu-latest
     # Restrict the environment to the main branch in the repository settings and name it in the
     # trusted publisher configuration on npmjs.com.
@@ -42,12 +43,6 @@ jobs:
           # No caches in a job that publishes: a poisoned cache would end up in the packages.
           package-manager-cache: false
       - run: pnpm install --frozen-lockfile
-      - name: Refuse placeholder package metadata
-        run: |
-          if grep -n 'TODO-OWNER' packages/*/package.json; then
-            echo '::error::Replace the TODO-OWNER placeholders first (docs/releasing.md).'
-            exit 1
-          fi
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           version-script: pnpm version-packages

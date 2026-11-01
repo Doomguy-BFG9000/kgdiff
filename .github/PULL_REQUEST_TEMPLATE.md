@@ -10,7 +10,7 @@
 
 ## Checklist
 
-- [ ] Reviewed against the [review checklist](https://github.com/TODO-OWNER/kgdiff/blob/main/docs/review-checklist.md):
+- [ ] Reviewed against the [review checklist](https://github.com/iiwish/kgdiff/blob/main/docs/review-checklist.md):
   correctness, tests, performance, API and code quality, visuals and interaction
 - [ ] `pnpm check` passes (lint, typecheck, tests)
 - [ ] Docs updated where a contract in `src/index.ts`, a CLI option or the visual language changed

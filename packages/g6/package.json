@@ -8,16 +8,15 @@
     "g6",
     "adapter"
   ],
-  "homepage": "https://github.com/TODO-OWNER/kgdiff/tree/main/packages/g6#readme",
+  "homepage": "https://github.com/iiwish/kgdiff/tree/main/packages/g6#readme",
   "bugs": {
-    "url": "https://github.com/TODO-OWNER/kgdiff/issues"
+    "url": "https://github.com/iiwish/kgdiff/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TODO-OWNER/kgdiff.git",
+    "url": "git+https://github.com/iiwish/kgdiff.git",
     "directory": "packages/g6"
   },
-  "funding": "https://github.com/sponsors/TODO-OWNER",
   "license": "MIT",
   "author": "iiwish",
   "type": "module",

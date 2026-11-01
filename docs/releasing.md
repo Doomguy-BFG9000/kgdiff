@@ -34,18 +34,16 @@ npm checks that `repository.url` in each `package.json` matches the GitHub repos
 
 ## One-time setup
 
-1. **Fill in the placeholders.** `TODO-OWNER` stands for the GitHub owner of the repository
-   (package metadata, `release.yml`, `CITATION.cff`, `SECURITY.md`, the issue and pull request
-   templates) and `TODO-EMAIL` for a contact address (`SECURITY.md`, `CODE_OF_CONDUCT.md`);
-   `grep -rln 'TODO-OWNER\|TODO-EMAIL' --exclude-dir=node_modules .` lists the files.
-   `apps/site/vite.config.ts` already defaults to `iiwish/kgdiff`. Until the placeholders are
-   gone the release job does not run, and it refuses to publish while a `package.json` has one.
-2. **GitHub.** Create the repository. Under Settings → Actions → General, allow GitHub Actions to
+The repository is `iiwish/kgdiff` (package metadata, `release.yml`, `CITATION.cff`,
+`SECURITY.md`, the issue and pull request templates); security reports and conduct issues go to
+num2048@163.com.
+
+1. **GitHub.** Create the repository. Under Settings → Actions → General, allow GitHub Actions to
    create and approve pull requests. Under Settings → Environments, create `npm` with deployment
    branches limited to `main` (add required reviewers if releases should wait for a click).
    Under Settings → Code security, enable private vulnerability reporting (see `SECURITY.md`).
-3. **npm.** Create the `kgdiff` organization, which owns the `@kgdiff` scope, and turn on 2FA.
-4. **First publish, by hand.** Trusted publishing can only be configured for a package that
+2. **npm.** Create the `kgdiff` organization, which owns the `@kgdiff` scope, and turn on 2FA.
+3. **First publish, by hand.** Trusted publishing can only be configured for a package that
    already exists, so the first version is published from a maintainer's machine (it has no
    provenance attestation; later versions do):
 
@@ -56,11 +54,14 @@ npm checks that `repository.url` in each `package.json` matches the GitHub repos
    git push --follow-tags
    ```
 
-5. **Trusted publishers.** For each of the eight packages on npmjs.com, open Settings → Trusted
-   publishing and add GitHub Actions with the owner, repository `kgdiff`, workflow `release.yml`
-   and environment `npm`, allowing direct publishing (not only staged publishing). npm expires a
-   configuration that has not completed a publish within two days, so do this shortly before
-   merging the first version pull request.
+4. **Trusted publishers.** For each of the eight packages on npmjs.com, open Settings → Trusted
+   publishing and add GitHub Actions with the owner `iiwish`, repository `kgdiff`, workflow
+   `release.yml` and environment `npm`, allowing direct publishing (not only staged publishing).
+   npm expires a configuration that has not completed a publish within two days, so do this
+   shortly before merging the first version pull request.
+5. **Turn on releases from CI.** Under Settings → Secrets and variables → Actions → Variables,
+   set `RELEASE_ENABLED` to `true`. Until then the release workflow skips its job, so pushes to
+   `main` before the first publish do not try to publish.
 6. **Lock it down.** Once a release from CI has gone through, set each package to require 2FA and
    disallow tokens, and revoke publish tokens that are no longer needed.
 

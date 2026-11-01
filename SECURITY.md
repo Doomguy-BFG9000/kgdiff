@@ -9,9 +9,9 @@ packages, which always share one version. Please upgrade before reporting.
 
 Please do not open a public issue. Report privately instead:
 
-- through GitHub: [Report a vulnerability](https://github.com/TODO-OWNER/kgdiff/security/advisories/new)
+- through GitHub: [Report a vulnerability](https://github.com/iiwish/kgdiff/security/advisories/new)
   (the repository's Security tab), or
-- by email to TODO-EMAIL.
+- by email to num2048@163.com.
 
 Include the affected package and version, what an attacker controls (a graph file, a report, a
 command-line argument…), the impact, and the smallest input that shows it. You will get an answer

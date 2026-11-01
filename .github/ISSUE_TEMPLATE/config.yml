@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/TODO-OWNER/kgdiff/security/advisories/new
+    url: https://github.com/iiwish/kgdiff/security/advisories/new
     about: Please report vulnerabilities privately (see SECURITY.md), not in a public issue.

@@ -6,16 +6,15 @@
     "kgdiff",
     "visualization"
   ],
-  "homepage": "https://github.com/TODO-OWNER/kgdiff/tree/main/packages/scene#readme",
+  "homepage": "https://github.com/iiwish/kgdiff/tree/main/packages/scene#readme",
   "bugs": {
-    "url": "https://github.com/TODO-OWNER/kgdiff/issues"
+    "url": "https://github.com/iiwish/kgdiff/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TODO-OWNER/kgdiff.git",
+    "url": "git+https://github.com/iiwish/kgdiff.git",
     "directory": "packages/scene"
   },
-  "funding": "https://github.com/sponsors/TODO-OWNER",
   "license": "MIT",
   "author": "iiwish",
   "type": "module",
