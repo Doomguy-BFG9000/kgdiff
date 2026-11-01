@@ -5,14 +5,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        kgdiff reads Turtle, N-Triples, N-Quads, TriG, OBO 1.4 and the JSON graph shapes of kgdiff,
-        d3 / NetworkX, Cytoscape.js, AntV G6 v5, graphology and vis-network. How they map to nodes and
-        edges: [docs/architecture.md](../blob/main/docs/architecture.md#formats-mapping-conventions).
+        kgdiff reads Turtle, N-Triples, N-Quads, TriG, RDF/XML, JSON-LD, OBO 1.4 and the JSON graph
+        shapes of kgdiff, d3 / NetworkX, Cytoscape.js, AntV G6 v5, graphology and vis-network. How
+        they map to nodes and edges: [docs/architecture.md](../blob/main/docs/architecture.md#formats-mapping-conventions).
   - type: input
     id: format
     attributes:
       label: Format
-      placeholder: e.g. JSON-LD, GraphML, OWL Functional Syntax
+      placeholder: e.g. GraphML, OWL/XML, OWL Functional Syntax
     validations:
       required: true
   - type: input

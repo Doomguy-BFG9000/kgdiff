@@ -1,9 +1,10 @@
 # @kgdiff/formats
 
 Parsers that turn real-world graph files into [`@kgdiff/core`](../core) graphs: RDF (Turtle,
-N-Triples, N-Quads, TriG), OBO 1.4 and the common JSON graph shapes (kgdiff, d3 / NetworkX
-node-link, Cytoscape.js, AntV G6 v5, graphology, vis-network). Synchronous and deterministic,
-with no file-system access: you pass text, so it works the same in browsers and Node.
+N-Triples, N-Quads, TriG, RDF/XML, JSON-LD), OBO 1.4 and the common JSON graph shapes (kgdiff,
+d3 / NetworkX node-link, Cytoscape.js, AntV G6 v5, graphology, vis-network). Synchronous and
+deterministic, with no file-system or network access: you pass text, so it works the same in
+browsers and Node.
 
 ## Install
 
@@ -47,9 +48,14 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result).title);
 
 In Node, read files first: `parseGraph(await readFile('v1.ttl', 'utf8'), { filename: 'v1.ttl' })`.
 
-- `format` defaults to `'auto'`. Pass `'turtle'`, `'ntriples'`, `'nquads'`, `'trig'`, `'obo'` or
-  `'json'` to skip detection; `detectFormat(text, filename)` tells you what `auto` would pick.
+- `format` defaults to `'auto'`. Pass `'turtle'`, `'ntriples'`, `'nquads'`, `'trig'`, `'rdfxml'`,
+  `'jsonld'`, `'obo'` or `'json'` to skip detection; `detectFormat(text, filename)` tells you what
+  `auto` would pick.
 - Syntax errors throw a `KgdiffError` with code `invalid-input` and the line number.
+- JSON-LD contexts must be inline unless you pass a synchronous `jsonld.documentLoader`; nothing is
+  ever fetched, and RDF/XML never loads external entities.
+- Formats it recognises but does not read (OWL/XML, OWL functional and Manchester syntax, GraphML,
+  GEXF) throw an `invalid-input` error that says how to convert them.
 - The same graph in different serializations diffs as identical.
 
 ## Learn more

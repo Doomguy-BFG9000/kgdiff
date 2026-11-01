@@ -136,15 +136,15 @@ and reports how many were skipped; add `--verbose` to list them.
 
 Run `kgdiff --help` for the full list. The most useful:
 
-| Option                         | Meaning                                                         |
-| ------------------------------ | --------------------------------------------------------------- |
-| `--match id\|auto\|similarity` | How nodes are paired (default `auto`: ids, then similarity)     |
-| `--hierarchy <predicate>`      | Hierarchy predicate, repeatable (e.g. `--hierarchy is_a`)       |
-| `--ignore-attr <key>`          | Ignore an attribute when comparing, repeatable                  |
-| `-f, --format <fmt>`           | Force the input format (`json turtle ntriples nquads trig obo`) |
-| `--lang zh,en`                 | RDF label language preference                                   |
-| `--exit-code`, `-q`            | Exit 1 on differences; print nothing on stdout                  |
-| `--color auto\|always\|never`  | Colors (auto: only on a terminal, honours `NO_COLOR`)           |
+| Option                         | Meaning                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `--match id\|auto\|similarity` | How nodes are paired (default `auto`: ids, then similarity)                   |
+| `--hierarchy <predicate>`      | Hierarchy predicate, repeatable (e.g. `--hierarchy is_a`)                     |
+| `--ignore-attr <key>`          | Ignore an attribute when comparing, repeatable                                |
+| `-f, --format <fmt>`           | Force the input format (`json jsonld turtle ntriples nquads trig rdfxml obo`) |
+| `--lang zh,en`                 | RDF label language preference                                                 |
+| `--exit-code`, `-q`            | Exit 1 on differences; print nothing on stdout                                |
+| `--color auto\|always\|never`  | Colors (auto: only on a terminal, honours `NO_COLOR`)                         |
 
 ## Exit codes
 
