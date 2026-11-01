@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "access": "public",
+  "baseBranch": "main",
+  "fixed": [
+    [
+      "kgdiff",
+      "@kgdiff/core",
+      "@kgdiff/formats",
+      "@kgdiff/layout",
+      "@kgdiff/scene",
+      "@kgdiff/renderer",
+      "@kgdiff/viewer",
+      "@kgdiff/g6"
+    ]
+  ],
+  "linked": [],
+  "ignore": [],
+  "updateInternalDependencies": "patch",
+  "format": false
+}

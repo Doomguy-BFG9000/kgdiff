@@ -157,16 +157,6 @@ describe('label placement', () => {
       }),
     );
   });
-
-  it('scales linearly: 5,000 labels place in well under a frame budget', () => {
-    const items: LabelRequest[] = [];
-    for (let i = 0; i < 5000; i++)
-      items.push(req((i * 37) % 1000, (i * 53) % 800, { order: i, priority: (i % 7) / 7 }));
-    const t0 = performance.now();
-    placeLabels(items, grid(), clip);
-    const ms = performance.now() - t0;
-    expect(ms).toBeLessThan(60);
-  });
 });
 
 describe('CollisionGrid', () => {

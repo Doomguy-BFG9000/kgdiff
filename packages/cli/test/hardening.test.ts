@@ -98,14 +98,31 @@ describe('outputs never overwrite inputs', () => {
       return { ...createTestIO().io, fs: nodeFileSystem(), cwd };
     }
 
+    /** False where Windows refuses the symlink (it needs Developer Mode or elevated rights). */
+    function symlinkIfAllowed(target: string, path: string): boolean {
+      try {
+        symlinkSync(target, path);
+        return true;
+      } catch (error) {
+        if (process.platform === 'win32' && (error as NodeJS.ErrnoException).code === 'EPERM') {
+          return false;
+        }
+        throw error;
+      }
+    }
+
     it('refuses symlinks, hard links and (where the file system folds case) case variants', async () => {
       dir = mkdtempSync(join(tmpdir(), 'kgdiff-test-'));
       writeFileSync(join(dir, 'a.json'), A);
       writeFileSync(join(dir, 'b.json'), B);
-      symlinkSync(join(dir, 'a.json'), join(dir, 'sym.json'));
+      const symlinked = symlinkIfAllowed(join(dir, 'a.json'), join(dir, 'sym.json'));
       linkSync(join(dir, 'b.json'), join(dir, 'hard.json'));
       const caseFolding = existsSync(join(dir, 'A.JSON'));
-      const targets = ['sym.json', 'hard.json', ...(caseFolding ? ['A.json'] : [])];
+      const targets = [
+        ...(symlinked ? ['sym.json'] : []),
+        'hard.json',
+        ...(caseFolding ? ['A.json'] : []),
+      ];
       for (const target of targets) {
         const code = await main(['a.json', 'b.json', '--json', target], realIO(dir));
         expect(code, target).toBe(2);
@@ -123,7 +140,10 @@ describe('outputs never overwrite inputs', () => {
       const code = await main(['a.json', 'b.json', '--json', 'out.json', '-q'], realIO(dir));
       expect(code).toBe(0);
       expect(JSON.parse(readFileSync(join(dir, 'out.json'), 'utf8')).format).toBe('kgdiff.diff');
-      expect(statSync(join(dir, 'out.json')).mode & 0o777).toBe(0o640);
+      // Windows has no POSIX permission bits: chmod only toggles the read-only attribute.
+      if (process.platform !== 'win32') {
+        expect(statSync(join(dir, 'out.json')).mode & 0o777).toBe(0o640);
+      }
       expect(readdirSync(dir).filter((f) => f.endsWith('.tmp'))).toEqual([]);
     });
   });

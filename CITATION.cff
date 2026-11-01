@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: If you use kgdiff in your work, please cite it as below.
+type: software
+title: "kgdiff: git diff for knowledge graphs"
+abstract: >-
+  kgdiff compares two versions of a knowledge graph (RDF, OBO or JSON graph formats). It matches
+  nodes across versions, classifies what changed (renames, merges, splits, hierarchy moves,
+  retargeted relations), groups the changes into reviewable hunks with an invertible delta, and
+  shows them on one stable layout in a web component, a command-line tool and HTML reports.
+authors:
+  - alias: iiwish
+repository-code: "https://github.com/TODO-OWNER/kgdiff"
+license: MIT
+version: 0.1.0
+keywords:
+  - knowledge graph
+  - ontology
+  - diff
+  - RDF
+  - OBO
+  - visualization
+  - code review

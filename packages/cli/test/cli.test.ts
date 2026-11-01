@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { hashGraph, normalize } from '@kgdiff/core';
 import { parseGraph } from '@kgdiff/formats';
@@ -369,12 +370,13 @@ describe('outputs', () => {
     const r = await run(['before.json', 'after.json', '--open', '-q'], { files });
     expect(r.code).toBe(0);
     expect(r.opened).toHaveLength(1);
-    expect(r.opened[0]).toMatch(/^\/tmp\/kgdiff-\d+\/kgdiff-report\.html$/);
+    // `resolve` adds the drive and backslashes on Windows, as the CLI's own path handling does.
+    expect(r.opened).toEqual([resolve('/tmp/kgdiff-1', 'kgdiff-report.html')]);
     expect(r.written.has(r.opened[0] as string)).toBe(true);
     const named = await run(['before.json', 'after.json', '-o', 'r.html', '--open', '-q'], {
       files,
     });
-    expect(named.opened).toEqual([`${CWD}/r.html`]);
+    expect(named.opened).toEqual([resolve(CWD, 'r.html')]);
   });
 
   it('warns but succeeds when the browser cannot be opened', async () => {

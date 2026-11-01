@@ -8,7 +8,18 @@
     "g6",
     "adapter"
   ],
+  "homepage": "https://github.com/TODO-OWNER/kgdiff/tree/main/packages/g6#readme",
+  "bugs": {
+    "url": "https://github.com/TODO-OWNER/kgdiff/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TODO-OWNER/kgdiff.git",
+    "directory": "packages/g6"
+  },
+  "funding": "https://github.com/sponsors/TODO-OWNER",
   "license": "MIT",
+  "author": "iiwish",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,10 +29,15 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
   ],
   "engines": {
-    "node": ">=20.11"
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

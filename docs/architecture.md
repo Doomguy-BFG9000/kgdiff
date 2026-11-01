@@ -148,13 +148,17 @@ levels are rejected with `invalid-input`.
 
 ## Engineering conventions
 
-- TypeScript 7, strict, `noUncheckedIndexedAccess`, ESM only, Node ≥ 20.11, evergreen browsers.
+- TypeScript 7, strict, `noUncheckedIndexedAccess`, ESM only, Node ≥ 22, evergreen browsers.
 - Relative imports use `.js` extensions (NodeNext). Cross-package imports use the package name;
   in development `@kgdiff/*` resolves to `packages/*/src/index.ts` (see `tsconfig.base.json`,
   `vitest.shared.ts`), so nothing needs building before tests.
 - Tests: Vitest, colocated in `packages/*/test`. Core uses property-based tests (fast-check).
+  Unit tests assert no wall-clock times; the budgets above are checked by Vitest benchmarks
+  (`test/*.bench.ts`, `pnpm bench`), which run the TypeScript source through Vite's module
+  runner and so measure upper bounds.
 - Lint / format: Biome (`pnpm lint`, `pnpm format`).
 - No new runtime dependency without a written justification in the PR / review.
 - Errors: throw `KgdiffError` with a stable `code`; never throw strings.
 - Public functions have TSDoc that states defaults, complexity when non-obvious, and edge cases.
-- Commands: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm check` (all three).
+- Commands: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm check` (all three),
+  `pnpm bench`, `pnpm check:packages` (the packed tarballs, after `pnpm build`).

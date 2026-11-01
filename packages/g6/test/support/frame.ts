@@ -213,6 +213,26 @@ export function frameOf(scene: Scene, patch: Partial<FrameVisuals> = {}): FrameV
   };
 }
 
+/** A grid of `n` nodes with `2n` edges and a label on every tenth node, for tests at scale. */
+export function largeFrame(n: number): { scene: Scene; frame: FrameVisuals } {
+  const nodes = Array.from({ length: n }, (_, i) => ({
+    id: `n${i}`,
+    x: (i % 100) * 30,
+    y: Math.floor(i / 100) * 30,
+  }));
+  const edges = Array.from({ length: 2 * n }, (_, j) => ({
+    id: `e${j}`,
+    s: j % n,
+    t: (j * 7 + 1) % n,
+  }));
+  const scene = miniScene(nodes, edges);
+  const frame = frameOf(scene);
+  for (let i = 0; i < n; i += 10) {
+    frame.nodes[i] = nodeVisual(nodes[i] as MiniNode, { label: label() });
+  }
+  return { scene, frame };
+}
+
 /** Recursively freeze, so a test fails if the mapping writes to its input. */
 export function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {

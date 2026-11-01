@@ -35,13 +35,11 @@ describe('change list virtualization', () => {
     const inner = list.querySelector('.list-inner') as HTMLElement;
     expect(Number.parseFloat(inner.style.height)).toBeGreaterThan(2000 * ROW_SLOT);
 
-    const t0 = performance.now();
     el.controller.last();
     await tick(40);
     const selected = list.querySelector('.row[aria-selected="true"]');
     expect(selected).not.toBeNull();
     expect(rows()).toBeLessThan(40);
-    expect(performance.now() - t0).toBeLessThan(200);
     expect(list.getAttribute('aria-activedescendant')).toBe(selected?.id);
   }, 30_000);
 });

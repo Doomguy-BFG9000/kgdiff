@@ -47,6 +47,9 @@ export interface TestRun {
   file(path: string): string;
 }
 
+/** Paths in a `missing-dir` directory do not exist (`resolve` gives `\` separators on Windows). */
+const MISSING_DIR = /[\\/]missing-dir([\\/]|$)/;
+
 function enoent(path: string): Error {
   return Object.assign(new Error(`ENOENT: no such file or directory, open '${path}'`), {
     code: 'ENOENT',
@@ -117,7 +120,7 @@ export function createTestIO(options: TestIOOptions = {}): {
         return hit;
       },
       writeFile: async (path, data) => {
-        if (path.includes('/missing-dir/')) throw enoent(path);
+        if (MISSING_DIR.test(path)) throw enoent(path);
         // Atomic replace: a link at `path` is replaced, not written through.
         links.delete(path);
         written.set(canon(path), typeof data === 'string' ? new TextEncoder().encode(data) : data);
@@ -130,7 +133,7 @@ export function createTestIO(options: TestIOOptions = {}): {
         return { dev: 1, ino: inodes.get(key) as number, size: data.byteLength };
       },
       realpath: async (path) => {
-        if (path.includes('/missing-dir')) throw enoent(path);
+        if (MISSING_DIR.test(path)) throw enoent(path);
         return links.get(path) ?? path;
       },
     },

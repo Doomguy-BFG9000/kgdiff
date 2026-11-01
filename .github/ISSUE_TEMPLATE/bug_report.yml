@@ -1,0 +1,61 @@
+name: Bug report
+description: kgdiff gets something wrong — a diff, a crash, a view, a report.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Security problems go through a private report instead (see SECURITY.md).
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - kgdiff (CLI or HTML report)
+        - "@kgdiff/core"
+        - "@kgdiff/formats"
+        - "@kgdiff/layout"
+        - "@kgdiff/scene"
+        - "@kgdiff/renderer"
+        - "@kgdiff/viewer"
+        - "@kgdiff/g6"
+        - Website or playground
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`kgdiff --version`, or the version in your lockfile."
+      placeholder: kgdiff 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened, and what did you expect?
+      description: For a wrong diff, say which change kgdiff reported and which one you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      description: |
+        The smallest before / after files (attach them, or link a gist) and the command or code
+        that shows the problem. Remove anything confidential first.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Error messages, `kgdiff … --json` output, or a screenshot for visual problems.
+      render: text
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Node.js version, and the browser for the viewer, renderer or G6 adapter.
+      placeholder: macOS 26, Node.js 24.11, Chrome 141
