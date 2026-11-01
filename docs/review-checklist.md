@@ -23,7 +23,8 @@ by an independent reviewer. "Done" means every applicable box is true.
 
 ## Performance
 
-- [ ] Meets the budgets in `docs/architecture.md`; a benchmark or timing test exists for hot paths.
+- [ ] Meets the budgets in `docs/architecture.md`; a benchmark (`test/*.bench.ts`, `pnpm bench`)
+  exists for hot paths, and unit tests assert no wall-clock times.
 - [ ] No accidental O(n²) on the number of nodes / edges (nested loops over all elements).
 - [ ] Hot loops allocation-free where the spec asks for it (resolver, renderer).
 

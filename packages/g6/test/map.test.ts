@@ -13,6 +13,7 @@ import {
   frameOf,
   glyph,
   label,
+  largeFrame,
   type MiniNode,
   miniScene,
   nodeVisual,
@@ -791,28 +792,10 @@ describe('edge cases', () => {
     }
   });
 
-  it('maps 5,000 nodes and 10,000 edges quickly (O(N + E))', () => {
-    const n = 5000;
-    const nodesIn = Array.from({ length: n }, (_, i) => ({
-      id: `n${i}`,
-      x: (i % 100) * 30,
-      y: Math.floor(i / 100) * 30,
-    }));
-    const edgesIn = Array.from({ length: 2 * n }, (_, j) => ({
-      id: `e${j}`,
-      s: j % n,
-      t: (j * 7 + 1) % n,
-    }));
-    const scene = miniScene(nodesIn, edgesIn);
-    const frame = frameOf(scene);
-    for (let i = 0; i < n; i += 10)
-      frame.nodes[i] = nodeVisual(nodesIn[i] as MiniNode, { label: label() });
-    toG6Data(scene, frame); // warm up
-    const t0 = performance.now();
+  it('maps 5,000 nodes and 10,000 edges', () => {
+    const { scene, frame } = largeFrame(5000);
     const out = toG6Data(scene, frame);
-    const ms = performance.now() - t0;
-    expect(out.nodes).toHaveLength(n);
-    expect(out.edges).toHaveLength(2 * n);
-    expect(ms).toBeLessThan(400);
+    expect(out.nodes).toHaveLength(5000);
+    expect(out.edges).toHaveLength(10_000);
   });
 });
