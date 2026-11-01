@@ -14,10 +14,14 @@ import { afterAll, describe, expect, it } from 'vitest';
 const configFile = fileURLToPath(new URL('../vite.config.ts', import.meta.url));
 const outDir = mkdtempSync(join(tmpdir(), 'kgdiff-viewer-standalone-'));
 
-/** docs/architecture.md §Budgets: standalone viewer, min + gzip, without formats. */
+/** Target for the standalone viewer, min + gzip, without formats: not met yet. */
 const BUDGET_KB = 90;
-/** Regression guard while the budget is not met (see the package report). */
-const GUARD_KB = 96;
+/**
+ * Enforced ceiling (docs/architecture.md §Budgets). zlib builds compress differently: the
+ * official Node binaries CI installs produce about 0.6 kB more than a Node linked against the
+ * system zlib (Homebrew's), so the ceiling leaves room above both.
+ */
+const GUARD_KB = 98;
 
 afterAll(() => rmSync(outDir, { recursive: true, force: true }));
 
