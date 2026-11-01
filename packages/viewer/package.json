@@ -8,7 +8,18 @@
     "viewer",
     "diff-viewer"
   ],
+  "homepage": "https://github.com/TODO-OWNER/kgdiff/tree/main/packages/viewer#readme",
+  "bugs": {
+    "url": "https://github.com/TODO-OWNER/kgdiff/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TODO-OWNER/kgdiff.git",
+    "directory": "packages/viewer"
+  },
+  "funding": "https://github.com/sponsors/TODO-OWNER",
   "license": "MIT",
+  "author": "iiwish",
   "type": "module",
   "sideEffects": true,
   "exports": {
@@ -24,10 +35,15 @@
     "./standalone/compute": "./dist/standalone/kgdiff-viewer-compute.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
   ],
   "engines": {
-    "node": ">=20.11"
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build -c vite.config.ts && vite build -c vite.config.ts --mode compute",

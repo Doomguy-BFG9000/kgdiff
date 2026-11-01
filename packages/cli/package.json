@@ -10,7 +10,18 @@
     "ontology",
     "rdf"
   ],
+  "homepage": "https://github.com/TODO-OWNER/kgdiff/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/TODO-OWNER/kgdiff/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TODO-OWNER/kgdiff.git",
+    "directory": "packages/cli"
+  },
+  "funding": "https://github.com/sponsors/TODO-OWNER",
   "license": "MIT",
+  "author": "iiwish",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -23,10 +34,15 @@
     "kgdiff": "./dist/bin.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
   ],
   "engines": {
-    "node": ">=20.11"
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

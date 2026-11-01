@@ -1,0 +1,57 @@
+name: Release
+
+# On every push to main, changesets/action either opens / updates the "Version Packages" pull
+# request (while there are changesets in .changeset/), or, once that pull request is merged,
+# builds, checks and publishes the packages that have a new version, then tags the release.
+#
+# Publishing uses npm trusted publishing (OIDC): no npm token is stored anywhere, and npm adds a
+# provenance attestation to every version. Setup and the first publish: docs/releasing.md.
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version or publish
+    # Not in forks. TODO-OWNER is a placeholder (docs/releasing.md); until it is replaced, this
+    # job never runs.
+    if: github.repository == 'TODO-OWNER/kgdiff'
+    runs-on: ubuntu-latest
+    # Restrict the environment to the main branch in the repository settings and name it in the
+    # trusted publisher configuration on npmjs.com.
+    environment: npm
+    permissions:
+      contents: write # release commit and tags (pushed through the GitHub API)
+      pull-requests: write # the "Version Packages" pull request
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          # No caches in a job that publishes: a poisoned cache would end up in the packages.
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile
+      - name: Refuse placeholder package metadata
+        run: |
+          if grep -n 'TODO-OWNER' packages/*/package.json; then
+            echo '::error::Replace the TODO-OWNER placeholders first (docs/releasing.md).'
+            exit 1
+          fi
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          version-script: pnpm version-packages
+          # build → check:packages → changeset publish (package.json "release")
+          publish-script: pnpm release
+          commit-message: "chore: release packages"
+          pr-title: "chore: release packages"
