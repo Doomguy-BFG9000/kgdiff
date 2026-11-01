@@ -49,6 +49,8 @@ npx kgdiff a.ttl b.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
 npx kgdiff a.ttl b.ttl --exit-code -q        # 有差异时退出码为 1
 ```
 
+需要 Node.js ≥ 22。
+
 ```
 kgdiff  企业信用知识图谱本体 v12 → v13                          节点 74 · 关系 171
 
@@ -126,7 +128,7 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result, 'zh-CN').t
 - **确定性**：相同输入得到逐字节相同的差异、布局和报告。
 - **可逆**：`apply(A, diff(A, B).delta) ≅ B`，逆补丁可还原 `A`；按审阅顺序逐组应用补丁一定成功。均由 fast-check 属性测试保证。
 - **测试**：各包合计约 1600 个测试，另有验收测试让每个示例数据集跑完整条流水线。
-- **实测**（M 系列笔记本）：1 万节点 / 3 万边的差异约 0.1 秒；5 万条 RDF 三元组解析约 0.1 秒；1 万节点差异的布局（只布局变更范围）约 1.1 秒；5000 节点每帧视觉计算不到 1 毫秒；查看器包 gzip 后约 96 kB。
+- **实测**（M 系列笔记本，`pnpm bench`）：1 万节点 / 3 万边的差异约 0.1 秒；5 万条 RDF 三元组解析约 0.1 秒；1 万节点差异的布局（只布局变更范围）约 1.1 秒；5000 节点每帧视觉计算不到 1 毫秒；查看器包 gzip 后约 96 kB。
 
 ## 示例数据
 
@@ -135,8 +137,9 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result, 'zh-CN').t
 ## 开发
 
 ```sh
-pnpm install
+pnpm install                    # Node.js ≥ 22，pnpm 11
 pnpm check                      # lint + 类型检查 + 测试
+pnpm bench                      # 性能预算
 pnpm dev:site                   # 官网和在线体验页
 pnpm tsx packages/cli/src/bin.ts examples/datasets/enterprise-kg/before.json \
   examples/datasets/enterprise-kg/after.json

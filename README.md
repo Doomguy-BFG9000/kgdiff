@@ -61,6 +61,8 @@ npx kgdiff a.ttl b.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
 npx kgdiff a.ttl b.ttl --exit-code -q        # exit 1 when the graphs differ
 ```
 
+Requires Node.js ≥ 22.
+
 ```
 kgdiff  企业信用知识图谱本体 v12 → v13                          节点 74 · 关系 171
 
@@ -142,9 +144,9 @@ The same graph in different serializations diffs as identical. Mapping conventio
   applying hunks one by one in review order always succeeds. Property-tested with fast-check.
 - **Tested**: ~1,600 tests across packages, including acceptance tests that run every example
   dataset through the whole pipeline.
-- **Measured** (M-class laptop): diff of 10k nodes / 30k edges ≈ 0.1 s; 50k RDF triples parsed in
-  ≈ 0.1 s; layout of a 10k-node diff (changes scope) ≈ 1.1 s; per-frame visual resolution < 1 ms
-  for 5k nodes; viewer bundle ≈ 96 kB gzip.
+- **Measured** (M-class laptop, `pnpm bench`): diff of 10k nodes / 30k edges ≈ 0.1 s; 50k RDF
+  triples parsed in ≈ 0.1 s; layout of a 10k-node diff (changes scope) ≈ 1.1 s; per-frame visual
+  resolution < 1 ms for 5k nodes; viewer bundle ≈ 96 kB gzip.
 
 ## Examples
 
@@ -156,8 +158,9 @@ schema.org-like Turtle vocabulary. `scripts/gen-synthetic.ts` generates large sy
 ## Development
 
 ```sh
-pnpm install
+pnpm install                    # Node.js ≥ 22, pnpm 11
 pnpm check                      # lint + typecheck + tests
+pnpm bench                      # performance budgets
 pnpm dev:site                   # landing page and playground
 pnpm tsx packages/cli/src/bin.ts examples/datasets/enterprise-kg/before.json \
   examples/datasets/enterprise-kg/after.json

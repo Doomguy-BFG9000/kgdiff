@@ -15,7 +15,7 @@ npm install --global kgdiff      # or: pnpm add -g kgdiff
 kgdiff --version
 ```
 
-Node.js ≥ 20.11. `npx kgdiff …` works without installing.
+Node.js ≥ 22. `npx kgdiff …` works without installing.
 
 ## Usage
 

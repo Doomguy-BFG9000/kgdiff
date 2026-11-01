@@ -1,0 +1,44 @@
+name: Feature request
+description: An idea for kgdiff — a change kind, a view, a CLI option, an adapter, an API.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should kgdiff do?
+      description: An example input with the output, view or API you have in mind helps a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: packages
+    attributes:
+      label: Packages
+      multiple: true
+      options:
+        - kgdiff (CLI or HTML report)
+        - "@kgdiff/core"
+        - "@kgdiff/formats"
+        - "@kgdiff/layout"
+        - "@kgdiff/scene"
+        - "@kgdiff/renderer"
+        - "@kgdiff/viewer"
+        - "@kgdiff/g6"
+        - Website or playground
+        - Not sure
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to work on this (see CONTRIBUTING.md).

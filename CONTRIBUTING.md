@@ -10,7 +10,16 @@ pnpm check        # lint + typecheck + test
 pnpm dev:site     # landing page and playground
 ```
 
-Node ≥ 22 and pnpm ≥ 11 are recommended for development.
+Node.js ≥ 22 (the `engines` range; CI tests 22, 24 and 26 on Linux, and 24 on Windows and
+macOS) and pnpm 11 (`packageManager`; `corepack enable` installs the pinned version).
+
+More commands:
+
+```sh
+pnpm bench                            # performance budgets (vitest bench), not part of `check`
+pnpm build && pnpm check:packages     # what `pnpm publish` would ship: publint, attw, source maps
+pnpm changeset                        # describe a change to a published package (see below)
+```
 
 ## Where things live
 
@@ -31,7 +40,18 @@ Node ≥ 22 and pnpm ≥ 11 are recommended for development.
 - Determinism is a feature: no `Math.random` or wall-clock time in results.
 - Tests are the specification: name them after behaviour, cover edge cases, add property tests
   where an invariant exists.
+- Unit tests never assert wall-clock times: they run in parallel, under coverage and on slow CI
+  machines. Timings go in `test/*.bench.ts` (`pnpm bench`), next to the budgets in
+  `docs/architecture.md`.
 - No new runtime dependency without a short justification in the PR.
+
+## Changesets and releases
+
+Every pull request that changes a published package (`kgdiff`, `@kgdiff/*`) adds a changeset:
+run `pnpm changeset`, pick the bump (all packages share one version) and describe the change for
+the changelog. Docs-, test- and tooling-only changes need none. On `main`, the release workflow
+collects the changesets into a "Version Packages" pull request; merging it publishes to npm.
+Details: [docs/releasing.md](docs/releasing.md).
 
 ## Commit messages
 
