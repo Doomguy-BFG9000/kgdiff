@@ -358,6 +358,8 @@ export function makeLayout(
   }
   const xs = [...pos.values()].map((p) => p.x);
   const ys = [...pos.values()].map((p) => p.y);
+  const min = (v: number[]): number => v.reduce((a, b) => Math.min(a, b));
+  const max = (v: number[]): number => v.reduce((a, b) => Math.max(a, b));
   const scope = pos.size === diff.nodes.length ? 'all' : 'changes';
   return {
     positions: pos,
@@ -366,10 +368,10 @@ export function makeLayout(
       xs.length === 0
         ? { x: 0, y: 0, width: 0, height: 0 }
         : {
-            x: Math.min(...xs),
-            y: Math.min(...ys),
-            width: Math.max(...xs) - Math.min(...xs),
-            height: Math.max(...ys) - Math.min(...ys),
+            x: min(xs),
+            y: min(ys),
+            width: max(xs) - min(xs),
+            height: max(ys) - min(ys),
           },
     scope,
     hidden: new Map(Object.entries(hidden)),

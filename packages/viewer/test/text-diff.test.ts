@@ -158,3 +158,20 @@ describe('cleanupSemantic', () => {
     expect(cleanupSemantic(segs)).toEqual(segs);
   });
 });
+
+// More items than fit in a call's arguments (roughly 10^5 on V8's default stack).
+describe('changes larger than a call’s argument limit', () => {
+  it('inserts 200k word tokens into an empty text', () => {
+    const text = 'word '.repeat(100_000);
+    expect(diffWords('', text)).toEqual([{ op: 'insert', text }]);
+  });
+
+  it('replaces 150k characters past the edit budget', () => {
+    const a = 'a'.repeat(150_000);
+    const b = 'b'.repeat(150_000);
+    expect(diffChars(a, b)).toEqual([
+      { op: 'delete', text: a },
+      { op: 'insert', text: b },
+    ]);
+  });
+});

@@ -277,11 +277,11 @@ export function renderSummary(diff: DiffResult, title: string, ctx: TextContext)
   }
   const m = messages(ctx.locale);
   const groups = groupByPhase(diff.hunks);
-  const shown: Hunk[] = [];
+  let shown = 0;
   const budget = ctx.limit > 0 ? ctx.limit : Number.POSITIVE_INFINITY;
   const listed = groups.map((g) => {
-    const take = g.hunks.slice(0, Math.max(0, budget - shown.length));
-    shown.push(...take);
+    const take = g.hunks.slice(0, Math.max(0, budget - shown));
+    shown += take.length;
     return { phase: g.phase, total: g.hunks.length, rows: rowsOf(diff, take, ctx) };
   });
   const allRows = listed.flatMap((g) => g.rows);
@@ -298,7 +298,7 @@ export function renderSummary(diff: DiffResult, title: string, ctx: TextContext)
     );
     for (const row of group.rows) lines.push(renderRow(row, cols, ctx));
   }
-  const hidden = ov.hunks - shown.length;
+  const hidden = ov.hunks - shown;
   if (hidden > 0) {
     const more = `${m.more(hidden)} · ${m.moreHint}`;
     lines.push(INDENT + ctx.paint.dim(truncate(more, width - INDENT.length)));
@@ -427,7 +427,7 @@ export function renderNameStatus(diff: DiffResult, ctx: TextContext, aligned: bo
     return `${rows.map((r) => `${paint.tone(hunkFamily(r.hunk), r.letter)}\t${r.id}\t${r.title}`).join('\n')}\n`;
   }
   const idWidth = Math.min(
-    Math.max(...rows.map((r) => stringWidth(r.id))),
+    rows.reduce((max, r) => Math.max(max, stringWidth(r.id)), 0),
     Math.max(8, Math.floor(ctx.width / 3)),
   );
   const titleRoom = Math.max(1, ctx.width - 1 - 2 - idWidth - 2);

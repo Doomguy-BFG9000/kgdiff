@@ -26,6 +26,8 @@ by an independent reviewer. "Done" means every applicable box is true.
 - [ ] Meets the budgets in `docs/architecture.md`; a benchmark or timing test exists for hot paths.
 - [ ] No accidental O(n²) on the number of nodes / edges (nested loops over all elements).
 - [ ] Hot loops allocation-free where the spec asks for it (resolver, renderer).
+- [ ] No data-sized array is spread into a call (`xs.push(...ys)`, `Math.max(...ys)`): argument
+  counts are limited by the stack (~100k elements) and overflow with `RangeError`; loop instead.
 
 ## API and code quality
 

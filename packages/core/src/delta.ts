@@ -243,7 +243,8 @@ export function buildDelta(
     const edge = edgeToJSON(e.before, ub(e.before.source), ub(e.before.target));
     removals.push({ op: { op: 'edge.remove', edge }, edge, hunk: e.hunk });
   }
-  ops.push(...sortEdges(removals));
+  // Appended one at a time: spreading 10^5+ elements into a call overflows the stack.
+  for (const x of sortEdges(removals)) ops.push(x);
 
   // 3. node.remove (records are sorted by union id)
   for (const n of nodes) {
@@ -276,7 +277,7 @@ export function buildDelta(
       }
     }
   }
-  ops.push(...attrOps);
+  for (const x of attrOps) ops.push(x);
   // 6. node.add
   for (const n of nodes) {
     if (n.status === 'added' && n.after)
@@ -289,7 +290,7 @@ export function buildDelta(
     const edge = edgeToJSON(e.after);
     additions.push({ op: { op: 'edge.add', edge }, edge, hunk: e.hunk });
   }
-  ops.push(...sortEdges(additions));
+  for (const x of sortEdges(additions)) ops.push(x);
   // 8. edge.set, then edge.attr
   const inPlace = edges
     .filter((e) => e.status === 'modified' && e.inPlace && e.before && e.after)
@@ -685,7 +686,9 @@ class WorkingGraph {
     for (const n of this.nodes.values()) nodes.push(nodeInput(n));
     const edges: EdgeInput[] = [];
     for (const group of this.groups.values()) {
-      for (const copies of group.byContent.values()) edges.push(...copies);
+      for (const copies of group.byContent.values()) {
+        for (const e of copies) edges.push(e);
+      }
     }
     return normalize({ meta, nodes, edges }, { edgeIdentity: this.mode });
   }

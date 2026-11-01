@@ -126,8 +126,10 @@ function normalizeOrder<T>(segs: { op: DiffOp; items: T[] }[]): { op: DiffOp; it
     if (s.op === 'equal') {
       flush();
       out.push(s);
-    } else if (s.op === 'delete') del.push(...s.items);
-    else ins.push(...s.items);
+      continue;
+    }
+    const run = s.op === 'delete' ? del : ins;
+    for (const item of s.items) run.push(item);
   }
   flush();
   return out;

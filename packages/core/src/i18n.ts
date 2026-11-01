@@ -483,7 +483,10 @@ function confidenceNote(
   contributions: readonly { confidence: number; via: string }[],
 ): string {
   if (contributions.every((c) => c.via === 'hint')) return p.note.viaHint;
-  const lowest = Math.min(...contributions.map((c) => c.confidence));
+  const lowest = contributions.reduce(
+    (min, c) => Math.min(min, c.confidence),
+    Number.POSITIVE_INFINITY,
+  );
   return contributions.every((c) => c.via === 'heuristic')
     ? p.note.inferred(percent(lowest))
     : p.note.confidence(percent(lowest));

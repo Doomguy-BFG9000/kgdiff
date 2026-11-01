@@ -149,7 +149,7 @@ export function computeFocus(
       primary[i] = 1;
       reach(i, 0);
     }
-    changedEdges.push(...(h?.edges ?? []));
+    for (const j of h?.edges ?? []) changedEdges.push(j);
   } else {
     for (const n of scene.nodes) {
       if (n.status === 'unchanged') continue;

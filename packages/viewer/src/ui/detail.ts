@@ -656,7 +656,9 @@ export class Detail {
               { class: 'comp-row' },
               h('span', { class: 'note', text: tr.t('detail.mergedFrom') }),
             ),
-            ...f.sources.map((s, i) =>
+          );
+          f.sources.forEach((s, i) => {
+            rows.push(
               h(
                 'div',
                 { class: 'comp-row' },
@@ -665,8 +667,8 @@ export class Detail {
                 chip(node.label, 'same'),
                 notes[i] ? h('span', { class: 'note', text: notes[i] }) : null,
               ),
-            ),
-          );
+            );
+          });
           break;
         }
         case 'splitFrom':
@@ -693,7 +695,7 @@ export class Detail {
               { class: 'comp-row' },
               chip(node.label, 'same'),
               h('span', { class: 'arrow', 'aria-hidden': 'true', text: '→' }),
-              ...f.targets.map((t) => chip(label(t), 'add')),
+              f.targets.map((t) => chip(label(t), 'add')),
             ),
           );
           break;
@@ -702,7 +704,7 @@ export class Detail {
       }
     }
     return rows.length
-      ? section(tr.t('detail.composition'), null, h('div', { class: 'comp' }, ...rows))
+      ? section(tr.t('detail.composition'), null, h('div', { class: 'comp' }, rows))
       : null;
   }
 
