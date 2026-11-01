@@ -344,13 +344,16 @@ describe('JSON-LD input handling', () => {
   });
 
   it('reads nesting up to the limit and rejects deeper documents', () => {
-    const nested = (levels: number) => {
-      let deep: object = { 'ex:v': 1 };
-      for (let i = 0; i < levels; i++) deep = { 'ex:p': deep };
-      return { '@context': CONTEXT, ...deep };
-    };
-    expect(jsonld(nested(190)).graph.edges).toHaveLength(190);
-    const caught = catchError(() => jsonld(nested(5000)));
+    // Written as text: JSON.stringify recurses, and on small stacks (CI runners) it overflows on
+    // 5,000 levels before kgdiff sees the document. JSON.parse, which kgdiff uses, does not.
+    const nested = (levels: number) =>
+      parseGraph(
+        `{"@context":${JSON.stringify(CONTEXT)},"ex:p":${'{"ex:p":'.repeat(levels - 1)}` +
+          `{"ex:v":1}${'}'.repeat(levels - 1)}}`,
+        { format: 'jsonld', rdf: { prefixes: { ex: EX } } },
+      );
+    expect(nested(190).graph.edges).toHaveLength(190);
+    const caught = catchError(() => nested(5000));
     expect(caught.message).toBe('JSON-LD nested deeper than 200 levels is not supported.');
     expect(caught.details).toEqual({ format: 'jsonld' });
   });
