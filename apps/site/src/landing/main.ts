@@ -252,6 +252,11 @@ function updateLocaleLinks(): void {
     if (a.hasAttribute('data-hero-link') || a.id === 'modes-dataset-link') continue;
     a.href = localizedHref(a.getAttribute('href') ?? 'playground.html', state.locale);
   }
+  // Docs pages translated into Chinese live under docs/zh/; the concept documents are English only.
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('a[data-docs-link]')) {
+    const page = a.dataset.docsLink ?? '';
+    a.setAttribute('href', state.locale === 'en' ? `docs/${page}` : `docs/zh/${page}`);
+  }
 }
 
 function updateToggles(): void {

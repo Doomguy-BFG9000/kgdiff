@@ -1,0 +1,135 @@
+# kgdiff 命令行
+
+`kgdiff` 比较两个图文件，就像 `git diff` 比较两个文本文件一样：在终端里、在 CI 中，或者生成一份可以分享的单文件 HTML 报告。
+
+```sh
+npx kgdiff before.ttl after.ttl                 # 彩色摘要 + 变更列表
+npx kgdiff before.obo after.obo -o report.html  # 自包含的交互式报告
+npx kgdiff a.json b.json --json > diff.json     # 完整的机器可读 diff
+npx kgdiff a.json b.json --delta > patch.json   # 只输出可反向的增量
+npx kgdiff a.json b.json --markdown             # PR 评论 / 作业摘要
+npx kgdiff apply a.json patch.json -o b.json    # 应用增量
+```
+
+## 用法
+
+```
+kgdiff <before> <after> [options]
+kgdiff apply <graph> <delta> [-o <file>] [--no-strict [--verbose]] [--allow-empty]
+kgdiff --help | --version | help [apply]
+```
+
+`<before>` / `<after>` 是文件路径，或者用 `-` 表示标准输入（最多一侧）。空输入（0 字节或只有空白，无论来自文件还是标准输入）视为输入错误，除非加上 `--allow-empty`，这时按空图读取。否则一侧悄悄变空，结果就会是“全部删除”。
+
+### 输入格式
+
+格式由扩展名决定：`.json`、`.jsonld`、`.ttl`、`.nt`、`.nq`、`.trig`、`.rdf`、`.owl`、`.obo`，也可以再套一层 `.gz`；其他文件名和标准输入则由内容决定。有两个扩展名会再看一眼内容：内容是 JSON-LD（顶层有 `@context`、`@graph`、`@id` 等）的 `.json` 按 JSON-LD 读取；`.owl` 按其实际包含的语法读取，因为 Protégé 也会用这个扩展名写 Turtle、OWL/XML 或函数式语法。kgdiff 能识别但不读取的格式（OWL/XML、OWL 函数式语法和 Manchester 语法、GraphML、GEXF）会报错并给出转换提示。JSON-LD 的 context 必须内联：kgdiff 从不获取远程 `@context`（这样运行始终离线、可复现），引用了远程 context 的文档会报错，并提示把它内联。
+
+### 选择输出（默认：摘要写到标准输出）
+
+| 选项                | 输出                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| _（无）_            | 标题行、统计，然后是变更组列表（类似 `git diff --stat` 加 `--name-status`，但按语义）    |
+| `--stat`            | 只输出统计                                                                               |
+| `--name-status`     | 每组一行：`A` 新增、`D` 删除、`M` 修改、`R` 改名、`V` 迁移、`G` 合并、`S` 拆分、`E` 关系 |
+| `--json [file]`     | `DiffJSON`（加 `--pretty` 时格式化）                                                     |
+| `--delta [file]`    | `Delta`                                                                                  |
+| `--markdown [file]` | GitHub 风格的 Markdown：标题、统计表、可折叠的变更组列表                                 |
+| `-o, --html <file>` | 自包含的 HTML 报告（查看器 + 内嵌数据；可离线使用）                                      |
+| `--open`            | 用默认浏览器打开 HTML 报告                                                               |
+
+多种输出可以组合（`-o report.html --markdown summary.md`），但最多只能有一种写到标准输出。`--json`、`--delta` 和 `--markdown` 可以跟一个文件名（`-` 或不写表示标准输出；以 `-` 开头的文件名写作 `--json=-x.json` 或 `--json ./-x.json`）。
+
+输出文件以原子方式写入（先在同一目录写临时文件，再重命名；保留已有文件的权限）。输出永远不会覆盖输入：比较的是（设备，inode），所以大小写不敏感文件系统上的大小写变体、符号链接和硬链接都能识别出来；两个输出也不会写到同一个文件。`kgdiff apply` 对 `-o` 采用同样的规则。`--open` 不带 `-o` 时，报告写到一个新建的私有临时目录（`mkdtemp`）。
+
+### diff 选项
+
+| 选项                                | 含义                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `-f, --format <fmt>`                | 两个文件的输入格式（`json`、`jsonld`、`turtle`、`ntriples`、`nquads`、`trig`、`rdfxml`、`obo`）；默认自动判断 |
+| `--before-format`、`--after-format` | 单独指定某一侧                                                                                                |
+| `--match <strategy>`                | `id`、`auto`（默认）、`similarity`                                                                            |
+| `--threshold <n>`                   | 相似度匹配的接受阈值（默认 0.82）                                                                             |
+| `--edge-identity <mode>`            | `structure`（默认）或 `id`                                                                                    |
+| `--hierarchy <predicate>`           | 层级谓词（可重复）；指定后替换默认值                                                                          |
+| `--ignore-attr <key>`               | 比较时忽略某个属性（可重复）                                                                                  |
+| `--no-merges`、`--no-splits`        | 关闭合并 / 拆分检测                                                                                           |
+| `--lang <tags>`                     | RDF 标签的语言偏好，逗号分隔（例如 `zh,en`）                                                                  |
+
+### 报告选项
+
+| 选项                                       | 含义                                                   |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `--title <text>`                           | 报告标题（默认为 `<before> → <after>`）                |
+| `--theme <auto\|light\|dark>`              | 初始主题（默认 auto）                                  |
+| `--locale <en\|zh-CN>`                     | 界面和变更组标题的语言（默认取自 `LANG`，否则为 `en`） |
+| `--mode <overlay\|swipe\|replay\|changes>` | 查看器的初始视图                                       |
+| `--reproducible`                           | 不写生成时间（输入相同时，报告逐字节相同）             |
+| `--no-compute`                             | 从不内联查看器的计算插件（见 §HTML 报告）              |
+
+### 行为
+
+| 选项                            | 含义                                               |
+| ------------------------------- | -------------------------------------------------- |
+| `--exit-code`                   | 两张图不同时以 1 退出（同 `git diff --exit-code`） |
+| `-q, --quiet`                   | 不向标准输出写任何内容（适合配合 `--exit-code`）   |
+| `--color <auto\|always\|never>` | 默认 auto（识别 TTY 和 `NO_COLOR`）                |
+| `--limit <n>`                   | 摘要中最多列出的变更组数（默认 50；`0` 表示全部）  |
+| `--allow-empty`                 | 把空输入按空图读取，而不是报错                     |
+
+环境变量：`NO_COLOR`；`FORCE_COLOR`（`0` 关闭；`1` / `2` / `3` 即使在真彩色终端上也精确使用 16 / 256 / 真彩色；其他值按终端的色深开启）；`COLORTERM`、`TERM`、`COLORFGBG`（色深、浅色背景）；`LC_ALL` / `LC_MESSAGES` / `LANG`（语言）；`COLUMNS`；`KGDIFF_MAX_INPUT`（解压后的输入大小上限，单位为字节或 `K` / `M` / `G`，默认 `1G`；更大的输入和 gzip 炸弹视为输入错误）；`DEBUG=kgdiff`（打印堆栈）。
+
+退出码：`0` 成功（带 `--exit-code` 时表示没有差异），`1` 有差异（仅在带 `--exit-code` 时），`2` 用法或输入错误（信息写在标准错误中，除非设置 `DEBUG=kgdiff`，否则从不打印堆栈）。
+
+## 终端摘要
+
+```
+kgdiff  企业信用知识图谱本体 v12 → v13                                节点 74 · 关系 171
+
+  +1 新增   −1 删除   ~6 修改   ⇄4 结构调整                            12 组共 23 处变化
+  ++++−−−~~~~~~~⇄⇄⇄⇄⇄⇄⇄⇄⇄
+
+  删除 1
+  − 删除「抽查检查」及 2 条关系                          删除 · 类型 事件 · 原关联「经营风险」
+  结构调整 4
+  ⊕ 「法人代表」合并入「法定代表人」                     身份 · 依据替代声明 · 迁移 1 条关系
+  ⇄ 「股权出质」移至「股权投资」下                       结构 · 原属「经营风险」
+  ⇄ 「十大股东」的「持股」改为指向「上市公司」（原为「企业」）  结构
+  …
+  修改 6
+  ~ 「高管任职」改名为「董监高任职」                     内容 · 别名 +1
+  ~ 修改「企业」                                         内容 · 属性 +2 −1 · 关系 ~1
+  …
+  新增 1
+  + 新增「受益所有人」及 3 条关系                        新增 · 类型 角色
+```
+
+- **标题行**：图的名称和版本；节点 / 关系总数（前后不同时显示为 `变化前 → 变化后`）。
+- **计数**：每个阶段的变更组数，按类别着色；右侧是变化的元素数和变更组数。
+- **条形图**：每个阶段变化元素的比例（按最大余数法取整）；无颜色时用 `+ − ~ ⇄`，有颜色时用按类别着色的 `█`。
+- **分组**在所有地方（命令行、Markdown、查看器）都遵循回放的阶段顺序：删除 → 结构调整 → 修改 → 新增，即清理、重组、细化、生长。组内的变更组保持 core 给出的 `order`。唯一变化是层级迁移的修改组显示为结构变化。
+- **右侧一栏**：类别，然后是变更组的副标题（空间不够时先截断副标题，标题优先）。
+- 宽度：在 TTY 上取终端宽度（终端没有报告宽度时依次取 `COLUMNS`、80），否则取 `COLUMNS`，再否则为 120；限制在 40 到 120 之间（更窄的终端使用 40 列布局）。宽度降到 40 列时每一行仍能放下：计数会换行，表格列和类型名会让出空间，标题和摘要以 `…` 截断。布局在着色之前按纯文本测量（考虑东亚字符宽度和字素簇），所以有无颜色时对齐完全一致。
+- 不可信的文本（标签、id、文件名、错误中的解析器消息）从不原样输出到终端：C0 控制字符变成控制图符（`␛`），C1 控制字符变成 `�`，双向文本或不可见的格式字符（U+202A–U+202E、U+2066–U+2069、U+200B、U+2060、U+FEFF 等）变成可见的 `⟨U+202E⟩`；emoji 连接符保留。
+
+`--name-status` 在 TTY 上输出对齐的列，否则输出 TSV（`字母`、锚点 id、标题）。`--stat` 额外输出节点 / 关系 × 新增 / 删除 / 修改 / 未变的统计表，以及按类型的行。
+
+颜色遵循 [visual-language.md](../visual-language.md)（英文）中的类别（真彩色、ANSI 256 色或 16 色，识别 `NO_COLOR` / `FORCE_COLOR`）；没有颜色时，符号也能保证输出可读。
+
+## 输入与 `apply`
+
+输入可以是 gzip 压缩的，也可以是 UTF-16（自动识别）；无效的 UTF-8 会报错。`kgdiff apply` 接受 `Delta` 或完整的 `DiffJSON`（来自 `--json`）作为补丁，可以来自文件或标准输入，并写出 kgdiff JSON（`graphToJSON`），所以连续 apply 可以无损往返。`kgdiff help` 和 `-v` 分别是 `--help` 和 `--version` 的别名。
+
+如果图不是增量的基准，会被拒绝（退出码 2）；提示会说明，图必须按生成增量时的方式解析（相同的 `--format` / `--lang`）。`--no-strict` 会应用所有前置条件成立的操作，并在标准错误中报告跳过了多少个；`--verbose` 逐个列出（`#序号 操作: 原因`）。
+
+## Markdown 摘要
+
+用于 PR 评论和 `$GITHUB_STEP_SUMMARY`：标题、统计表（节点 / 关系 × 新增 / 删除 / 修改）、类别图例，以及按阶段分组、放在 `<details>` 块里的变更组列表（前 100 组，之后是“还有 N 组”）。除了 `<details>/<summary>` 之外不含任何 HTML。标签都经过转义（Markdown 标点，包括用于公式的 `$`；`<`、`>`、`&` 转为实体；不可见字符和双向字符变为可见；控制字符删除），并且在转义前用零宽空格让 GitHub 在 Markdown 之后的过滤失效：`:emoji:` 短代码、`@提及`、`#123` / `org/repo#123` / `GH-123` 引用、裸露的 `scheme://` 网址和 `www.` 自动链接。摘要永远不会 @ 到别人、链接 issue，也不会把标签变成链接。
+
+## HTML 报告
+
+单个文件：独立版查看器（`@kgdiff/viewer/standalone`）加上放在 `<script type="application/kgdiff+json">` 里的 `ReportPayload`（超过 512 kB 时用 gzip + base64，由 `DecompressionStream` 解码）。不需要联网；因为 diff 和布局已经由命令行算好，打开就能看。`--reproducible` 让相同的输入得到逐字节相同的报告。
+
+当布局只覆盖变化部分时（图超过布局的大图阈值，`layout.scope: "changes"`），命令行还会在查看器之后内联查看器的计算插件（`@kgdiff/viewer/standalone/compute`，设置 `globalThis.KgdiffCompute`），这样折叠的分组可以在浏览器里展开并布局。布局完整的报告不内联它，以保持体积小；`--no-compute` 则始终不内联。缺少计算插件只是警告（报告照常写出），缺少查看器则是错误（退出码 2）。
+
+文档结构：`<!doctype html>`；`lang` 取自语言设置；字符集、视口和 `<title>`；一段内联样式先画出主题背景（按 `prefers-color-scheme`，`--theme` 指定时以它为准），避免白屏闪烁；一个视觉上隐藏的 `<h1>`；`<main>` 里铺满视口的 `<kgdiff-viewer global-shortcuts>`（整个页面就是查看器，所以它的快捷键在整页生效）；一段 `<noscript>` 摘要；数据脚本；最后是查看器脚本。内联的 JSON 和 JavaScript 中从不出现 `</script` 和 `<!--`。

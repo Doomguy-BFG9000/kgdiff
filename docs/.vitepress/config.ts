@@ -33,6 +33,9 @@ const { version } = JSON.parse(readFileSync(join(repo, 'packages/cli/package.jso
 const description =
   'Documentation for kgdiff, git diff for knowledge graphs: install the CLI, review graph ' +
   'changes in CI, embed the viewer and use the diff engine in code.';
+const zhDescription =
+  'kgdiff 文档：知识图谱的 git diff。安装命令行工具，在 CI 中审阅图谱变更，嵌入查看器，' +
+  '在代码中调用 diff 引擎。';
 
 const sidebar: DefaultTheme.SidebarItem[] = [
   {
@@ -74,6 +77,48 @@ const sidebar: DefaultTheme.SidebarItem[] = [
   { text: 'FAQ', link: '/docs/faq' },
 ];
 
+// docs/zh/ holds the Chinese pages. The concept documents are specifications that change with
+// the code, so they stay in English only.
+const zhSidebar: DefaultTheme.SidebarItem[] = [
+  {
+    text: '入门',
+    items: [
+      { text: 'kgdiff 是什么？', link: '/docs/zh/' },
+      { text: '快速开始', link: '/docs/zh/getting-started' },
+    ],
+  },
+  {
+    text: '指南',
+    items: [
+      { text: '在 CI 中审阅变更', link: '/docs/zh/guide/ci' },
+      { text: '配合 git 使用', link: '/docs/zh/guide/git' },
+      { text: '本体：OBO 与 OWL', link: '/docs/zh/guide/ontologies' },
+      { text: '没有稳定 id 的图', link: '/docs/zh/guide/llm-graphs' },
+      { text: '嵌入查看器', link: '/docs/zh/guide/viewer' },
+      { text: '在代码中使用引擎', link: '/docs/zh/guide/library' },
+      { text: '增量：应用与反向', link: '/docs/zh/guide/deltas' },
+    ],
+  },
+  {
+    text: '参考',
+    items: [
+      { text: '命令行', link: '/docs/zh/cli' },
+      { text: '格式', link: '/docs/zh/formats' },
+      { text: '查看器：交互与 API', link: '/docs/zh/interaction' },
+      { text: '增量格式', link: '/docs/zh/delta-format' },
+    ],
+  },
+  {
+    text: '原理（英文）',
+    items: [
+      { text: 'Architecture', link: '/docs/architecture' },
+      { text: 'Algorithms', link: '/docs/algorithms' },
+      { text: 'Visual language', link: '/docs/visual-language' },
+    ],
+  },
+  { text: '常见问题', link: '/docs/zh/faq' },
+];
+
 export default defineConfig({
   base,
   // Every page lives under docs/, so the landing page and the playground are plain root-relative
@@ -100,19 +145,81 @@ export default defineConfig({
         ] as const)
       : []),
   ],
+  locales: {
+    // VitePress matches a locale key anywhere in a page path (an unanchored /zh/), so `zh` covers
+    // the route docs/zh/… (see `rewrites`) and the source path zh/… that local search indexes by.
+    root: { label: 'English', lang: 'en-US', link: '/docs/' },
+    zh: {
+      label: '简体中文',
+      lang: 'zh-CN',
+      link: '/docs/zh/',
+      description: zhDescription,
+      themeConfig: {
+        nav: [
+          {
+            text: '指南',
+            link: '/docs/zh/getting-started',
+            activeMatch: '^/docs/zh/(getting-started|guide/)',
+          },
+          {
+            text: '参考',
+            link: '/docs/zh/cli',
+            activeMatch: '^/docs/zh/(cli|formats|interaction|delta-format)$',
+          },
+          { text: '在线试用', link: '/playground.html?lang=zh', target: '_self' },
+          {
+            text: `v${version}`,
+            items: [
+              { text: '更新日志', link: `${repoUrl}/blob/main/packages/cli/CHANGELOG.md` },
+              { text: '参与贡献', link: `${repoUrl}/blob/main/CONTRIBUTING.md` },
+            ],
+          },
+        ],
+        sidebar: zhSidebar,
+        outline: { level: [2, 3], label: '本页目录' },
+        editLink: { pattern: `${repoUrl}/edit/main/docs/:path`, text: '在 GitHub 上编辑此页' },
+        docFooter: { prev: '上一页', next: '下一页' },
+        footer: {
+          message: '基于 MIT 许可证发布。示例数据采用 CC0-1.0。',
+          copyright: '© 2026 kgdiff 贡献者',
+        },
+        returnToTopLabel: '回到顶部',
+        sidebarMenuLabel: '菜单',
+        darkModeSwitchLabel: '外观',
+        lightModeSwitchTitle: '切换到浅色模式',
+        darkModeSwitchTitle: '切换到深色模式',
+        langMenuLabel: '切换语言',
+      },
+    },
+  },
   transformPageData(page) {
-    const title = `${page.title} · kgdiff`;
+    const zh = page.filePath.startsWith('zh/');
+    const english = zh ? page.filePath.slice('zh/'.length) : page.filePath;
     page.frontmatter.head ??= [];
     page.frontmatter.head.push(
-      ['meta', { property: 'og:title', content: title }],
-      ['meta', { property: 'og:description', content: page.description || description }],
+      ['meta', { property: 'og:title', content: `${page.title} · kgdiff` }],
+      [
+        'meta',
+        {
+          property: 'og:description',
+          content: page.description || (zh ? zhDescription : description),
+        },
+      ],
+      ['meta', { property: 'og:locale', content: zh ? 'zh_CN' : 'en_US' }],
     );
     if (siteUrl) {
-      const path = page.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '.html');
+      const url = (file: string): string =>
+        `${siteUrl}docs/${file.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '.html')}`;
       page.frontmatter.head.push(
-        ['link', { rel: 'canonical', href: `${siteUrl}${path}` }],
-        ['meta', { property: 'og:url', content: `${siteUrl}${path}` }],
+        ['link', { rel: 'canonical', href: url(page.filePath) }],
+        ['meta', { property: 'og:url', content: url(page.filePath) }],
       );
+      if (existsSync(join(docs, 'zh', english))) {
+        page.frontmatter.head.push(
+          ['link', { rel: 'alternate', hreflang: 'en', href: url(english) }],
+          ['link', { rel: 'alternate', hreflang: 'zh-CN', href: url(`zh/${english}`) }],
+        );
+      }
     }
   },
   themeConfig: {
@@ -141,7 +248,48 @@ export default defineConfig({
     ],
     sidebar,
     outline: { level: [2, 3] },
-    search: { provider: 'local' },
+    search: {
+      provider: 'local',
+      options: {
+        miniSearch: {
+          options: {
+            // Chinese has no spaces between words: segment it (Intl.Segmenter, in Node and every
+            // evergreen browser) instead of splitting on whitespace. VitePress serializes this
+            // function to the client, so it must not use anything from outside its body.
+            tokenize: (text: string): string[] => {
+              const words: string[] = [];
+              const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+              for (const { segment, isWordLike } of segmenter.segment(text)) {
+                if (isWordLike) words.push(segment);
+              }
+              return words;
+            },
+          },
+        },
+        locales: {
+          zh: {
+            translations: {
+              button: { buttonText: '搜索', buttonAriaLabel: '搜索' },
+              modal: {
+                displayDetails: '显示详细列表',
+                resetButtonTitle: '清除查询',
+                backButtonTitle: '关闭搜索',
+                noResultsText: '没有找到结果',
+                footer: {
+                  selectText: '选择',
+                  selectKeyAriaLabel: '回车',
+                  navigateText: '切换',
+                  navigateUpKeyAriaLabel: '上箭头',
+                  navigateDownKeyAriaLabel: '下箭头',
+                  closeText: '关闭',
+                  closeKeyAriaLabel: 'Esc',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     socialLinks: [{ icon: 'github', link: repoUrl }],
     editLink: { pattern: `${repoUrl}/edit/main/docs/:path`, text: 'Edit this page on GitHub' },
     footer: {
