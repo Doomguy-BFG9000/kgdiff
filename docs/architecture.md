@@ -123,7 +123,7 @@ set (repeated triples count once). The same graph in any RDF syntax therefore gi
   remote `@context` without a loader is an error. Without a base IRI, relative IRIs stay
   relative (as in Turtle) instead of being dropped. Keys that expand to no IRI are dropped with
   a `jsonld-unmapped-terms` warning, `@direction` is not represented, named graphs are merged
-  (`named-graphs`), and documents nested deeper than 500 levels are rejected.
+  (`named-graphs`), and documents nested deeper than 200 levels are rejected.
 
 Predicates and types are compacted **only with well-known prefixes** (plus prefixes the caller
 passes in `rdf.prefixes`), so their identity never depends on the `@prefix` declarations of a

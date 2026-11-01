@@ -349,9 +349,9 @@ describe('JSON-LD input handling', () => {
       for (let i = 0; i < levels; i++) deep = { 'ex:p': deep };
       return { '@context': CONTEXT, ...deep };
     };
-    expect(jsonld(nested(400)).graph.edges).toHaveLength(400);
+    expect(jsonld(nested(190)).graph.edges).toHaveLength(190);
     const caught = catchError(() => jsonld(nested(5000)));
-    expect(caught.message).toBe('JSON-LD nested deeper than 500 levels is not supported.');
+    expect(caught.message).toBe('JSON-LD nested deeper than 200 levels is not supported.');
     expect(caught.details).toEqual({ format: 'jsonld' });
   });
 

@@ -168,10 +168,11 @@ const LANGUAGE_TAG = /^[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*$/;
 /** More remote contexts than this in one chain is a `context overflow`. */
 const MAX_REMOTE_CONTEXTS = 32;
 /**
- * Deepest nesting accepted. Expansion recurses (about three stack frames per level), so this
- * stays well below what the smallest engine stacks allow; real documents nest a few levels.
+ * Deepest nesting accepted. Expansion recurses (about three stack frames per level), and Node's
+ * default stack on Linux and Windows runs out between 400 and 500 levels, so this keeps about
+ * twice that margin; real documents nest a few levels.
  */
-export const MAX_JSON_LD_NESTING = 500;
+export const MAX_JSON_LD_NESTING = 200;
 
 const RDF_TYPE = `${RDF_NS}type`;
 const RDF_FIRST = `${RDF_NS}first`;
