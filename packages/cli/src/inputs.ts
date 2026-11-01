@@ -4,7 +4,7 @@
  */
 import { basename, resolve } from 'node:path';
 import { type FormatId, type ParseOptions, type ParseResult, parseGraph } from '@kgdiff/formats';
-import { STDIO } from './args.js';
+import { FORMATS, STDIO } from './args.js';
 import { CliError, isKgdiffError, systemErrorCode, systemReason } from './errors.js';
 import type { CliIO } from './io.js';
 import type { Env } from './style.js';
@@ -12,10 +12,12 @@ import { sanitize } from './width.js';
 
 export const FORMAT_NAMES: Readonly<Record<FormatId, string>> = {
   json: 'JSON',
+  jsonld: 'JSON-LD',
   turtle: 'Turtle',
   ntriples: 'N-Triples',
   nquads: 'N-Quads',
   trig: 'TriG',
+  rdfxml: 'RDF/XML',
   obo: 'OBO',
 };
 
@@ -131,7 +133,7 @@ export async function decodeText(bytes: Uint8Array, where: string, limit: number
     throw new CliError(
       'input',
       `${where} is not valid ${encoding.toUpperCase()} text.`,
-      'kgdiff reads text formats (JSON, Turtle, N-Triples, N-Quads, TriG, OBO). Convert binary formats first.',
+      `kgdiff reads text formats (${Object.values(FORMAT_NAMES).join(', ')}). Convert binary formats first.`,
       { cause: error },
     );
   }
@@ -251,7 +253,7 @@ export function parseInput(input: RawInput, options: GraphParseOptions): ParseRe
     const message = undetected
       ? `Cannot tell the format of ${where}.`
       : `${where}: ${error.message.replace(/\.$/, '')}.`;
-    const formats = 'json, turtle, ntriples, nquads, trig, obo';
+    const formats = FORMATS.filter((format) => format !== 'auto').join(', ');
     const hint = undetected
       ? `Pass ${options.formatFlag} <fmt> (${formats}) or use a known file extension.`
       : options.format === 'auto'

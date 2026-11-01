@@ -23,10 +23,12 @@ export const STDIO = '-';
 export const FORMATS: readonly (FormatId | 'auto')[] = [
   'auto',
   'json',
+  'jsonld',
   'turtle',
   'ntriples',
   'nquads',
   'trig',
+  'rdfxml',
   'obo',
 ];
 const MATCH_STRATEGIES = ['id', 'auto', 'similarity'] as const;

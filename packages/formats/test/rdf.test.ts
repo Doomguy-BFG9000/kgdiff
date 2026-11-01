@@ -560,6 +560,26 @@ describe('RDF options and input handling', () => {
     expect(nodeById(graph, 'https://example.org/a').attrs).toEqual({ 'ex:v': 1 });
   });
 
+  it('reads repeated triples as one before recognising structures (a graph is a set)', () => {
+    const restriction =
+      '_:r a owl:Restriction ; owl:onProperty obo:BFO_0000050 ; owl:someValuesFrom ex:d .';
+    const once = ttl(`ex:c rdfs:subClassOf _:r . ${restriction}`).graph;
+    const twice = ttl(`ex:c rdfs:subClassOf _:r . ${restriction} ${restriction}`).graph;
+    expect(twice).toEqual(once);
+    expect(once.edges).toEqual([
+      {
+        source: 'https://example.org/c',
+        target: 'https://example.org/d',
+        predicate: 'BFO:0000050',
+        label: 'BFO:0000050',
+      },
+    ]);
+    const values = Array.from({ length: 40 }, (_, i) => `"v${i % 20}"`).join(', ');
+    expect(
+      nodeById(ttl(`ex:a ex:v ${values} .`).graph, 'https://example.org/a').attrs?.['ex:v'],
+    ).toHaveLength(20);
+  });
+
   it('parses an empty document to an empty graph', () => {
     expect(parseGraph('', { format: 'ntriples' }).graph).toEqual({ nodes: [], edges: [] });
     expect(parseGraph('# only a comment\n', { format: 'turtle' }).graph).toEqual({
@@ -613,8 +633,8 @@ describe('RDF syntax errors', () => {
   });
 
   it('reject unknown format ids', () => {
-    expect(catchError(() => parseGraph('', { format: 'rdfxml' as never })).message).toMatch(
-      /^Unknown format "rdfxml"/,
+    expect(catchError(() => parseGraph('', { format: 'owlxml' as never })).message).toBe(
+      'Unknown format "owlxml". Expected auto, json, jsonld, turtle, ntriples, nquads, trig, rdfxml, obo.',
     );
   });
 });

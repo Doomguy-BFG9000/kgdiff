@@ -99,11 +99,11 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result, 'zh-CN').t
 
 ## 支持的格式
 
-| 类别 | 格式                                                                                                             |
-| ---- | ---------------------------------------------------------------------------------------------------------------- |
-| RDF  | Turtle、N-Triples、N-Quads、TriG：按语言偏好取标签，OWL 存在约束转为边，空白节点按内容和上下文识别，语句注解折叠 |
-| OBO  | OBO 1.4：同义词、`is_a`、relationship、带 `replaced_by` 的弃用、`alt_id`                                         |
-| JSON | kgdiff 原生格式、d3 / NetworkX 节点-连线格式、Cytoscape.js、AntV G6 v5、graphology、vis-network                  |
+| 类别 | 格式                                                                                                                                                                                                        |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RDF  | Turtle、N-Triples、N-Quads、TriG、RDF/XML（`.rdf`、Protégé / ROBOT 导出的 `.owl`）、JSON-LD 1.1（内联 context，不联网获取）：按语言偏好取标签，OWL 存在约束转为边，空白节点按内容和上下文识别，语句注解折叠 |
+| OBO  | OBO 1.4：同义词、`is_a`、relationship、带 `replaced_by` 的弃用、`alt_id`                                                                                                                                    |
+| JSON | kgdiff 原生格式、d3 / NetworkX 节点-连线格式、Cytoscape.js、AntV G6 v5、graphology、vis-network                                                                                                             |
 
 同一张图换一种序列化方式，比较结果仍然完全相同。映射规则见 [docs/architecture.md](docs/architecture.md#formats-mapping-conventions)。
 
@@ -146,7 +146,7 @@ pnpm tsx packages/cli/src/bin.ts examples/datasets/enterprise-kg/before.json \
 
 ## 路线图
 
-导出 KGCL 和 RDF Patch · 按变更组接受 / 拒绝并导出过滤后的补丁 · 三方合并与冲突可视化 · 面向超大图的 Web Worker 流水线和 WebGL 渲染器 · Cytoscape.js 与 Sigma.js 适配器 · RDF/XML 与 JSON-LD 输入 · Python 绑定。
+导出 KGCL 和 RDF Patch · 按变更组接受 / 拒绝并导出过滤后的补丁 · 三方合并与冲突可视化 · 面向超大图的 Web Worker 流水线和 WebGL 渲染器 · Cytoscape.js 与 Sigma.js 适配器 · Python 绑定。
 
 ## 许可证
 

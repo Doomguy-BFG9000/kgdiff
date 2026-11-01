@@ -191,7 +191,10 @@ describe('validation', () => {
     const error = usageError(['a', 'b', '--match', 'simlarity']);
     expect(error.message).toBe('Invalid value "simlarity" for --match.');
     expect(error.hint).toMatch(/Did you mean "similarity"\?/);
-    expect(usageError(['a', 'b', '-f', 'ttl']).hint).toMatch(/json, turtle/);
+    expect(usageError(['a', 'b', '-f', 'ttl']).hint).toBe(
+      'Expected one of: auto, json, jsonld, turtle, ntriples, nquads, trig, rdfxml, obo.',
+    );
+    expect(usageError(['a', 'b', '-f', 'owl']).message).toBe('Invalid value "owl" for --format.');
     expect(usageError(['a', 'b', '--color', 'yes']).hint).toMatch(/auto, always, never/);
     expect(usageError(['a', 'b', '--theme', 'blue']).message).toMatch(/--theme/);
     expect(usageError(['a', 'b', '--mode', 'side']).message).toMatch(/--mode/);

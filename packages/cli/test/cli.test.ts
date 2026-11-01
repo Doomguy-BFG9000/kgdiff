@@ -1,10 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { hashGraph, normalize } from '@kgdiff/core';
 import { parseGraph } from '@kgdiff/formats';
 import { describe, expect, it } from 'vitest';
 import { DIFF_OPTIONS } from '../src/args.js';
 import { stringWidth, stripAnsi } from '../src/index.js';
-import { CWD, dataset, run } from './helpers.js';
+import { CWD, dataset, REPO, run } from './helpers.js';
 
 const BEFORE = JSON.stringify({
   meta: { name: 'zoo', version: 'v1' },
@@ -504,7 +506,72 @@ describe('exit codes and errors', () => {
   });
 });
 
+describe('RDF/XML and JSON-LD inputs', () => {
+  const fixture = (name: string) =>
+    readFileSync(resolve(REPO, 'packages/formats/test/fixtures', name), 'utf8');
+  /** Hunks and warnings of a one-edit diff; file names are taken out of the warnings. */
+  const diffOf = async (name: string, from: string, to: string) => {
+    const extension = name.slice(name.indexOf('.'));
+    const text = fixture(name);
+    const r = await run([`a${extension}`, `b${extension}`, '--json'], {
+      files: { [`a${extension}`]: text, [`b${extension}`]: text.replace(from, to) },
+    });
+    expect(r.code, name).toBe(0);
+    const { hunks } = JSON.parse(r.stdout) as { hunks: unknown[] };
+    return { hunks: JSON.stringify(hunks), warnings: r.stderr.replaceAll(extension, '.*') };
+  };
+
+  it('diffs .owl and .jsonld files exactly like their Turtle twins', async () => {
+    const turtle = await diffOf('go-mini.ttl', '"mitochondrion"@en', '"mitochondria"@en');
+    expect(JSON.parse(turtle.hunks)).toHaveLength(1);
+    expect(await diffOf('go-mini.owl', '>mitochondrion<', '>mitochondria<')).toEqual(turtle);
+    expect(await diffOf('go-mini.jsonld', '"mitochondrion"', '"mitochondria"')).toEqual(turtle);
+  });
+
+  it('reads JSON-LD and RDF/XML from stdin by their content', async () => {
+    const r = await run(['go.owl', '-', '--exit-code', '-q'], {
+      files: { 'go.owl': fixture('go-mini.owl') },
+      stdin: fixture('go-mini.jsonld'),
+    });
+    expect(r.code).toBe(0);
+  });
+
+  it('explains that remote JSON-LD contexts are never fetched', async () => {
+    const remote = '{"@context": "https://schema.org/", "@id": "https://ex.org/a", "name": "A"}';
+    const r = await run(['a.jsonld', 'b.jsonld'], {
+      files: { 'a.jsonld': remote, 'b.jsonld': remote },
+    });
+    expect(r.code).toBe(2);
+    expect(r.stderr).toMatch(
+      /^error: "a\.jsonld": Invalid JSON-LD: loading remote context failed: "https:\/\/schema\.org\/" was not loaded, as kgdiff never fetches documents; inline the context/,
+    );
+  });
+
+  it('rejects OWL/XML saved as .owl with a conversion hint', async () => {
+    const r = await run(['before.json', 'pizza.owl'], {
+      files: {
+        ...files,
+        'pizza.owl':
+          '<?xml version="1.0"?>\n<Ontology xmlns="http://www.w3.org/2002/07/owl#" ontologyIRI="http://ex.org/pizza"/>',
+      },
+    });
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain('OWL/XML is not supported');
+    expect(r.stderr).toContain('robot convert');
+  });
+});
+
 describe('help and version', () => {
+  it('lists every input format and its extensions', async () => {
+    const r = await run(['--help']);
+    const help = r.stdout.replace(/\s+/g, ' ');
+    expect(help).toContain('RDF/XML (.rdf, .owl)');
+    expect(help).toContain('JSON-LD (.jsonld)');
+    expect(help).toContain(
+      'Input format: auto, json, jsonld, turtle, ntriples, nquads, trig, rdfxml, obo',
+    );
+  });
+
   it('prints the version', async () => {
     const r = await run(['--version']);
     expect(r.stdout).toMatch(/^kgdiff \d+\.\d+\.\d+\n$/);

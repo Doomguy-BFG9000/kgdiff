@@ -42,7 +42,7 @@ re-run force layout so everything jumps. kgdiff is built around four ideas:
 
 ```
 @kgdiff/core       diff engine: normalize → match → classify → hunk → delta     (no deps)
-@kgdiff/formats    RDF (Turtle/N-Triples/N-Quads/TriG), OBO, JSON dialects → GraphInput   (n3)
+@kgdiff/formats    RDF (Turtle, N-Triples, N-Quads, TriG, RDF/XML, JSON-LD), OBO, JSON → GraphInput   (n3)
 @kgdiff/layout     stable union layout, label-aware, deterministic                (d3-force)
 @kgdiff/scene      diff semantics → visual primitives: tokens, encodings, replay, focus
 @kgdiff/renderer   Canvas 2D engine: camera, LOD, labels, picking, swipe, minimap (DOM)
@@ -95,21 +95,41 @@ The full, documented signatures live in each package's `src/index.ts` (and `src/
 
 All parsers produce the same `GraphInput` shape:
 
-| Concept    | RDF                                                                                  | OBO                                      | JSON                                 |
-| ---------- | ------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------ |
-| node id    | IRI; OBO PURLs → CURIE (`GO:0008150`); blank nodes → hashed `_:b…` (see below)       | `id:`                                    | `id` / `key` / `data.id`             |
-| label      | `rdfs:label`, `skos:prefLabel`, `schema:name`, … (language preference)               | `name:`                                  | `label` / `name` / `title`           |
-| types      | `rdf:type` (not edges by default)                                                    | stanza type (`Term`, `Instance`)         | `type` / `types` / `category` / …    |
-| aliases    | `skos:altLabel`, oboInOwl synonyms                                                   | `synonym:`                               | `aliases` / `synonyms`               |
-| attrs      | other literal-valued properties (compact predicate → value; repeated → sorted array) | `def`, `namespace`, `xref`, `comment`, … | remaining fields                     |
-| edges      | IRI-valued properties; OWL existential restrictions → `C –R→ D`                      | `is_a`, `relationship:`                  | `edges` / `links` / `elements.edges` |
-| deprecated | `owl:deprecated true`                                                                | `is_obsolete: true`                      | `deprecated`                         |
-| replacedBy | `IAO:0100001` (term replaced by)                                                     | `replaced_by:`                           | `replacedBy`                         |
+| Concept    | RDF (Turtle, N-Triples, N-Quads, TriG, RDF/XML, JSON-LD)                                                                      | OBO                                      | JSON                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------ |
+| node id    | IRI; OBO PURLs → CURIE (`GO:0008150`); blank nodes (`[]`, `rdf:nodeID`, JSON-LD `_:` or no `@id`) → hashed `_:b…` (see below) | `id:`                                    | `id` / `key` / `data.id`             |
+| label      | `rdfs:label`, `skos:prefLabel`, `schema:name`, … (language preference over `@en`, `xml:lang`, `@language`)                    | `name:`                                  | `label` / `name` / `title`           |
+| types      | `rdf:type`, typed node elements, `@type` (not edges by default)                                                               | stanza type (`Term`, `Instance`)         | `type` / `types` / `category` / …    |
+| aliases    | `skos:altLabel`, oboInOwl synonyms                                                                                            | `synonym:`                               | `aliases` / `synonyms`               |
+| attrs      | other literal-valued properties (compact predicate → value; repeated → sorted array)                                          | `def`, `namespace`, `xref`, `comment`, … | remaining fields                     |
+| edges      | IRI-valued properties (`rdf:resource`, JSON-LD `@id` values and `@reverse`); OWL existential restrictions → `C –R→ D`         | `is_a`, `relationship:`                  | `edges` / `links` / `elements.edges` |
+| deprecated | `owl:deprecated true`                                                                                                         | `is_obsolete: true`                      | `deprecated`                         |
+| replacedBy | `IAO:0100001` (term replaced by)                                                                                              | `replaced_by:`                           | `replacedBy`                         |
+
+Every RDF syntax is first read into RDF quads — Turtle, N-Triples, N-Quads and TriG by n3,
+RDF/XML and JSON-LD by kgdiff's own synchronous readers (`rdfxml.ts` on a small XML parser,
+`jsonld.ts`) — and one mapper (`rdf.ts`) turns quads into `GraphInput`, treating the graph as a
+set (repeated triples count once). The same graph in any RDF syntax therefore gives the same
+`GraphInput`, `hashGraph` and diff.
+
+- **RDF/XML** follows the whole RDF 1.1 XML Syntax: `rdf:about` / `rdf:ID` / `rdf:nodeID`,
+  typed node elements, property attributes, `rdf:li`, `xml:base` and `xml:lang` scoping,
+  `rdf:parseType` `Resource`, `Collection` and `Literal` (an exclusive-canonical XML literal),
+  and reification by `rdf:ID`. Entities declared in the DTD (as older Protégé versions write
+  them) are expanded; external entities and DTDs are never loaded, and expansion is capped.
+  An OWL/XML or GraphML document read as RDF/XML fails with a conversion hint.
+- **JSON-LD** 1.1 is expanded and converted to RDF per the W3C algorithms. Contexts are inline
+  or come from the caller's synchronous `jsonld.documentLoader`; nothing is fetched, so a
+  remote `@context` without a loader is an error. Without a base IRI, relative IRIs stay
+  relative (as in Turtle) instead of being dropped. Keys that expand to no IRI are dropped with
+  a `jsonld-unmapped-terms` warning, `@direction` is not represented, named graphs are merged
+  (`named-graphs`), and documents nested deeper than 500 levels are rejected.
 
 Predicates and types are compacted **only with well-known prefixes** (plus prefixes the caller
 passes in `rdf.prefixes`), so their identity never depends on the `@prefix` declarations of a
 particular file: the same graph serialized as Turtle or as N-Triples diffs as identical.
-Prefixes declared in a file are returned in `ParseResult.prefixes` for display only.
+Prefixes declared in a file (`@prefix`, `xmlns:`, JSON-LD prefix terms) are returned in
+`ParseResult.prefixes` for display only.
 
 Edge `label`s derive from the predicate alone (`rdfs:subClassOf` → `subClassOf`, `part_of` →
 `part of`; opaque ids such as `BFO:0000050` stay whole), so a property declaration appearing or

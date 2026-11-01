@@ -1,0 +1,97 @@
+{
+  "@context": {
+    "obo": "http://purl.obolibrary.org/obo/",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "oboInOwl": "http://www.geneontology.org/formats/oboInOwl#",
+    "label": "rdfs:label",
+    "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
+    "equivalentClass": { "@id": "owl:equivalentClass", "@type": "@id" },
+    "intersectionOf": { "@id": "owl:intersectionOf", "@type": "@id", "@container": "@list" },
+    "onProperty": { "@id": "owl:onProperty", "@type": "@id" },
+    "someValuesFrom": { "@id": "owl:someValuesFrom", "@type": "@id" }
+  },
+  "@graph": [
+    {
+      "@id": "http://purl.obolibrary.org/obo/go.owl",
+      "@type": "owl:Ontology",
+      "owl:versionIRI": { "@id": "http://purl.obolibrary.org/obo/go/releases/2024-01-17/go.owl" },
+      "owl:versionInfo": "2024-01-17",
+      "oboInOwl:default-namespace": "gene_ontology"
+    },
+    { "@id": "obo:IAO_0000115", "@type": "owl:AnnotationProperty", "label": "definition" },
+    {
+      "@id": "obo:BFO_0000050",
+      "@type": "owl:ObjectProperty",
+      "label": { "@value": "part of", "@language": "en" },
+      "oboInOwl:shorthand": "part_of"
+    },
+    {
+      "@id": "obo:GO_0008150",
+      "@type": "owl:Class",
+      "label": "biological_process",
+      "obo:IAO_0000115": "A biological process is the execution of a genetically-encoded biological module or program.",
+      "oboInOwl:hasExactSynonym": ["biological process", "physiological process"],
+      "oboInOwl:hasAlternativeId": ["GO:0000004", "GO:0007582"],
+      "oboInOwl:hasOBONamespace": "biological_process",
+      "oboInOwl:inSubset": { "@id": "obo:go#goslim_generic" },
+      "rdfs:isDefinedBy": { "@id": "http://purl.obolibrary.org/obo/go.owl" }
+    },
+    {
+      "@id": "obo:GO_0005739",
+      "@type": "owl:Class",
+      "label": { "@value": "mitochondrion", "@language": "en" },
+      "subClassOf": [
+        "obo:GO_0043231",
+        {
+          "@type": "owl:Restriction",
+          "onProperty": "obo:BFO_0000050",
+          "someValuesFrom": "obo:GO_0005737"
+        }
+      ]
+    },
+    {
+      "@id": "obo:GO_0031966",
+      "@type": "owl:Class",
+      "label": { "@value": "mitochondrial membrane", "@language": "en" },
+      "equivalentClass": {
+        "@type": "owl:Class",
+        "intersectionOf": [
+          "obo:GO_0016020",
+          {
+            "@type": "owl:Restriction",
+            "onProperty": "obo:BFO_0000050",
+            "someValuesFrom": "obo:GO_0005740"
+          }
+        ]
+      },
+      "subClassOf": "obo:GO_0031090"
+    },
+    {
+      "@id": "obo:GO_0000005",
+      "@type": "owl:Class",
+      "label": "obsolete ribosomal chaperone activity",
+      "owl:deprecated": true,
+      "obo:IAO_0100001": { "@id": "obo:GO_0042254" },
+      "oboInOwl:consider": ["GO:0042254", "GO:0044183"]
+    },
+    {
+      "@type": "owl:Axiom",
+      "owl:annotatedSource": { "@id": "obo:GO_0008150" },
+      "owl:annotatedProperty": { "@id": "obo:IAO_0000115" },
+      "owl:annotatedTarget": "A biological process is the execution of a genetically-encoded biological module or program.",
+      "oboInOwl:hasDbXref": "GOC:pdt"
+    },
+    {
+      "@type": "owl:Axiom",
+      "owl:annotatedSource": { "@id": "obo:GO_0005739" },
+      "owl:annotatedProperty": { "@id": "rdfs:subClassOf" },
+      "owl:annotatedTarget": {
+        "@type": "owl:Restriction",
+        "onProperty": "obo:BFO_0000050",
+        "someValuesFrom": "obo:GO_0005737"
+      },
+      "oboInOwl:source": "GOC:mah"
+    }
+  ]
+}

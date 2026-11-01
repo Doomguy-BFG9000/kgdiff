@@ -27,8 +27,9 @@ const MAIN: readonly Section[] = [
       ['kgdiff apply <graph> <delta> [-o <file>] [--no-strict]'],
     ],
     note:
-      'Graphs: JSON (.json), Turtle (.ttl), N-Triples (.nt), N-Quads (.nq), TriG (.trig), OBO (.obo); ' +
-      'gzip-compressed files work too. Use - to read one side from stdin.',
+      'Graphs: JSON (.json), JSON-LD (.jsonld), Turtle (.ttl), N-Triples (.nt), N-Quads (.nq), ' +
+      'TriG (.trig), RDF/XML (.rdf, .owl), OBO (.obo); gzip-compressed files work too. ' +
+      'Use - to read one side from stdin.',
   },
   {
     title: 'Output',
@@ -64,7 +65,7 @@ const MAIN: readonly Section[] = [
     entries: [
       {
         flags: '-f, --format <fmt>',
-        text: 'Input format: auto, json, turtle, ntriples, nquads, trig, obo',
+        text: 'Input format: auto, json, jsonld, turtle, ntriples, nquads, trig, rdfxml, obo',
         default: 'auto',
       },
       { flags: '--before-format <fmt>', text: 'Format of <before> only' },

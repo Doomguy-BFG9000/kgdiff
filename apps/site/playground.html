@@ -6,7 +6,7 @@
     <title>Playground · kgdiff</title>
     <meta
       name="description"
-      content="Diff two knowledge graph files in your browser: Turtle, N-Triples, N-Quads, TriG, OBO or JSON. Semantic changes on one stable layout, replay, review, and a self-contained HTML report. Nothing is uploaded."
+      content="Diff two knowledge graph files in your browser: Turtle, N-Triples, N-Quads, TriG, RDF/XML, JSON-LD, OBO or JSON. Semantic changes on one stable layout, replay, review, and a self-contained HTML report. Nothing is uploaded."
     />
     <meta name="theme-color" content="%KGDIFF_THEME_COLOR%" />
     <meta name="color-scheme" content="dark light" />
@@ -107,8 +107,8 @@
           <span class="slot-name" id="name-after">—</span>
           <svg class="i slot-icon" aria-hidden="true"><use href="#i-upload" /></svg>
         </button>
-        <input type="file" id="file-before" class="sr-only" tabindex="-1" aria-hidden="true" accept=".ttl,.turtle,.nt,.nq,.trig,.obo,.json,.gz,application/json,text/turtle,application/n-triples,application/n-quads,application/trig" />
-        <input type="file" id="file-after" class="sr-only" tabindex="-1" aria-hidden="true" accept=".ttl,.turtle,.nt,.nq,.trig,.obo,.json,.gz,application/json,text/turtle,application/n-triples,application/n-quads,application/trig" />
+        <input type="file" id="file-before" class="sr-only" tabindex="-1" aria-hidden="true" accept=".ttl,.turtle,.nt,.nq,.trig,.rdf,.owl,.jsonld,.obo,.json,.gz,application/json,application/ld+json,application/rdf+xml,text/turtle,application/n-triples,application/n-quads,application/trig" />
+        <input type="file" id="file-after" class="sr-only" tabindex="-1" aria-hidden="true" accept=".ttl,.turtle,.nt,.nq,.trig,.rdf,.owl,.jsonld,.obo,.json,.gz,application/json,application/ld+json,application/rdf+xml,text/turtle,application/n-triples,application/n-quads,application/trig" />
       </fieldset>
 
       <span class="pg-status" id="status" role="status" aria-live="polite"></span>
@@ -143,7 +143,7 @@
           <h2 id="error-title" data-i18n="pg.errorTitle">Couldn’t read the file</h2>
           <p class="pg-error-msg" id="error-msg"></p>
           <p class="pg-error-where" id="error-where"></p>
-          <p class="pg-error-hint" data-i18n="pg.errorHint">kgdiff reads Turtle, N-Triples, N-Quads, TriG, OBO 1.4 and JSON (kgdiff, Cytoscape.js, d3 / NetworkX, AntV G6, graphology, vis-network), optionally gzip-compressed.</p>
+          <p class="pg-error-hint" data-i18n="pg.errorHint">kgdiff reads Turtle, N-Triples, N-Quads, TriG, RDF/XML (.rdf, .owl), JSON-LD with inline contexts, OBO 1.4 and JSON (kgdiff, Cytoscape.js, d3 / NetworkX, AntV G6, graphology, vis-network), optionally gzip-compressed.</p>
           <div class="pg-error-actions">
             <button class="btn btn-primary btn-sm" type="button" id="error-retry" data-i18n="pg.chooseOther">Choose another file</button>
             <button class="btn btn-ghost btn-sm" type="button" id="error-reset" data-i18n="pg.backToExample">Back to the example</button>

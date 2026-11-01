@@ -383,10 +383,16 @@ describe('JSON errors', () => {
     );
   });
 
-  it('rejects JSON-LD with a conversion hint', () => {
-    expect(catchError(() => json({ '@context': {}, '@graph': [] })).message).toMatch(
-      /JSON-LD is not supported/,
-    );
+  it('hands JSON-LD to the JSON-LD reader', () => {
+    const result = json({
+      '@context': { ex: 'https://example.org/' },
+      '@graph': [{ '@id': 'ex:a', 'ex:p': 1 }],
+    });
+    expect(result.format).toBe('jsonld');
+    expect(result.dialect).toBeUndefined();
+    expect(result.graph.nodes).toEqual([
+      { id: 'https://example.org/a', attrs: { 'https://example.org/p': 1 } },
+    ]);
   });
 
   it('names the element that has no id, source or target', () => {

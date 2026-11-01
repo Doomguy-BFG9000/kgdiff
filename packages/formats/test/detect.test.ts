@@ -15,22 +15,48 @@ describe('detectFormat by file name', () => {
     ['GO-BASIC.OBO', 'obo'],
     ['https://example.org/data/go.obo?ref=main#top', 'obo'],
     ['nested/dir/v2.People.TTL', 'turtle'],
+    ['people.rdf', 'rdfxml'],
+    ['go.owl', 'rdfxml'],
+    ['https://purl.obolibrary.org/obo/go.OWL?download', 'rdfxml'],
+    ['people.jsonld', 'jsonld'],
   ] satisfies [string, FormatId][])('%s → %s', (filename, format) => {
     expect(detectFormat('', filename)).toBe(format);
   });
 
   it('trusts the extension over the content', () => {
     expect(detectFormat('{"nodes": []}', 'data.ttl')).toBe('turtle');
+    expect(detectFormat(fixture('people.ttl'), 'people.rdf')).toBe('rdfxml');
   });
 
   it('falls back to content sniffing for unknown extensions', () => {
     expect(detectFormat(fixture('go-mini.obo'), 'go.txt')).toBe('obo');
+    expect(detectFormat(fixture('go-mini.owl'), 'go.xml')).toBe('rdfxml');
+  });
+
+  it('lets the content decide for .owl, which Protégé uses for every OWL syntax', () => {
+    expect(detectFormat(fixture('go-mini.owl'), 'go.owl')).toBe('rdfxml');
     expect(detectFormat(fixture('people.ttl'), 'people.owl')).toBe('turtle');
+    expect(detectFormat('garbage that is no known syntax', 'broken.owl')).toBe('rdfxml');
+    expect(
+      catchError(() =>
+        detectFormat('<Ontology xmlns="http://www.w3.org/2002/07/owl#"/>', 'pizza.owl'),
+      ).message,
+    ).toMatch(/^OWL\/XML is not supported \("pizza\.owl"\)\. Convert it to RDF\/XML or Turtle/);
+    expect(
+      catchError(() =>
+        detectFormat('Prefix(:=<http://ex.org/>)\nOntology(<http://ex.org/o>)', 'f.owl'),
+      ).message,
+    ).toMatch(/OWL Functional Syntax is not supported/);
+  });
+
+  it('reads JSON-LD in a .json file as jsonld', () => {
+    expect(detectFormat(fixture('people.jsonld'), 'people.json')).toBe('jsonld');
+    expect(detectFormat(fixture('kgdiff.json'), 'graph.json')).toBe('json');
   });
 
   it('knows every format id', () => {
     expect(Object.keys(FORMAT_EXTENSIONS).sort()).toEqual(
-      ['json', 'nquads', 'ntriples', 'obo', 'trig', 'turtle'].sort(),
+      ['json', 'jsonld', 'nquads', 'ntriples', 'obo', 'rdfxml', 'trig', 'turtle'].sort(),
     );
   });
 });
@@ -45,8 +71,42 @@ describe('detectFormat by content', () => {
     ['people.nt', 'ntriples'],
     ['people.nq', 'nquads'],
     ['people.trig', 'trig'],
+    ['people.rdf', 'rdfxml'],
+    ['go-mini.owl', 'rdfxml'],
+    ['people.jsonld', 'jsonld'],
+    ['go-mini.jsonld', 'jsonld'],
   ] satisfies [string, FormatId][])('%s → %s', (name, format) => {
     expect(detectFormat(fixture(name))).toBe(format);
+  });
+
+  it('recognises RDF/XML by its root element, with or without a prolog', () => {
+    const rdf = 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"';
+    expect(detectFormat(`<rdf:RDF ${rdf}></rdf:RDF>`)).toBe('rdfxml');
+    expect(
+      detectFormat(`<!-- c -->\n<!DOCTYPE rdf:RDF [<!ENTITY a "b>">]>\n<rdf:RDF ${rdf}/>`),
+    ).toBe('rdfxml');
+    expect(detectFormat(`<ex:Thing xmlns:ex="urn:x" ${rdf} rdf:about="urn:a"/>`)).toBe('rdfxml');
+    expect(
+      detectFormat(
+        `<owl:Ontology xmlns:owl="http://www.w3.org/2002/07/owl#" ${rdf} rdf:about=""/>`,
+      ),
+    ).toBe('rdfxml');
+  });
+
+  it('keeps Turtle and N-Triples that start with an IRI apart from XML', () => {
+    expect(detectFormat('<http://a> <http://b> <http://c> .')).toBe('ntriples');
+    expect(detectFormat('<a> <b> <c> .')).toBe('ntriples');
+    expect(detectFormat('<a> <b> "x" ;\n  <c> "y" .')).toBe('turtle');
+    expect(detectFormat('<urn:x:a> <urn:x:b> "v" ;\n <urn:x:c> 1 .')).toBe('turtle');
+  });
+
+  it('recognises JSON-LD by a top-level keyword, wherever it is', () => {
+    expect(detectFormat('{"@context": {}, "@graph": []}')).toBe('jsonld');
+    expect(detectFormat('{"name": "x", "nested": {"@id": "no"}, "@id": "http://ex.org/a"}')).toBe(
+      'jsonld',
+    );
+    expect(detectFormat('[{"@id": "http://ex.org/a", "http://ex.org/p": 1}]')).toBe('jsonld');
+    expect(detectFormat('{"nodes": [{"id": "@context"}], "edges": []}')).toBe('json');
   });
 
   it('recognises JSON after a byte order mark and whitespace', () => {
@@ -118,14 +178,39 @@ describe('detectFormat by content', () => {
 });
 
 describe('detectFormat errors', () => {
-  it('rejects RDF/XML and OWL/XML with a conversion hint', () => {
-    const error = catchError(() =>
-      detectFormat('<?xml version="1.0"?>\n<rdf:RDF xmlns:rdf="…"></rdf:RDF>', 'go.owl'),
+  it('rejects OWL/XML, GraphML, GEXF and other XML with a conversion hint', () => {
+    const owlXml = catchError(() =>
+      detectFormat(
+        '<?xml version="1.0"?>\n<Ontology xmlns="http://www.w3.org/2002/07/owl#" ontologyIRI="http://ex.org/o">',
+        'pizza.owx',
+      ),
     );
-    expect(error.code).toBe('invalid-input');
-    expect(error.message).toMatch(/RDF\/XML.*not supported.*"go\.owl".*Turtle/s);
-    expect(catchError(() => detectFormat('<rdf:RDF\n xmlns:rdf="x">')).message).toMatch(/RDF\/XML/);
-    expect(catchError(() => detectFormat('<Ontology xmlns="x">')).message).toMatch(/OWL\/XML/);
+    expect(owlXml.code).toBe('invalid-input');
+    expect(owlXml.message).toBe(
+      'OWL/XML is not supported ("pizza.owx"). Convert it to RDF/XML or Turtle first (e.g. `robot convert --input onto.owx --output onto.owl`).',
+    );
+    expect(owlXml.details).toEqual({ filename: 'pizza.owx' });
+    expect(catchError(() => detectFormat('<Ontology xmlns="x">')).message).toMatch(/^OWL\/XML/);
+    // OWL API declares xmlns:rdf in OWL/XML too; only rdf: attributes make a node element.
+    expect(
+      catchError(() =>
+        detectFormat(
+          '<Ontology xmlns="http://www.w3.org/2002/07/owl#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ontologyIRI="http://ex.org/o">',
+        ),
+      ).message,
+    ).toMatch(/^OWL\/XML is not supported/);
+    const graphml = catchError(() =>
+      detectFormat(
+        '<?xml version="1.0"?>\n<graphml xmlns="http://graphml.graphdrawing.org/xmlns">',
+      ),
+    );
+    expect(graphml.message).toMatch(/^GraphML is not supported\. Export it as JSON first/);
+    expect(
+      catchError(() => detectFormat('<gexf xmlns="http://gexf.net/1.3" version="1.3">')).message,
+    ).toMatch(/^GEXF is not supported/);
+    expect(
+      catchError(() => detectFormat('<svg xmlns="http://www.w3.org/2000/svg"></svg>')).message,
+    ).toMatch(/^XML with root element <svg> is not supported\. kgdiff reads RDF\/XML/);
   });
 
   it('rejects OWL Functional and Manchester syntax', () => {
@@ -141,7 +226,9 @@ describe('detectFormat errors', () => {
   it('asks for an explicit format when nothing matches', () => {
     const error = catchError(() => detectFormat('just some words', 'notes.txt'));
     expect(error.code).toBe('invalid-input');
-    expect(error.message).toMatch(/Could not detect the format of "notes\.txt".*Pass `format`/);
+    expect(error.message).toBe(
+      'Could not detect the format of "notes.txt". Pass `format` explicitly (json, jsonld, turtle, ntriples, nquads, trig, rdfxml, obo).',
+    );
     expect(error.details).toEqual({ filename: 'notes.txt' });
   });
 });

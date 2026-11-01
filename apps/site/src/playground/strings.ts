@@ -18,7 +18,7 @@ export const ZH: Dictionary = {
   'pg.download': '报告',
   'pg.viewer': '差异查看器',
   'pg.errorHint':
-    'kgdiff 支持 Turtle、N-Triples、N-Quads、TriG、OBO 1.4 以及 JSON（kgdiff、Cytoscape.js、d3 / NetworkX、AntV G6、graphology、vis-network），也可以是 gzip 压缩文件。',
+    'kgdiff 支持 Turtle、N-Triples、N-Quads、TriG、RDF/XML（.rdf、.owl）、内联 context 的 JSON-LD、OBO 1.4 以及 JSON（kgdiff、Cytoscape.js、d3 / NetworkX、AntV G6、graphology、vis-network），也可以是 gzip 压缩文件。',
   'pg.errorTitle': '无法读取文件',
   'pg.chooseOther': '选择其他文件',
   'pg.backToExample': '回到示例',
@@ -50,7 +50,7 @@ export const TEXT = {
   en: {
     docTitle: 'Playground · kgdiff',
     docDescription:
-      'Diff two knowledge graph files in your browser: Turtle, N-Triples, N-Quads, TriG, OBO or JSON. Semantic changes on one stable layout, replay, review, and a self-contained HTML report. Nothing is uploaded.',
+      'Diff two knowledge graph files in your browser: Turtle, N-Triples, N-Quads, TriG, RDF/XML, JSON-LD, OBO or JSON. Semantic changes on one stable layout, replay, review, and a self-contained HTML report. Nothing is uploaded.',
     localFiles: 'Your files',
     examples: 'Examples',
     chooseFile: 'Choose the “{side}” file',
@@ -84,7 +84,7 @@ export const TEXT = {
   'zh-CN': {
     docTitle: 'Playground · kgdiff',
     docDescription:
-      '在浏览器中比较两个知识图谱文件：Turtle、N-Triples、N-Quads、TriG、OBO 或 JSON。语义化变化、稳定布局、回放与审阅，并可导出自包含的 HTML 报告。不会上传任何数据。',
+      '在浏览器中比较两个知识图谱文件：Turtle、N-Triples、N-Quads、TriG、RDF/XML、JSON-LD、OBO 或 JSON。语义化变化、稳定布局、回放与审阅，并可导出自包含的 HTML 报告。不会上传任何数据。',
     localFiles: '你的文件',
     examples: '示例',
     chooseFile: '选择「{side}」文件',

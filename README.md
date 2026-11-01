@@ -112,11 +112,11 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result, 'en').titl
 
 ## Formats
 
-| Family | Formats                                                                                                                                                                              |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| RDF    | Turtle, N-Triples, N-Quads, TriG — labels by language preference, OWL existential restrictions as edges, blank nodes identified by content and context, statement annotations folded |
-| OBO    | OBO 1.4 — synonyms, `is_a`, relationships, obsoletion with `replaced_by`, `alt_id`                                                                                                   |
-| JSON   | kgdiff native, d3 / NetworkX node-link, Cytoscape.js, AntV G6 v5, graphology, vis-network                                                                                            |
+| Family | Formats                                                                                                                                                                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RDF    | Turtle, N-Triples, N-Quads, TriG, RDF/XML (`.rdf`, `.owl` from Protégé / ROBOT), JSON-LD 1.1 (inline contexts; nothing is fetched) — labels by language preference, OWL existential restrictions as edges, blank nodes identified by content and context, statement annotations folded |
+| OBO    | OBO 1.4 — synonyms, `is_a`, relationships, obsoletion with `replaced_by`, `alt_id`                                                                                                                                                                                                     |
+| JSON   | kgdiff native, d3 / NetworkX node-link, Cytoscape.js, AntV G6 v5, graphology, vis-network                                                                                                                                                                                              |
 
 The same graph in different serializations diffs as identical. Mapping conventions:
 [docs/architecture.md](docs/architecture.md#formats-mapping-conventions).
@@ -169,7 +169,7 @@ Start with [docs/architecture.md](docs/architecture.md) and [CONTRIBUTING.md](CO
 
 KGCL and RDF Patch export · accept / reject per hunk with filtered delta export · three-way merge
 with conflict visualization · Web Worker pipeline and a WebGL renderer for very large graphs ·
-Cytoscape.js and Sigma.js adapters · RDF/XML and JSON-LD input · Python bindings.
+Cytoscape.js and Sigma.js adapters · Python bindings.
 
 ## License
 
