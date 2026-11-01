@@ -1,0 +1,160 @@
+{
+  "$schema": "../expected.schema.json",
+  "dataset": "enterprise-kg",
+  "notes": [
+    "Node ids are stable catalog codes, so every change is detected with exact-id matching (strategy auto finds no similarity pairs: the only leftovers, SPOT_CHECK and BENEFICIAL_OWNER, share no label tokens).",
+    "LEGAL_PERSON_REP stays in v13 as a deprecated stub (replacedBy LEGAL_REP; LEGAL_REP also lists it in replaces), so it is a modified merge source rather than a removed node; both nodes also carry a replacement facet for the new links. It keeps its is_a, so it has no move.",
+    "Edge triples are [source, predicate, target] in union-id space (after ids for matched nodes)."
+  ],
+  "counts": { "before": { "nodes": 74, "edges": 171 }, "after": { "nodes": 74, "edges": 171 } },
+  "nodes": {
+    "added": ["BENEFICIAL_OWNER"],
+    "removed": ["SPOT_CHECK"],
+    "modified": [
+      "CONSUMPTION_RESTRICTION",
+      "DISHONEST_EXECUTEE",
+      "ENTERPRISE",
+      "EQUITY_PLEDGE",
+      "EXEC_TENURE",
+      "LEGAL_PERSON_REP",
+      "LEGAL_REP",
+      "SINO_FOREIGN_JV",
+      "TRADEMARK"
+    ]
+  },
+  "edges": {
+    "added": [
+      ["ACTUAL_CONTROL", "穿透依据", "INVESTMENT"],
+      ["BENEFICIAL_OWNER", "is_a", "DOM_EQUITY"],
+      ["BENEFICIAL_OWNER", "受益于", "ENTERPRISE"],
+      ["BENEFICIAL_OWNER", "对应主体", "PERSON"]
+    ],
+    "removed": [
+      ["LEGAL_PERSON_REP", "代表", "ENTERPRISE"],
+      ["LEGAL_PERSON_REP", "对应主体", "PERSON"],
+      ["SPOT_CHECK", "is_a", "DOM_RISK"],
+      ["SPOT_CHECK", "涉及", "ENTERPRISE"]
+    ],
+    "modified": [
+      ["ENTERPRISE", "报送", "ANNUAL_REPORT"],
+      ["EQUITY_PLEDGE", "is_a", "DOM_EQUITY"],
+      ["LEGAL_REP", "代表", "FARMER_COOP"],
+      ["TOP10_HOLDERS", "持股", "LISTED_CO"]
+    ]
+  },
+  "matches": [],
+  "rekeys": [],
+  "merges": [{ "target": "LEGAL_REP", "sources": ["LEGAL_PERSON_REP"], "via": "hint" }],
+  "splits": [],
+  "renames": [{ "id": "EXEC_TENURE", "from": "高管任职", "to": "董监高任职" }],
+  "moves": [{ "id": "EQUITY_PLEDGE", "predicate": "is_a", "from": ["DOM_RISK"], "to": ["DOM_EQUITY"] }],
+  "deprecations": [
+    { "id": "LEGAL_PERSON_REP", "deprecated": true },
+    { "id": "SINO_FOREIGN_JV", "deprecated": true }
+  ],
+  "replacements": [
+    {
+      "id": "LEGAL_PERSON_REP",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["LEGAL_REP"], "removed": [] }
+    },
+    {
+      "id": "LEGAL_REP",
+      "replaces": { "added": ["LEGAL_PERSON_REP"], "removed": [] },
+      "replacedBy": { "added": [], "removed": [] }
+    }
+  ],
+  "typeChanges": [{ "id": "CONSUMPTION_RESTRICTION", "added": ["措施"], "removed": ["名单"] }],
+  "aliasChanges": [
+    { "id": "DISHONEST_EXECUTEE", "added": ["失信人"], "removed": ["老赖"] },
+    { "id": "EXEC_TENURE", "added": ["高管任职"], "removed": [] },
+    { "id": "LEGAL_REP", "added": ["法人代表"], "removed": [] }
+  ],
+  "attrChanges": [
+    {
+      "id": "ENTERPRISE",
+      "changes": [
+        { "key": "实缴资本", "after": "ent_basic_info.paid_in_cap" },
+        { "key": "注册地址", "before": "ent_basic_info.reg_addr" },
+        { "key": "经营范围", "after": "ent_basic_info.business_scope" }
+      ]
+    },
+    {
+      "id": "TRADEMARK",
+      "changes": [{ "key": "商标状态", "before": "ip_trademark.status", "after": "ip_trademark.legal_status" }]
+    }
+  ],
+  "retargets": [
+    {
+      "edge": ["EQUITY_PLEDGE", "is_a", "DOM_EQUITY"],
+      "end": "target",
+      "from": "DOM_RISK",
+      "to": "DOM_EQUITY",
+      "cause": "move"
+    },
+    {
+      "edge": ["LEGAL_REP", "代表", "FARMER_COOP"],
+      "end": "source",
+      "from": "LEGAL_PERSON_REP",
+      "to": "LEGAL_REP",
+      "cause": "merge"
+    },
+    {
+      "edge": ["TOP10_HOLDERS", "持股", "LISTED_CO"],
+      "end": "target",
+      "from": "ENTERPRISE",
+      "to": "LISTED_CO",
+      "cause": "edit"
+    }
+  ],
+  "predicateChanges": [{ "edge": ["ENTERPRISE", "报送", "ANNUAL_REPORT"], "from": "公示", "to": "报送" }],
+  "collapsed": [
+    { "edge": ["LEGAL_PERSON_REP", "代表", "ENTERPRISE"], "into": ["LEGAL_REP", "代表", "ENTERPRISE"] },
+    { "edge": ["LEGAL_PERSON_REP", "对应主体", "PERSON"], "into": ["LEGAL_REP", "对应主体", "PERSON"] }
+  ],
+  "suggestions": [],
+  "hunks": [
+    { "id": "remove:SPOT_CHECK", "kind": "remove", "phase": "remove", "anchor": "SPOT_CHECK" },
+    { "id": "merge:LEGAL_REP", "kind": "merge", "phase": "restructure", "anchor": "LEGAL_REP" },
+    {
+      "id": "modify:EQUITY_PLEDGE",
+      "kind": "modify",
+      "phase": "restructure",
+      "anchor": "EQUITY_PLEDGE"
+    },
+    {
+      "id": "relations:TOP10_HOLDERS",
+      "kind": "relations",
+      "phase": "restructure",
+      "anchor": "TOP10_HOLDERS"
+    },
+    {
+      "id": "relations:ACTUAL_CONTROL",
+      "kind": "relations",
+      "phase": "restructure",
+      "anchor": "ACTUAL_CONTROL"
+    },
+    { "id": "modify:ENTERPRISE", "kind": "modify", "phase": "modify", "anchor": "ENTERPRISE" },
+    {
+      "id": "modify:SINO_FOREIGN_JV",
+      "kind": "modify",
+      "phase": "modify",
+      "anchor": "SINO_FOREIGN_JV"
+    },
+    { "id": "modify:TRADEMARK", "kind": "modify", "phase": "modify", "anchor": "TRADEMARK" },
+    {
+      "id": "modify:DISHONEST_EXECUTEE",
+      "kind": "modify",
+      "phase": "modify",
+      "anchor": "DISHONEST_EXECUTEE"
+    },
+    { "id": "modify:EXEC_TENURE", "kind": "modify", "phase": "modify", "anchor": "EXEC_TENURE" },
+    {
+      "id": "modify:CONSUMPTION_RESTRICTION",
+      "kind": "modify",
+      "phase": "modify",
+      "anchor": "CONSUMPTION_RESTRICTION"
+    },
+    { "id": "add:BENEFICIAL_OWNER", "kind": "add", "phase": "add", "anchor": "BENEFICIAL_OWNER" }
+  ]
+}

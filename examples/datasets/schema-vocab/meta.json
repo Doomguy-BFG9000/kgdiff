@@ -1,0 +1,14 @@
+{
+  "id": "schema-vocab",
+  "title": { "en": "schema.org-style vocabulary release", "zh-CN": "schema.org 风格词汇表版本" },
+  "description": {
+    "en": "A Turtle slice of a schema.org-style vocabulary (classes, data types and properties with domainIncludes / rangeIncludes, English and Chinese labels). The new release inserts SocialMediaPosting and FoodEstablishment and moves classes under them, deprecates Code and employees with IAO:0100001 replacements, fixes labels and comments, and adds an OWL existential restriction.",
+    "zh-CN": "schema.org 风格词汇表的 Turtle 片段（类、数据类型、带 domainIncludes / rangeIncludes 的属性，中英文标签）。新版本插入 SocialMediaPosting 与 FoodEstablishment 并把已有类移到其下，以 IAO:0100001 废弃并替换 Code 与 employees，修正标签和注释，并新增一条 OWL 存在量词约束。"
+  },
+  "format": "turtle",
+  "files": { "before": "before.ttl", "after": "after.ttl" },
+  "versions": { "before": "vocab-2026.09", "after": "vocab-2026.10" },
+  "options": { "match": { "strategy": "id" } },
+  "featured": false,
+  "license": "CC0-1.0"
+}

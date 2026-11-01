@@ -1,0 +1,179 @@
+/**
+ * Load pipeline: sources → (parse) → diff → layout, or a precomputed report → diff + layout.
+ * Each step is announced through `onStep`, which the controller awaits so the loading state
+ * can paint between the (synchronous, CPU-bound) steps.
+ */
+import {
+  type DiffResult,
+  diffFromJSON,
+  type GraphInput,
+  type GraphMeta,
+  isKGraph,
+  type KGraph,
+  KgdiffError,
+} from '@kgdiff/core';
+import { type LayoutOptions, type LayoutResult, layoutFromJSON } from '@kgdiff/layout';
+import { loadCompute } from './compute-loader.js';
+import { translate } from './i18n.js';
+import type { GraphSource, LoadOptions, ReportPayload } from './index.js';
+import { sanitizeView } from './prefs.js';
+
+export type LoadStep = 'parse' | 'match' | 'layout' | 'scene';
+
+export interface LoadedDiff {
+  readonly diff: DiffResult;
+  readonly layout: LayoutResult;
+  /** Options to reuse when the layout is extended. */
+  readonly layoutOptions: LayoutOptions | undefined;
+  readonly names: { readonly before: string; readonly after: string };
+  readonly versions: { readonly before?: string; readonly after?: string };
+  readonly title?: string;
+  /** Initial view preferences from a report. */
+  readonly view?: ReportPayload['view'];
+}
+
+type TextSource = Extract<GraphSource, { readonly text: string }>;
+
+function isTextSource(source: GraphSource): source is TextSource {
+  return typeof (source as Partial<TextSource>).text === 'string';
+}
+
+function isGraphInput(value: unknown): value is GraphInput {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Partial<GraphInput>;
+  return Array.isArray(v.nodes) && (v.edges === undefined || Array.isArray(v.edges));
+}
+
+type Formats = typeof import('@kgdiff/formats');
+
+let formatsPromise: Promise<Formats> | null = null;
+
+/** Loaded lazily so the standalone bundle (reports) never pays for the parsers. */
+function loadFormats(): Promise<Formats> {
+  formatsPromise ??= import('@kgdiff/formats').catch((error: unknown) => {
+    formatsPromise = null;
+    throw new KgdiffError('invalid-input', translate('en', 'error.formats'), {
+      cause: error instanceof Error ? error.message : String(error),
+    });
+  });
+  return formatsPromise;
+}
+
+interface Resolved {
+  readonly graph: GraphInput | KGraph;
+  readonly meta: GraphMeta;
+  readonly filename?: string;
+}
+
+async function resolveSource(source: GraphSource, side: 'before' | 'after'): Promise<Resolved> {
+  if (typeof source !== 'object' || source === null) {
+    throw new KgdiffError(
+      'invalid-input',
+      `load(): \`${side}\` must be a GraphInput, a KGraph or { text, filename }.`,
+    );
+  }
+  if (isTextSource(source)) {
+    const { parseGraph } = await loadFormats();
+    const parsed = parseGraph(source.text, {
+      ...source.parse,
+      ...(source.filename !== undefined ? { filename: source.filename } : {}),
+    });
+    return {
+      graph: parsed.graph,
+      meta: parsed.graph.meta ?? {},
+      ...(source.filename !== undefined ? { filename: source.filename } : {}),
+    };
+  }
+  if (isKGraph(source)) return { graph: source, meta: source.meta };
+  if (isGraphInput(source)) return { graph: source, meta: source.meta ?? {} };
+  throw new KgdiffError(
+    'invalid-input',
+    `load(): \`${side}\` must be a GraphInput ({ nodes, edges }), a KGraph or { text, filename }.`,
+  );
+}
+
+function baseName(path: string): string {
+  const clean = path.split(/[?#]/)[0] ?? path;
+  return clean.slice(Math.max(clean.lastIndexOf('/'), clean.lastIndexOf('\\')) + 1) || path;
+}
+
+function str(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
+}
+
+/** Display name of a version: explicit name, graph name, file name, else the side. */
+export function versionName(
+  meta: GraphMeta,
+  side: 'before' | 'after',
+  explicit?: string,
+  filename?: string,
+): string {
+  return (
+    str(explicit) ??
+    str(meta.name) ??
+    (filename ? baseName(filename) : undefined) ??
+    (str(meta.source) ? baseName(meta.source as string) : undefined) ??
+    side
+  );
+}
+
+export async function runLoad(
+  options: LoadOptions,
+  onStep: (step: LoadStep) => Promise<void>,
+): Promise<LoadedDiff> {
+  if (typeof options !== 'object' || options === null) {
+    throw new KgdiffError('invalid-input', 'load() expects { before, after, … }.');
+  }
+  const { before, after } = options;
+  if (before === undefined || after === undefined) {
+    throw new KgdiffError('invalid-input', 'load() needs both `before` and `after`.');
+  }
+  const computing = loadCompute();
+  if (isTextSource(before) || isTextSource(after)) await onStep('parse');
+  const b = await resolveSource(before, 'before');
+  const a = await resolveSource(after, 'after');
+  const compute = await computing;
+  await onStep('match');
+  const diff = compute.diff(b.graph, a.graph, options.diff);
+  await onStep('layout');
+  const layout = compute.layoutDiff(diff, options.layout);
+  const vb = str(diff.before.meta.version);
+  const va = str(diff.after.meta.version);
+  return {
+    diff,
+    layout,
+    layoutOptions: options.layout,
+    names: {
+      before: versionName(b.meta, 'before', options.names?.before, b.filename),
+      after: versionName(a.meta, 'after', options.names?.after, a.filename),
+    },
+    versions: { ...(vb ? { before: vb } : {}), ...(va ? { after: va } : {}) },
+    ...(str(options.title) ? { title: str(options.title) as string } : {}),
+  };
+}
+
+export async function readPayload(
+  payload: ReportPayload,
+  onStep: (step: LoadStep) => Promise<void>,
+): Promise<LoadedDiff> {
+  await onStep('match');
+  const diff = diffFromJSON(payload.diff);
+  await onStep('layout');
+  const layout = layoutFromJSON(payload.layout);
+  const vb = str(diff.before.meta.version);
+  const va = str(diff.after.meta.version);
+  const meta = payload.meta;
+  const view = sanitizeView(payload.view);
+  return {
+    diff,
+    layout,
+    layoutOptions: undefined,
+    names: {
+      before: versionName(diff.before.meta, 'before', meta?.before?.name),
+      after: versionName(diff.after.meta, 'after', meta?.after?.name),
+    },
+    versions: { ...(vb ? { before: vb } : {}), ...(va ? { after: va } : {}) },
+    ...(str(meta?.title) ? { title: str(meta?.title) as string } : {}),
+    ...(view ? { view } : {}),
+  };
+}

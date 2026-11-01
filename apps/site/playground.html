@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Playground · kgdiff</title>
+    <meta
+      name="description"
+      content="Diff two knowledge graph files in your browser: Turtle, N-Triples, N-Quads, TriG, OBO or JSON. Semantic changes on one stable layout, replay, review, and a self-contained HTML report. Nothing is uploaded."
+    />
+    <meta name="theme-color" content="%KGDIFF_THEME_COLOR%" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="%KGDIFF_SITE_URL%playground.html" />
+    <link rel="alternate" hreflang="en" href="%KGDIFF_SITE_URL%playground.html" />
+    <link rel="alternate" hreflang="zh-CN" href="%KGDIFF_SITE_URL%playground.html?lang=zh" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="kgdiff" />
+    <meta property="og:title" content="kgdiff playground" />
+    <meta
+      property="og:description"
+      content="Drop two graph files, get a semantic, visual diff. Runs entirely in your browser."
+    />
+    <meta property="og:url" content="%KGDIFF_SITE_URL%playground.html" />
+    <meta property="og:image" content="%KGDIFF_SITE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="%KGDIFF_SITE_URL%og.png" />
+    <script>
+      // Theme and language before first paint (no flash). Mirrors src/shared/prefs.ts.
+      (() => {
+        var d = document.documentElement;
+        var q = new URLSearchParams(location.search);
+        var t = null;
+        var l = null;
+        try {
+          t = localStorage.getItem('kgdiff-site-theme');
+          l = localStorage.getItem('kgdiff-site-locale');
+        } catch {}
+        var qt = q.get('theme');
+        d.setAttribute('data-theme', (qt || t) === 'light' ? 'light' : 'dark');
+        var ql = (q.get('lang') || '').toLowerCase();
+        var zh = ql ? ql.indexOf('zh') === 0 : l ? l === 'zh-CN' : /^zh/i.test(navigator.language || '');
+        if (zh) {
+          d.setAttribute('lang', 'zh-CN');
+          d.setAttribute('data-i18n-pending', '');
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/styles/site.css" />
+    <link rel="stylesheet" href="/src/styles/playground.css" />
+    <script type="module" src="/src/playground/main.ts"></script>
+  </head>
+  <body class="pg">
+    <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="logo" viewBox="0 0 32 32">
+          <path d="M12.7 14 9.4 20.1" fill="none" stroke="var(--removed)" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="2.4 2.1" />
+          <path d="m19.3 14 3.3 6.1" fill="none" stroke="var(--added)" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M12 24.5h8" fill="none" stroke="var(--neutral-stroke)" stroke-width="1.6" stroke-linecap="round" />
+          <circle cx="16" cy="8" r="5.9" fill="none" stroke="var(--identity)" stroke-width="1.4" opacity=".85" />
+          <circle cx="16" cy="8" r="3.4" fill="var(--identity)" />
+          <circle cx="7" cy="24.5" r="3.3" fill="none" stroke="var(--removed)" stroke-width="1.5" stroke-dasharray="2.2 1.65" />
+          <circle cx="25" cy="24.5" r="3.6" fill="var(--added)" />
+        </symbol>
+        <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.75" /><path d="M8 1.75v1.5M8 12.75v1.5M1.75 8h1.5M12.75 8h1.5M3.6 3.6l1.05 1.05M11.35 11.35l1.05 1.05M3.6 12.4l1.05-1.05M11.35 4.65l1.05-1.05" /></symbol>
+        <symbol id="i-moon" viewBox="0 0 16 16"><path d="M13.25 9.6A5.5 5.5 0 0 1 6.4 2.75a5.5 5.5 0 1 0 6.85 6.85Z" /></symbol>
+        <symbol id="i-upload" viewBox="0 0 16 16"><path d="M8 10.5V2.75M4.75 6 8 2.75 11.25 6" /><path d="M2.75 10.5v1.75c0 .55.45 1 1 1h8.5c.55 0 1-.45 1-1V10.5" /></symbol>
+        <symbol id="i-swap" viewBox="0 0 16 16"><path d="M2.75 5.5h10.5M10.5 2.75l2.75 2.75-2.75 2.75M13.25 10.5H2.75M5.5 7.75 2.75 10.5l2.75 2.75" /></symbol>
+        <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6" /><circle cx="10" cy="4.5" r="1.5" /><circle cx="6" cy="11.5" r="1.5" /></symbol>
+        <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.75 9.25a3 3 0 0 0 4.25 0l2-2a3 3 0 0 0-4.25-4.25l-.75.75" /><path d="M9.25 6.75a3 3 0 0 0-4.25 0l-2 2A3 3 0 0 0 7.25 13l.75-.75" /></symbol>
+        <symbol id="i-download" viewBox="0 0 16 16"><path d="M8 2.75v7.75M4.75 7.25 8 10.5l3.25-3.25" /><path d="M2.75 10.5v1.75c0 .55.45 1 1 1h8.5c.55 0 1-.45 1-1V10.5" /></symbol>
+        <symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.25 14.25 13a.5.5 0 0 1-.43.75H2.18a.5.5 0 0 1-.43-.75Z" /><path d="M8 6.5v3" /><path d="M8 11.6v.01" /></symbol>
+        <symbol id="i-file" viewBox="0 0 16 16"><path d="M9.25 1.75H4.5c-.7 0-1.25.55-1.25 1.25v10c0 .7.55 1.25 1.25 1.25h7c.7 0 1.25-.55 1.25-1.25V5.25Z" /><path d="M9.25 1.75v3.5h3.5" /></symbol>
+        <symbol id="i-close" viewBox="0 0 16 16"><path d="m4.25 4.25 7.5 7.5M11.75 4.25l-7.5 7.5" /></symbol>
+        <symbol id="i-chevron" viewBox="0 0 16 16"><path d="M3.5 6 8 10.5 12.5 6" /></symbol>
+      </defs>
+    </svg>
+
+    <header class="pg-bar">
+      <a class="pg-home" href="./" data-locale-link aria-label="kgdiff home" data-i18n-attr="aria-label=pg.home">
+        <svg class="brand-mark" aria-hidden="true"><use href="#logo" /></svg>
+        <span class="pg-home-name">kgdiff</span>
+        <span class="pg-home-sub" data-i18n="pg.playground">Playground</span>
+      </a>
+      <span class="pg-sep" aria-hidden="true"></span>
+
+      <div class="pg-select-wrap">
+        <label class="sr-only" for="dataset" data-i18n="pg.dataset">Dataset</label>
+        <select id="dataset" class="pg-select"></select>
+        <svg class="i pg-select-chev" aria-hidden="true"><use href="#i-chevron" /></svg>
+      </div>
+
+      <fieldset class="pg-files" aria-label="Files to compare" data-i18n-attr="aria-label=pg.files">
+        <button class="slot" type="button" id="slot-before" data-side="before" title="">
+          <span class="slot-tag" data-i18n="pg.before">Before</span>
+          <span class="slot-name" id="name-before">—</span>
+          <svg class="i slot-icon" aria-hidden="true"><use href="#i-upload" /></svg>
+        </button>
+        <button class="icon-btn pg-swap" type="button" id="swap" aria-label="Swap before and after" data-i18n-attr="aria-label=pg.swap;title=pg.swap" title="Swap before and after">
+          <svg class="i" aria-hidden="true"><use href="#i-swap" /></svg>
+        </button>
+        <button class="slot" type="button" id="slot-after" data-side="after" title="">
+          <span class="slot-tag" data-i18n="pg.after">After</span>
+          <span class="slot-name" id="name-after">—</span>
+          <svg class="i slot-icon" aria-hidden="true"><use href="#i-upload" /></svg>
+        </button>
+        <input type="file" id="file-before" class="sr-only" tabindex="-1" aria-hidden="true" accept=".ttl,.turtle,.nt,.nq,.trig,.obo,.json,.gz,application/json,text/turtle,application/n-triples,application/n-quads,application/trig" />
+        <input type="file" id="file-after" class="sr-only" tabindex="-1" aria-hidden="true" accept=".ttl,.turtle,.nt,.nq,.trig,.obo,.json,.gz,application/json,text/turtle,application/n-triples,application/n-quads,application/trig" />
+      </fieldset>
+
+      <span class="pg-status" id="status" role="status" aria-live="polite"></span>
+      <span class="pg-spacer"></span>
+
+      <div class="pg-actions">
+        <button class="pg-btn" type="button" id="options-btn" aria-expanded="false" aria-controls="options" aria-haspopup="dialog">
+          <svg class="i" aria-hidden="true"><use href="#i-sliders" /></svg><span class="pg-btn-label" data-i18n="pg.options">Options</span>
+        </button>
+        <button class="pg-btn" type="button" id="share-btn">
+          <svg class="i" aria-hidden="true"><use href="#i-link" /></svg><span class="pg-btn-label" data-i18n="pg.share">Share</span>
+        </button>
+        <button class="pg-btn" type="button" id="download-btn" disabled>
+          <svg class="i" aria-hidden="true"><use href="#i-download" /></svg><span class="pg-btn-label" data-i18n="pg.download">Report</span>
+        </button>
+        <span class="pg-sep pg-wide" aria-hidden="true"></span>
+        <button class="icon-btn lang-btn pg-wide" type="button" data-action="locale" lang="zh-CN" aria-label="切换到中文">中文</button>
+        <button class="icon-btn theme-btn pg-wide" type="button" data-action="theme" aria-label="Switch to light theme">
+          <svg class="i i-moon" aria-hidden="true"><use href="#i-moon" /></svg>
+          <svg class="i i-sun" aria-hidden="true"><use href="#i-sun" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="pg-main" id="main">
+      <h1 class="sr-only" data-i18n="pg.title">kgdiff playground</h1>
+      <kgdiff-viewer id="viewer" aria-label="Diff viewer" data-i18n-attr="aria-label=pg.viewer"></kgdiff-viewer>
+
+      <section class="pg-error" id="error" role="alert" hidden aria-labelledby="error-title">
+        <div class="pg-error-card">
+          <svg class="i pg-error-icon" aria-hidden="true"><use href="#i-alert" /></svg>
+          <h2 id="error-title" data-i18n="pg.errorTitle">Couldn’t read the file</h2>
+          <p class="pg-error-msg" id="error-msg"></p>
+          <p class="pg-error-where" id="error-where"></p>
+          <p class="pg-error-hint" data-i18n="pg.errorHint">kgdiff reads Turtle, N-Triples, N-Quads, TriG, OBO 1.4 and JSON (kgdiff, Cytoscape.js, d3 / NetworkX, AntV G6, graphology, vis-network), optionally gzip-compressed.</p>
+          <div class="pg-error-actions">
+            <button class="btn btn-primary btn-sm" type="button" id="error-retry" data-i18n="pg.chooseOther">Choose another file</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="error-reset" data-i18n="pg.backToExample">Back to the example</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="drop" id="drop" hidden>
+        <div class="drop-zone" data-side="before">
+          <svg class="i drop-icon" aria-hidden="true"><use href="#i-file" /></svg>
+          <strong data-i18n="pg.dropBefore">Drop as “before”</strong>
+          <span data-i18n="pg.dropBoth">or drop two files anywhere: the first becomes before, the second after</span>
+        </div>
+        <div class="drop-zone" data-side="after">
+          <svg class="i drop-icon" aria-hidden="true"><use href="#i-file" /></svg>
+          <strong data-i18n="pg.dropAfter">Drop as “after”</strong>
+          <span data-i18n="pg.dropPrivate">Files never leave your browser</span>
+        </div>
+      </div>
+    </main>
+
+    <div class="popover" id="options" role="dialog" aria-modal="false" aria-labelledby="options-title" hidden>
+      <form id="options-form" class="opt-form">
+        <div class="opt-head">
+          <h2 id="options-title" data-i18n="opt.title">Diff options</h2>
+          <button class="icon-btn" type="button" id="options-close" aria-label="Close" data-i18n-attr="aria-label=opt.close">
+            <svg class="i" aria-hidden="true"><use href="#i-close" /></svg>
+          </button>
+        </div>
+
+        <fieldset class="opt-field">
+          <legend data-i18n="opt.match">Match nodes by</legend>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="strategy" value="id" /><span data-i18n="opt.id">id</span></label>
+            <label><input type="radio" name="strategy" value="auto" /><span data-i18n="opt.auto">auto</span></label>
+            <label><input type="radio" name="strategy" value="similarity" /><span data-i18n="opt.similarity">similarity</span></label>
+          </div>
+          <p class="opt-help" id="strategy-help"></p>
+        </fieldset>
+
+        <div class="opt-field">
+          <label class="opt-label" for="threshold"><span data-i18n="opt.threshold">Similarity threshold</span> <output id="threshold-out" for="threshold">0.82</output></label>
+          <input type="range" id="threshold" name="threshold" min="0.5" max="0.99" step="0.01" value="0.82" />
+        </div>
+
+        <div class="opt-field">
+          <label class="opt-label" for="hierarchy" data-i18n="opt.hierarchy">Hierarchy predicates</label>
+          <input type="text" class="opt-input" id="hierarchy" name="hierarchy" autocomplete="off" spellcheck="false" placeholder="rdfs:subClassOf, skos:broader, is_a, …" />
+          <p class="opt-help" data-i18n="opt.hierarchyHelp">Comma-separated. Changing a node's parents along these is a move. Empty = defaults.</p>
+        </div>
+
+        <div class="opt-field">
+          <label class="opt-label" for="ignore" data-i18n="opt.ignore">Ignore attributes</label>
+          <input type="text" class="opt-input" id="ignore" name="ignore" autocomplete="off" spellcheck="false" placeholder="xref, creation_date" />
+        </div>
+
+        <div class="opt-field opt-checks">
+          <label><input type="checkbox" id="merges" name="merges" /> <span data-i18n="opt.merges">Detect merges</span></label>
+          <label><input type="checkbox" id="splits" name="splits" /> <span data-i18n="opt.splits">Detect splits</span></label>
+        </div>
+
+        <div class="opt-actions">
+          <button class="btn btn-ghost btn-sm" type="button" id="options-reset" data-i18n="opt.reset">Reset</button>
+          <button class="btn btn-primary btn-sm" type="submit" data-i18n="opt.apply">Apply</button>
+        </div>
+
+        <div class="opt-appearance">
+          <div class="opt-row">
+            <span class="opt-label" id="lang-label" data-i18n="opt.language">Language</span>
+            <div class="seg" role="radiogroup" aria-labelledby="lang-label">
+              <label><input type="radio" name="locale" value="en" /><span>English</span></label>
+              <label><input type="radio" name="locale" value="zh-CN" /><span lang="zh-CN">中文</span></label>
+            </div>
+          </div>
+          <div class="opt-row">
+            <span class="opt-label" id="theme-label" data-i18n="opt.theme">Theme</span>
+            <div class="seg" role="radiogroup" aria-labelledby="theme-label">
+              <label><input type="radio" name="theme" value="dark" /><span data-i18n="opt.dark">Dark</span></label>
+              <label><input type="radio" name="theme" value="light" /><span data-i18n="opt.light">Light</span></label>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="toast-text"></span></div>
+  </body>
+</html>

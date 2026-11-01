@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@kgdiff/viewer/compute": ["../../packages/viewer/src/compute.ts"],
+      "@kgdiff/*": ["../../packages/*/src/index.ts"]
+    }
+  },
+  "include": ["src", "build", "vite.config.ts"]
+}

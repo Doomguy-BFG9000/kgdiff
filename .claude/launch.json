@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "renderer-harness",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["vite", "--config", "packages/renderer/dev/vite.config.ts"],
+      "port": 5199
+    },
+    {
+      "name": "viewer-harness",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["vite", "--config", "packages/viewer/dev/vite.config.ts"],
+      "port": 5198
+    }
+  ]
+}

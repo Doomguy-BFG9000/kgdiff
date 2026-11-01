@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kgdiff viewer · dev harness</title>
+    <style>
+      :root {
+        color-scheme: dark light;
+        --bar-bg: #0e1218;
+        --bar-fg: #c9d1dd;
+        --bar-muted: #7d8697;
+        --bar-border: rgba(255, 255, 255, 0.08);
+        --bar-input: rgba(255, 255, 255, 0.05);
+        font: 12.5px/1.4 Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', system-ui, sans-serif;
+      }
+      html, body { height: 100%; margin: 0; background: #07090d; }
+      body { display: flex; flex-direction: column; }
+      .bar {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 8px 14px; min-height: 44px;
+        box-sizing: border-box; background: var(--bar-bg); color: var(--bar-fg); border-bottom: 1px solid var(--bar-border);
+      }
+      .bar strong { font-weight: 650; letter-spacing: -0.01em; }
+      .bar .muted { color: var(--bar-muted); }
+      .bar label { display: inline-flex; align-items: center; gap: 6px; color: var(--bar-muted); }
+      .bar select, .bar button {
+        height: 28px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--bar-border); background: var(--bar-input);
+        color: var(--bar-fg); font: inherit; cursor: pointer;
+      }
+      .bar button:hover, .bar select:hover { border-color: rgba(255, 255, 255, 0.18); }
+      .bar .sep { width: 1px; height: 20px; background: var(--bar-border); }
+      .bar .grow { flex: 1; }
+      .stage { flex: 1; min-height: 0; display: flex; justify-content: center; background: #07090d; }
+      .frame { position: relative; flex: 1; min-width: 0; max-width: 100%; transition: max-width 220ms; }
+      .frame.phone { max-width: 390px; border-left: 1px solid var(--bar-border); border-right: 1px solid var(--bar-border); }
+      .frame.tablet { max-width: 900px; }
+      kgdiff-viewer { position: absolute; inset: 0; height: auto; min-height: 0; }
+      .log {
+        position: fixed; right: 12px; bottom: 12px; z-index: 50; width: 340px; max-height: 220px; overflow: auto; padding: 8px 10px;
+        border-radius: 10px; background: rgba(8, 10, 14, 0.92); color: #a9b3c4; border: 1px solid var(--bar-border);
+        font: 11px/1.5 'SF Mono', ui-monospace, Menlo, monospace; display: none;
+      }
+      .log.open { display: block; }
+      .log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .log b { color: #e7ebf3; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <strong>kgdiff</strong><span class="muted">viewer harness</span>
+      <span class="sep"></span>
+      <label>Dataset <select id="dataset"></select></label>
+      <label>Locale
+        <select id="locale"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
+      </label>
+      <label>Theme
+        <select id="theme"><option value="auto">auto</option><option value="dark">dark</option><option value="light">light</option></select>
+      </label>
+      <label>Palette
+        <select id="palette"><option value="default">default</option><option value="colorblind">color-blind</option></select>
+      </label>
+      <label>Width
+        <select id="width"><option value="full">full</option><option value="tablet">900 px</option><option value="phone">390 px</option></select>
+      </label>
+      <span class="sep"></span>
+      <button id="load-payload" type="button" title="Load a ReportPayload (.json) exported by the CLI or this harness">Load payload…</button>
+      <button id="export-payload" type="button" title="Download the current diff as a ReportPayload">Export payload</button>
+      <button id="roundtrip" type="button" title="Re-open the current diff through an embedded gzip-base64 payload (report path)">Report round-trip</button>
+      <span class="grow"></span>
+      <button id="toggle-log" type="button">Events</button>
+      <input id="file" type="file" accept=".json,application/json" hidden />
+    </div>
+    <div class="stage">
+      <div class="frame" id="frame">
+        <kgdiff-viewer id="viewer" sync-hash global-shortcuts></kgdiff-viewer>
+      </div>
+    </div>
+    <div class="log" id="log"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "name": "kgdiff",
+  "version": "0.1.0",
+  "description": "git diff for knowledge graphs. Compare two graph files from the terminal, CI, or as a shareable HTML report.",
+  "keywords": [
+    "kgdiff",
+    "cli",
+    "diff",
+    "knowledge-graph",
+    "ontology",
+    "rdf"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "kgdiff": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kgdiff/core": "workspace:*",
+    "@kgdiff/formats": "workspace:*",
+    "@kgdiff/layout": "workspace:*",
+    "@kgdiff/scene": "workspace:*",
+    "@kgdiff/viewer": "workspace:*"
+  }
+}

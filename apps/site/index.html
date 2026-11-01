@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>kgdiff · git diff for knowledge graphs</title>
+    <meta
+      name="description"
+      content="Review AI-written changes to knowledge graphs like a pull request. kgdiff sees merges, renames and moves, shows both versions on one stable layout, replays the change and exports an invertible delta. RDF, OBO and JSON. Open source (MIT)."
+    />
+    <meta name="theme-color" content="%KGDIFF_THEME_COLOR%" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="%KGDIFF_SITE_URL%" />
+    <link rel="alternate" hreflang="en" href="%KGDIFF_SITE_URL%" />
+    <link rel="alternate" hreflang="zh-CN" href="%KGDIFF_SITE_URL%?lang=zh" />
+    <link rel="alternate" hreflang="x-default" href="%KGDIFF_SITE_URL%" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="kgdiff" />
+    <meta property="og:title" content="kgdiff · git diff for knowledge graphs" />
+    <meta
+      property="og:description"
+      content="Semantic, visual diff and review for knowledge graphs: merges, renames and moves on one stable map, replayed step by step. RDF, OBO, JSON. Open source."
+    />
+    <meta property="og:url" content="%KGDIFF_SITE_URL%" />
+    <meta property="og:image" content="%KGDIFF_SITE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="kgdiff — git diff for knowledge graphs" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="kgdiff · git diff for knowledge graphs" />
+    <meta
+      name="twitter:description"
+      content="Semantic, visual diff and review for knowledge graphs. Open source."
+    />
+    <meta name="twitter:image" content="%KGDIFF_SITE_URL%og.png" />
+    <script>
+      // Theme and language before first paint (no flash). Mirrors src/shared/prefs.ts.
+      (() => {
+        var d = document.documentElement;
+        var q = new URLSearchParams(location.search);
+        var t = null;
+        var l = null;
+        try {
+          t = localStorage.getItem('kgdiff-site-theme');
+          l = localStorage.getItem('kgdiff-site-locale');
+        } catch {}
+        var qt = q.get('theme');
+        d.setAttribute('data-theme', (qt || t) === 'light' ? 'light' : 'dark');
+        var ql = (q.get('lang') || '').toLowerCase();
+        var zh = ql ? ql.indexOf('zh') === 0 : l ? l === 'zh-CN' : /^zh/i.test(navigator.language || '');
+        if (zh) {
+          d.setAttribute('lang', 'zh-CN');
+          d.setAttribute('data-i18n-pending', '');
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/styles/site.css" />
+    <link rel="stylesheet" href="/src/styles/landing.css" />
+    <script type="module" src="/src/landing/main.ts"></script>
+  </head>
+  <body>
+    <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="logo" viewBox="0 0 32 32">
+          <path d="M12.7 14 9.4 20.1" fill="none" stroke="var(--removed)" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="2.4 2.1" />
+          <path d="m19.3 14 3.3 6.1" fill="none" stroke="var(--added)" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M12 24.5h8" fill="none" stroke="var(--neutral-stroke)" stroke-width="1.6" stroke-linecap="round" />
+          <circle cx="16" cy="8" r="5.9" fill="none" stroke="var(--identity)" stroke-width="1.4" opacity=".85" />
+          <circle cx="16" cy="8" r="3.4" fill="var(--identity)" />
+          <circle cx="7" cy="24.5" r="3.3" fill="none" stroke="var(--removed)" stroke-width="1.5" stroke-dasharray="2.2 1.65" />
+          <circle cx="25" cy="24.5" r="3.6" fill="var(--added)" />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.75" /><path d="M10.75 5.25V3.5c0-.7-.55-1.25-1.25-1.25h-6c-.7 0-1.25.55-1.25 1.25v6c0 .7.55 1.25 1.25 1.25h1.75" /></symbol>
+        <symbol id="i-check" viewBox="0 0 16 16"><path d="m3.5 8.4 3 2.9 6-6.6" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" /></symbol>
+        <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.75" /><path d="M8 1.75v1.5M8 12.75v1.5M1.75 8h1.5M12.75 8h1.5M3.6 3.6l1.05 1.05M11.35 11.35l1.05 1.05M3.6 12.4l1.05-1.05M11.35 4.65l1.05-1.05" /></symbol>
+        <symbol id="i-moon" viewBox="0 0 16 16"><path d="M13.25 9.6A5.5 5.5 0 0 1 6.4 2.75a5.5 5.5 0 1 0 6.85 6.85Z" /></symbol>
+        <symbol id="i-github" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></symbol>
+        <symbol id="i-overlay" viewBox="0 0 16 16"><path d="M8 2.25 14 5.5 8 8.75 2 5.5Z" /><path d="m2 8.25 6 3.25 6-3.25" /><path d="m2 11 6 3.25L14 11" opacity=".55" /></symbol>
+        <symbol id="i-swipe" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2" /><path d="M8 1.75v12.5" /><path d="M4.75 8h-1M12.25 8h-1" opacity=".55" /></symbol>
+        <symbol id="i-replay" viewBox="0 0 16 16"><path d="M2.75 8a5.25 5.25 0 1 0 1.6-3.78" /><path d="M2.5 2.5v2.75h2.75" /><path d="M8 5.25V8l1.9 1.3" /></symbol>
+        <symbol id="i-changes" viewBox="0 0 16 16"><path d="M2.5 5.5v-2a1 1 0 0 1 1-1h2M10.5 2.5h2a1 1 0 0 1 1 1v2M13.5 10.5v2a1 1 0 0 1-1 1h-2M5.5 13.5h-2a1 1 0 0 1-1-1v-2" /><circle cx="8" cy="8" r="1.9" /></symbol>
+        <symbol id="i-yes" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" /><path d="m5.4 8.2 1.85 1.85L10.75 6.3" /></symbol>
+        <symbol id="i-partial" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" /><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5Z" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-no" viewBox="0 0 16 16"><path d="M5 8h6" /></symbol>
+        <!-- Illustration helpers: arrowheads and dark-theme glows in family colors. -->
+        <marker id="ah-identity" viewBox="0 0 7 6" refX="6.5" refY="3" markerWidth="7" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto">
+          <path d="M0 0 7 3 0 6Z" style="fill: var(--identity)" />
+        </marker>
+        <marker id="ah-structure" viewBox="0 0 7 6" refX="6.5" refY="3" markerWidth="7" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto">
+          <path d="M0 0 7 3 0 6Z" style="fill: var(--structure)" />
+        </marker>
+        <marker id="ah-added" viewBox="0 0 7 6" refX="6.5" refY="3" markerWidth="7" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto">
+          <path d="M0 0 7 3 0 6Z" style="fill: var(--added)" />
+        </marker>
+        <radialGradient id="glow-identity">
+          <stop offset="0" style="stop-color: var(--identity); stop-opacity: 0.32" />
+          <stop offset="1" style="stop-color: var(--identity); stop-opacity: 0" />
+        </radialGradient>
+        <radialGradient id="glow-added">
+          <stop offset="0" style="stop-color: var(--added); stop-opacity: 0.32" />
+          <stop offset="1" style="stop-color: var(--added); stop-opacity: 0" />
+        </radialGradient>
+      </defs>
+    </svg>
+
+    <a class="skip-link" href="#main" data-i18n="a11y.skip">Skip to content</a>
+
+    <header class="nav" id="nav">
+      <div class="container nav-inner">
+        <a class="brand" href="./" aria-label="kgdiff home">
+          <svg class="brand-mark" aria-hidden="true"><use href="#logo" /></svg>
+          <span class="brand-name">kgdiff</span>
+        </a>
+        <nav class="nav-links" aria-label="Sections" data-i18n-attr="aria-label=nav.sections">
+          <a href="#modes" data-i18n="nav.modes">Views</a>
+          <a href="#semantic" data-i18n="nav.semantic">Semantics</a>
+          <a href="#cli" data-i18n="nav.cli">CLI &amp; CI</a>
+          <a href="#formats" data-i18n="nav.formats">Formats</a>
+          <a href="#compare" data-i18n="nav.compare">Compare</a>
+          <a href="#datasets" data-i18n="nav.datasets">Examples</a>
+        </nav>
+        <div class="nav-end">
+          <button class="icon-btn lang-btn" type="button" data-action="locale" lang="zh-CN" aria-label="切换到中文">中文</button>
+          <button class="icon-btn theme-btn" type="button" data-action="theme" aria-label="Switch to light theme" data-i18n-attr="aria-label=nav.themeLight">
+            <svg class="i i-moon" aria-hidden="true"><use href="#i-moon" /></svg>
+            <svg class="i i-sun" aria-hidden="true"><use href="#i-sun" /></svg>
+          </button>
+          <a class="icon-btn" href="%KGDIFF_REPO_URL%">
+            <svg class="i i-fill" aria-hidden="true"><use href="#i-github" /></svg>
+            <span class="sr-only" data-i18n="nav.github">kgdiff on GitHub</span>
+          </a>
+          <a class="btn btn-primary btn-sm" href="playground.html" data-locale-link>
+            <span data-i18n="nav.playground">Playground</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ── Hero ──────────────────────────────────────────────────────── -->
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="container hero-copy">
+          <p class="hero-badge">
+            <span class="hero-badge-tag">v%KGDIFF_VERSION%</span>
+            <span data-i18n="hero.badge">Open source · MIT · runs in your browser</span>
+          </p>
+          <h1 id="hero-title" class="hero-title" data-i18n="hero.title">git diff for knowledge graphs</h1>
+          <p class="hero-sub" data-i18n="hero.sub">
+            See exactly what an AI pipeline changed in your knowledge graph — merges, renames, moves,
+            not just added and deleted triples — and review it like a pull request.
+          </p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="playground.html" data-locale-link>
+              <span data-i18n="hero.try">Try the playground</span>
+              <svg class="i" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+            <div class="cmd">
+              <span class="prompt" aria-hidden="true">$</span>
+              <code id="hero-cmd">npx kgdiff a.ttl b.ttl</code>
+              <button class="copy-btn" type="button" data-copy="npx kgdiff a.ttl b.ttl" aria-label="Copy command" data-i18n-attr="aria-label=copy.command">
+                <svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg>
+                <svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg>
+              </button>
+            </div>
+            <a class="btn btn-ghost" href="%KGDIFF_REPO_URL%">
+              <svg class="i i-fill" aria-hidden="true"><use href="#i-github" /></svg>
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="container hero-demo">
+          <figure class="demo">
+            <div class="window hero-window" id="hero-window" data-state="idle">
+              <div class="window-skeleton" aria-hidden="true">
+                <span class="sk-bar"></span><span class="sk-dot"></span>
+              </div>
+              <kgdiff-viewer id="hero-viewer" sidebar="open" aria-label="Live kgdiff viewer" data-i18n-attr="aria-label=hero.viewerLabel"></kgdiff-viewer>
+            </div>
+            <figcaption class="demo-caption">
+              <span class="live-dot" aria-hidden="true"></span>
+              <span class="demo-caption-text"><strong data-i18n="hero.live">Live, not a recording.</strong> <span data-i18n="hero.liveText">Drag, zoom, click a change, press 1–4 to switch views.</span></span>
+              <a class="demo-link" href="playground.html" data-hero-link data-locale-link>
+                <span id="hero-dataset-title">Mini Human Disease Ontology release</span>
+                <svg class="i nudge" aria-hidden="true"><use href="#i-arrow" /></svg>
+              </a>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="container">
+          <ul class="principles" aria-label="Principles" data-i18n-attr="aria-label=principles.label">
+            <li>
+              <h2 class="principle-title" data-i18n="p1.title">Semantic, not syntactic</h2>
+              <p data-i18n="p1.text">A merge is a merge and a rename is a rename — not one node deleted and another one added.</p>
+            </li>
+            <li>
+              <h2 class="principle-title" data-i18n="p2.title">One mental map</h2>
+              <p data-i18n="p2.text">Both versions share one stable layout. Nothing moves unless it changed.</p>
+            </li>
+            <li>
+              <h2 class="principle-title" data-i18n="p3.title">Color is meaning</h2>
+              <p data-i18n="p3.text">Five change families and gray for context. Nothing else gets a color.</p>
+            </li>
+            <li>
+              <h2 class="principle-title" data-i18n="p4.title">Review is a workflow</h2>
+              <p data-i18n="p4.text">Step through changes, replay them, mark them reviewed, export an invertible delta.</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ── Modes ─────────────────────────────────────────────────────── -->
+      <section class="section" id="modes" aria-labelledby="modes-title">
+        <div class="container">
+          <div class="section-head center">
+            <p class="eyebrow" data-i18n="modes.eyebrow">Views</p>
+            <h2 id="modes-title" data-i18n="modes.title">Four ways to see a change</h2>
+            <p class="lede" data-i18n="modes.lede">One diff, one layout, four lenses. Switch below — or press 1 to 4 inside the viewer.</p>
+          </div>
+
+          <div class="modes">
+            <div class="mode-tabs" role="tablist" aria-labelledby="modes-title">
+              <button class="mode-tab" role="tab" type="button" id="tab-overlay" data-mode="overlay" aria-selected="true" aria-controls="modes-panel">
+                <svg class="i" aria-hidden="true"><use href="#i-overlay" /></svg><span data-i18n="mode.overlay">Overlay</span>
+              </button>
+              <button class="mode-tab" role="tab" type="button" id="tab-swipe" data-mode="swipe" aria-selected="false" aria-controls="modes-panel" tabindex="-1">
+                <svg class="i" aria-hidden="true"><use href="#i-swipe" /></svg><span data-i18n="mode.swipe">Swipe</span>
+              </button>
+              <button class="mode-tab" role="tab" type="button" id="tab-replay" data-mode="replay" aria-selected="false" aria-controls="modes-panel" tabindex="-1">
+                <svg class="i" aria-hidden="true"><use href="#i-replay" /></svg><span data-i18n="mode.replay">Replay</span>
+              </button>
+              <button class="mode-tab" role="tab" type="button" id="tab-changes" data-mode="changes" aria-selected="false" aria-controls="modes-panel" tabindex="-1">
+                <svg class="i" aria-hidden="true"><use href="#i-changes" /></svg><span data-i18n="mode.changes">Changes only</span>
+              </button>
+            </div>
+            <div class="mode-panel" id="modes-panel" role="tabpanel" aria-labelledby="tab-overlay">
+              <p class="mode-desc" aria-live="polite">
+                <span class="mode-desc-text" data-mode-desc="overlay" data-i18n="modeDesc.overlay">Both versions in one picture. Removed things stay as dashed ghosts where they were — nothing just vanishes.</span>
+                <span class="mode-desc-text" data-mode-desc="swipe" data-i18n="modeDesc.swipe" hidden>Before on the left, after on the right, on one shared layout. Drag the divider across the change.</span>
+                <span class="mode-desc-text" data-mode-desc="replay" data-i18n="modeDesc.replay" hidden>The before graph morphs into the after graph, one change at a time: merges travel, edges swing, additions grow.</span>
+                <span class="mode-desc-text" data-mode-desc="changes" data-i18n="modeDesc.changes" hidden>Only what changed, plus one hop of context. The default for graphs with thousands of nodes.</span>
+              </p>
+              <div class="window modes-window" id="modes-window" data-state="idle">
+                <div class="window-skeleton" aria-hidden="true">
+                  <span class="sk-bar"></span><span class="sk-dot"></span>
+                </div>
+                <kgdiff-viewer id="modes-viewer" sidebar="closed" mode="overlay" aria-label="kgdiff viewer, views demo" data-i18n-attr="aria-label=modes.viewerLabel"></kgdiff-viewer>
+              </div>
+              <p class="window-note muted">
+                <span data-i18n="modes.dataset">Dataset:</span>
+                <a href="playground.html?dataset=data-lineage" data-locale-link id="modes-dataset-link">dbt lineage refactor</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Semantic ──────────────────────────────────────────────────── -->
+      <section class="section" id="semantic" aria-labelledby="semantic-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow" data-i18n="semantic.eyebrow">Semantics</p>
+            <h2 id="semantic-title" data-i18n="semantic.title">Semantic, not syntactic</h2>
+            <p class="lede" data-i18n="semantic.lede">Text diffs see lines; triple diffs see deleted and inserted statements. kgdiff matches nodes across versions and names what happened — in a visual language where color carries meaning but is never the only cue.</p>
+          </div>
+
+          <ul class="legend" aria-label="Change families" data-i18n-attr="aria-label=legend.label">
+            <li data-family="added">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" class="lg-halo" /><circle cx="12" cy="12" r="5" class="lg-fill" /></svg>
+              <span><strong data-i18n="fam.added">Added</strong> <span data-i18n="fam.addedText">only in after</span></span>
+            </li>
+            <li data-family="removed">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" class="lg-ghost" /></svg>
+              <span><strong data-i18n="fam.removed">Removed</strong> <span data-i18n="fam.removedText">only in before</span></span>
+            </li>
+            <li data-family="content">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" class="lg-fill" /><circle cx="12" cy="12" r="8.5" class="lg-ring" /></svg>
+              <span><strong data-i18n="fam.content">Content</strong> <span data-i18n="fam.contentText">same thing, new content</span></span>
+            </li>
+            <li data-family="structure">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" class="lg-fill" /><circle cx="12" cy="12" r="8.5" class="lg-ring" /></svg>
+              <span><strong data-i18n="fam.structure">Structure</strong> <span data-i18n="fam.structureText">same thing, new place</span></span>
+            </li>
+            <li data-family="identity">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" class="lg-halo" /><circle cx="12" cy="12" r="5" class="lg-fill" /><circle cx="12" cy="12" r="8.5" class="lg-ring" /></svg>
+              <span><strong data-i18n="fam.identity">Identity</strong> <span data-i18n="fam.identityText">which thing changed</span></span>
+            </li>
+            <li data-family="neutral">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5" class="lg-fill" /></svg>
+              <span><strong data-i18n="fam.neutral">Context</strong> <span data-i18n="fam.neutralText">unchanged, quiet</span></span>
+            </li>
+          </ul>
+
+          <ul class="cards">
+            <!-- Merge -->
+            <li class="card" data-family="identity">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M196 84 262 36" />
+                  <path class="e carried" d="M196 84 266 136" />
+                  <circle class="n" cx="262" cy="36" r="5" />
+                  <circle class="n" cx="266" cy="136" r="5" />
+                  <path class="arc" d="M80 52Q130 44 183 77" marker-end="url(#ah-identity)" />
+                  <path class="arc" d="M80 118Q130 126 183 91" marker-end="url(#ah-identity)" />
+                  <circle class="halo" cx="196" cy="84" r="24" fill="url(#glow-identity)" />
+                  <circle class="halo-ring" cx="196" cy="84" r="14" />
+                  <circle class="ghost" cx="70" cy="48" r="7" />
+                  <circle class="ghost" cx="70" cy="122" r="7" />
+                  <circle class="fill" cx="196" cy="84" r="9" />
+                  <circle class="ring" cx="196" cy="84" r="12.5" />
+                  <g class="badge" transform="translate(212 54)"><rect width="30" height="17" rx="8.5" /><text x="15" y="12.2">⊕ 2</text></g>
+                  <text class="lbl muted-lbl" x="70" y="70" data-i18n="ill.merge.a">juvenile diabetes</text>
+                  <text class="lbl muted-lbl" x="70" y="144" data-i18n="ill.merge.b">IDDM</text>
+                  <text class="lbl strong" x="196" y="112" data-i18n="ill.merge.t">type 1 diabetes mellitus</text>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">⊕</span> <span data-i18n="card.merge">Merge</span> <span class="pill" data-i18n="fam.identity">Identity</span></h3>
+                <p class="card-text" data-i18n="card.mergeText">Duplicates fold into one. Sources stay as ghosts, an arc shows where they went, and their relations are carried over.</p>
+              </div>
+            </li>
+            <!-- Split -->
+            <li class="card" data-family="identity">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M206 46 270 84" />
+                  <path class="e" d="M206 122 270 84" />
+                  <circle class="n" cx="270" cy="84" r="5" />
+                  <path class="arc" d="M86 78Q132 52 191 47" marker-end="url(#ah-identity)" />
+                  <path class="arc" d="M86 90Q132 116 191 121" marker-end="url(#ah-identity)" />
+                  <circle class="halo" cx="206" cy="46" r="22" fill="url(#glow-identity)" />
+                  <circle class="halo" cx="206" cy="122" r="22" fill="url(#glow-identity)" />
+                  <circle class="ghost" cx="74" cy="84" r="8" />
+                  <circle class="fill" cx="206" cy="46" r="8" />
+                  <circle class="ring" cx="206" cy="46" r="11.5" />
+                  <circle class="fill" cx="206" cy="122" r="8" />
+                  <circle class="ring" cx="206" cy="122" r="11.5" />
+                  <text class="lbl muted-lbl" x="74" y="108" data-i18n="ill.split.s">diabetes insipidus</text>
+                  <text class="lbl strong" x="206" y="72" data-i18n="ill.split.a">AVP deficiency</text>
+                  <text class="lbl strong" x="206" y="148" data-i18n="ill.split.b">AVP resistance</text>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">⑂</span> <span data-i18n="card.split">Split</span> <span class="pill" data-i18n="fam.identity">Identity</span></h3>
+                <p class="card-text" data-i18n="card.splitText">One term becomes several. kgdiff follows the relations to the new terms — and says so when it is only inferring.</p>
+              </div>
+            </li>
+            <!-- Rename -->
+            <li class="card" data-family="content">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M150 68 62 36M150 68 70 124M150 68 236 34M150 68 244 112" />
+                  <circle class="n" cx="62" cy="36" r="5" />
+                  <circle class="n" cx="70" cy="124" r="4.5" />
+                  <circle class="n" cx="236" cy="34" r="4.5" />
+                  <circle class="n" cx="244" cy="112" r="5" />
+                  <circle class="fill" cx="150" cy="68" r="9" />
+                  <circle class="ring" cx="150" cy="68" r="12.5" />
+                  <text class="lbl strong" x="150" y="100" data-i18n="ill.rename.new">steatotic liver disease</text>
+                  <text class="lbl old" x="150" y="115" data-i18n="ill.rename.old">fatty liver disease</text>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">~</span> <span data-i18n="card.rename">Rename</span> <span class="pill" data-i18n="fam.content">Content</span></h3>
+                <p class="card-text" data-i18n="card.renameText">Same node, new name. The old label stays visible, struck through, right under the new one.</p>
+              </div>
+            </li>
+            <!-- Move -->
+            <li class="card" data-family="structure">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="swing" d="M100 30Q150 6 196 28" marker-end="url(#ah-structure)" />
+                  <path class="e" d="M74 44 34 20M220 44 268 22" />
+                  <circle class="n" cx="34" cy="20" r="4" />
+                  <circle class="n" cx="268" cy="22" r="4" />
+                  <path class="edge-ghost" d="M150 112 80 49" />
+                  <path class="edge-new" d="M150 112 213 50" marker-end="url(#ah-structure)" />
+                  <circle class="n parent" cx="74" cy="44" r="6.5" />
+                  <circle class="n parent" cx="220" cy="44" r="6.5" />
+                  <circle class="fill" cx="150" cy="112" r="9" />
+                  <circle class="ring" cx="150" cy="112" r="12.5" />
+                  <circle class="pivot" cx="156.4" cy="105.7" r="2.5" />
+                  <text class="lbl" x="74" y="68" data-i18n="ill.move.old">intestinal disease</text>
+                  <text class="lbl" x="220" y="68" data-i18n="ill.move.new">inflammatory bowel disease</text>
+                  <text class="lbl strong" x="150" y="144" data-i18n="ill.move.c">Crohn disease</text>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">⇄</span> <span data-i18n="card.move">Move</span> <span class="pill" data-i18n="fam.structure">Structure</span></h3>
+                <p class="card-text" data-i18n="card.moveText">A class changed parents. The old link fades to a ghost; the new one swings into place around a pivot.</p>
+              </div>
+            </li>
+            <!-- Retarget -->
+            <li class="card" data-family="structure">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M62 84 26 40M62 84 30 132M212 40 270 62M212 128 266 150M212 128 270 108" />
+                  <circle class="n" cx="26" cy="40" r="4" />
+                  <circle class="n" cx="30" cy="132" r="4.5" />
+                  <circle class="n" cx="270" cy="62" r="4" />
+                  <circle class="n" cx="266" cy="150" r="4" />
+                  <circle class="n" cx="270" cy="108" r="4" />
+                  <path class="edge-ghost" d="M62 84 205 125" />
+                  <path class="edge-new" d="M62 84 204 43" marker-end="url(#ah-structure)" />
+                  <path class="swing" d="M236 116Q252 84 236 54" marker-end="url(#ah-structure)" />
+                  <circle class="n" cx="62" cy="84" r="8" />
+                  <circle class="pivot" cx="69.7" cy="81.8" r="2.5" />
+                  <circle class="n" cx="212" cy="40" r="6.5" />
+                  <circle class="n" cx="212" cy="128" r="6.5" />
+                  <text class="lbl edge-lbl" x="132" y="54" data-i18n="ill.retarget.p">depends_on</text>
+                  <text class="lbl strong" x="62" y="112" data-i18n="ill.retarget.s">fct_daily_revenue</text>
+                  <text class="lbl" x="212" y="24" data-i18n="ill.retarget.new">fct_payments</text>
+                  <text class="lbl old" x="196" y="152" data-i18n="ill.retarget.old">fct_orders</text>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">⇄</span> <span data-i18n="card.retarget">Retarget</span> <span class="pill" data-i18n="fam.structure">Structure</span></h3>
+                <p class="card-text" data-i18n="card.retargetText">A relation now points somewhere else: one edge that swings — not one deleted and one added.</p>
+              </div>
+            </li>
+            <!-- Attributes -->
+            <li class="card" data-family="content">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M70 84 26 36M70 84 30 138M70 84 112 148" />
+                  <circle class="n" cx="26" cy="36" r="4.5" />
+                  <circle class="n" cx="30" cy="138" r="4" />
+                  <circle class="n" cx="112" cy="148" r="4" />
+                  <circle class="fill" cx="70" cy="84" r="9" />
+                  <circle class="ring" cx="70" cy="84" r="12.5" />
+                  <g class="badge" transform="translate(84 52)"><rect width="42" height="17" rx="8.5" /><text x="21" y="12.2">+2 −1</text></g>
+                  <text class="lbl strong" x="70" y="114" data-i18n="ill.attrs.node">Enterprise</text>
+                  <g class="attr-card" transform="translate(146 30)">
+                    <rect width="138" height="108" rx="9" />
+                    <text class="attr-head" x="12" y="21" data-i18n="ill.attrs.head">attributes</text>
+                    <path class="attr-sep" d="M0 31h138" />
+                    <text class="attr-glyph add" x="12" y="52">+</text>
+                    <text class="attr-key" x="26" y="52" data-i18n="ill.attrs.a">paid-in capital</text>
+                    <text class="attr-glyph add" x="12" y="74">+</text>
+                    <text class="attr-key" x="26" y="74" data-i18n="ill.attrs.b">business scope</text>
+                    <text class="attr-glyph rem" x="12" y="96">−</text>
+                    <text class="attr-key old-key" x="26" y="96" data-i18n="ill.attrs.c">registered address</text>
+                  </g>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">~</span> <span data-i18n="card.attrs">Attribute change</span> <span class="pill" data-i18n="fam.content">Content</span></h3>
+                <p class="card-text" data-i18n="card.attrsText">Attributes, types, aliases and deprecations — counted on a badge, diffed word by word in the details.</p>
+              </div>
+            </li>
+            <!-- Rekey -->
+            <li class="card" data-family="identity">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M150 98 64 136M150 98 92 152M150 98 236 140M150 98 250 102" />
+                  <circle class="n" cx="64" cy="136" r="4.5" />
+                  <circle class="n" cx="92" cy="152" r="4" />
+                  <circle class="n" cx="236" cy="140" r="4.5" />
+                  <circle class="n" cx="250" cy="102" r="4" />
+                  <circle class="halo" cx="150" cy="98" r="24" fill="url(#glow-identity)" />
+                  <circle class="halo-ring" cx="150" cy="98" r="14" />
+                  <circle class="fill" cx="150" cy="98" r="9" />
+                  <circle class="ring" cx="150" cy="98" r="12.5" />
+                  <g class="id-chip old-chip" transform="translate(28 22)"><rect width="104" height="24" rx="6" /><text x="52" y="16.2">stg_orders</text></g>
+                  <path class="id-arrow" d="M140 34h18" marker-end="url(#ah-identity)" />
+                  <g class="id-chip new-chip" transform="translate(166 22)"><rect width="110" height="24" rx="6" /><text x="55" y="16.2">stg_orders_v2</text></g>
+                  <path class="id-link" d="M150 50v34" />
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">#</span> <span data-i18n="card.rekey">Rekey</span> <span class="pill" data-i18n="fam.identity">Identity</span></h3>
+                <p class="card-text" data-i18n="card.rekeyText">The id changed, the thing did not. kgdiff matches it by label, neighbours and attributes, so its relations stay unchanged.</p>
+              </div>
+            </li>
+            <!-- Suggestion -->
+            <li class="card" data-family="identity">
+              <figure class="ill-wrap">
+                <svg class="ill" viewBox="0 0 300 168" aria-hidden="true">
+                  <path class="e" d="M84 92 34 132M216 92 268 132" />
+                  <circle class="n" cx="34" cy="132" r="4" />
+                  <circle class="n" cx="268" cy="132" r="4" />
+                  <path class="edge-added" d="M150 30 207 84" marker-end="url(#ah-added)" />
+                  <circle class="n" cx="150" cy="30" r="5" />
+                  <path class="suggest" d="M93 90Q150 112 207 90" />
+                  <circle class="halo added-halo" cx="216" cy="92" r="22" fill="url(#glow-added)" />
+                  <circle class="halo-ring added-ring" cx="216" cy="92" r="13" />
+                  <circle class="ghost removed-ghost" cx="84" cy="92" r="8" />
+                  <circle class="added-fill" cx="216" cy="92" r="8" />
+                  <text class="q" x="150" y="98">?</text>
+                  <text class="score" x="150" y="122">0.70</text>
+                  <text class="lbl old" x="84" y="72" data-i18n="ill.suggest.r">pitchblende</text>
+                  <text class="lbl strong" x="226" y="72" data-i18n="ill.suggest.a">uraninite (pitchblende)</text>
+                  <text class="lbl" x="150" y="16" data-i18n="ill.suggest.n">polonium</text>
+                </svg>
+              </figure>
+              <div class="card-body">
+                <h3><span class="glyph" aria-hidden="true">?</span> <span data-i18n="card.suggest">Suggestion</span> <span class="pill" data-i18n="fam.identity">Identity</span></h3>
+                <p class="card-text" data-i18n="card.suggestText">Not sure two nodes are the same? kgdiff draws a dotted “maybe” link with its confidence and lets you decide.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ── CLI ───────────────────────────────────────────────────────── -->
+      <section class="section" id="cli" aria-labelledby="cli-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow" data-i18n="cli.eyebrow">Command line</p>
+            <h2 id="cli-title" data-i18n="cli.title">In your terminal and CI</h2>
+            <p class="lede" data-i18n-html="cli.lede">The same engine as a CLI: a colored summary for people, <code>--json</code> and <code>--delta</code> for machines, <code>--markdown</code> for pull requests, and a single-file HTML report that works offline.</p>
+          </div>
+
+          <div class="cli-grid">
+            <figure class="terminal" aria-labelledby="term-caption">
+              <div class="term-bar" aria-hidden="true">
+                <span class="term-dots"><i></i><i></i><i></i></span>
+                <span class="term-title">kgdiff — zsh</span>
+              </div>
+              <!-- biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable regions must be keyboard-focusable (WCAG 2.1.1) -->
+              <section class="term-scroll" tabindex="0" aria-label="Terminal output" data-i18n-attr="aria-label=cli.termLabel">
+                <pre class="term-body"><code><span class="term-prompt"><span class="tp">$</span> <span id="term-cmd">npx kgdiff before.obo after.obo --match id --hierarchy is_a</span></span>
+<span id="term-out"></span></code></pre>
+              </section>
+              <figcaption class="term-caption" id="term-caption" data-i18n="cli.termCaption">Real output from the CLI's golden test snapshots (100 columns, truecolor).</figcaption>
+            </figure>
+
+            <div class="cli-side">
+              <h3 class="side-title" data-i18n="cli.outputs">One diff, many outputs</h3>
+              <dl class="flags">
+                <div><dt><code>--stat</code></dt><dd data-i18n="flag.stat">diffstat: nodes and edges added, removed, modified</dd></div>
+                <div><dt><code>--name-status</code></dt><dd data-i18n="flag.nameStatus">one line per change: A D M R V G S E</dd></div>
+                <div><dt><code>--json</code></dt><dd data-i18n="flag.json">the full machine-readable diff</dd></div>
+                <div><dt><code>--delta</code></dt><dd data-i18n="flag.delta">an invertible patch, for <code>kgdiff apply</code></dd></div>
+                <div><dt><code>--markdown</code></dt><dd data-i18n="flag.markdown">a PR comment or job summary</dd></div>
+                <div><dt><code>-o report.html</code></dt><dd data-i18n="flag.html">a self-contained interactive report</dd></div>
+                <div><dt><code>--exit-code</code></dt><dd data-i18n="flag.exit">exit 1 when the graphs differ</dd></div>
+              </dl>
+            </div>
+          </div>
+
+          <div class="ci-grid">
+            <div class="ci-card">
+              <h3 class="side-title" data-i18n="ci.title">Fail the job, explain the change</h3>
+              <p class="card-text" data-i18n="ci.text">Gate ontology pull requests on review, and put a readable summary where reviewers already are. Labels are escaped: a summary can never mention people, link issues or inject HTML.</p>
+              <div class="code" data-lang="yaml">
+                <div class="code-head"><span>.github/workflows/ontology.yml</span>
+                  <button class="copy-btn" type="button" data-copy-from="ci-yaml" aria-label="Copy" data-i18n-attr="aria-label=copy.code"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
+                </div>
+                <pre><code id="ci-yaml" data-highlight="yaml">- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
+- run: git show origin/main:ontology.ttl &gt; main.ttl
+# Explain what changed in the job summary…
+- run: npx kgdiff main.ttl ontology.ttl --markdown &gt;&gt; "$GITHUB_STEP_SUMMARY"
+# …and attach the interactive report.
+- run: npx kgdiff main.ttl ontology.ttl -o kgdiff-report.html
+- uses: actions/upload-artifact@v4
+  with:
+    name: kgdiff-report
+    path: kgdiff-report.html</code></pre>
+              </div>
+            </div>
+            <figure class="md-card" aria-labelledby="md-caption">
+              <div class="md-head">
+                <span class="md-avatar" aria-hidden="true"><svg class="md-logo" aria-hidden="true"><use href="#logo" /></svg></span>
+                <span class="md-who"><strong class="md-name">kgdiff</strong> <span class="muted" data-i18n="md.commented">commented</span></span>
+                <code class="md-flag">--markdown</code>
+              </div>
+              <!-- biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable regions must be keyboard-focusable (WCAG 2.1.1) -->
+              <section class="md-body" id="md-body" tabindex="0" aria-label="Markdown summary preview" data-i18n-attr="aria-label=md.label"></section>
+              <figcaption class="sr-only" id="md-caption" data-i18n="md.caption">Rendered output of kgdiff --markdown</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Formats & integrations ────────────────────────────────────── -->
+      <section class="section" id="formats" aria-labelledby="formats-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow" data-i18n="formats.eyebrow">Formats &amp; integrations</p>
+            <h2 id="formats-title" data-i18n="formats.title">Bring your graph</h2>
+            <p class="lede" data-i18n="formats.lede">RDF, OBO, or the JSON your graph library already exports — detected automatically and normalized, so the same graph diffs as identical however it is serialized.</p>
+          </div>
+
+          <div class="formats-grid">
+            <div class="format-groups">
+              <section class="fgroup" aria-labelledby="fg-rdf">
+                <h3 id="fg-rdf">RDF</h3>
+                <ul class="chips">
+                  <li><span>Turtle</span><code>.ttl</code></li>
+                  <li><span>N-Triples</span><code>.nt</code></li>
+                  <li><span>N-Quads</span><code>.nq</code></li>
+                  <li><span>TriG</span><code>.trig</code></li>
+                </ul>
+                <p class="fnote" data-i18n="formats.rdf">Labels by language preference, OWL existential restrictions as edges, blank nodes identified by content, annotations folded into edges.</p>
+              </section>
+              <section class="fgroup" aria-labelledby="fg-obo">
+                <h3 id="fg-obo">OBO 1.4</h3>
+                <ul class="chips">
+                  <li><span>OBO</span><code>.obo</code></li>
+                </ul>
+                <p class="fnote" data-i18n-html="formats.obo"><code>is_a</code>, <code>relationship</code>, synonyms and xrefs; <code>replaced_by</code> and <code>alt_id</code> become merge hints.</p>
+              </section>
+              <section class="fgroup" aria-labelledby="fg-json">
+                <h3 id="fg-json">JSON</h3>
+                <ul class="chips">
+                  <li><span>kgdiff</span></li>
+                  <li><span>Cytoscape.js</span></li>
+                  <li><span>d3 / NetworkX</span></li>
+                  <li><span>AntV G6</span></li>
+                  <li><span>graphology</span></li>
+                  <li><span>vis-network</span></li>
+                </ul>
+                <p class="fnote" data-i18n="formats.json">The dialect is detected from the shape; rendering state is dropped with a warning.</p>
+              </section>
+            </div>
+
+            <div class="integrations">
+              <div class="int-tabs" role="tablist" aria-label="Integrations" data-i18n-attr="aria-label=int.label">
+                <button class="int-tab" role="tab" type="button" id="int-tab-wc" aria-selected="true" aria-controls="int-wc" data-i18n="int.wc">Web component</button>
+                <button class="int-tab" role="tab" type="button" id="int-tab-g6" aria-selected="false" aria-controls="int-g6" tabindex="-1">AntV G6</button>
+                <button class="int-tab" role="tab" type="button" id="int-tab-delta" aria-selected="false" aria-controls="int-delta" tabindex="-1" data-i18n="int.delta">Delta format</button>
+              </div>
+              <div class="int-panel" role="tabpanel" id="int-wc" aria-labelledby="int-tab-wc">
+                <p class="int-note" data-i18n="int.wcText">One custom element, no framework. Give it two graphs (or a precomputed report) and listen to its review events.</p>
+                <div class="code">
+                  <div class="code-head"><span>index.html</span>
+                    <button class="copy-btn" type="button" data-copy-from="code-wc" aria-label="Copy" data-i18n-attr="aria-label=copy.code"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
+                  </div>
+                  <pre><code id="code-wc" data-highlight="html">&lt;kgdiff-viewer mode="replay" locale="zh-CN"&gt;&lt;/kgdiff-viewer&gt;
+
+&lt;script type="module"&gt;
+  import '@kgdiff/viewer';
+
+  const viewer = document.querySelector('kgdiff-viewer');
+  const text = (url) =&gt; fetch(url).then((r) =&gt; r.text());
+
+  await viewer.load({
+    before: { text: await text('v12.ttl'), filename: 'v12.ttl' },
+    after: { text: await text('v13.ttl'), filename: 'v13.ttl' },
+    diff: { hierarchyPredicates: ['rdfs:subClassOf'] },
+  });
+
+  viewer.addEventListener('kgdiff-review', (e) =&gt; {
+    console.log(e.detail.progress); // { reviewed: [...], total: 23 }
+  });
+&lt;/script&gt;</code></pre>
+                </div>
+              </div>
+              <div class="int-panel" role="tabpanel" id="int-g6" aria-labelledby="int-tab-g6" hidden>
+                <p class="int-note" data-i18n="int.g6Text">Already on AntV G6? Render the same visual language inside your own G6 graph — selection, level of detail and replay included.</p>
+                <div class="code">
+                  <div class="code-head"><span>diff-graph.ts</span>
+                    <button class="copy-btn" type="button" data-copy-from="code-g6" aria-label="Copy" data-i18n-attr="aria-label=copy.code"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
+                  </div>
+                  <pre><code id="code-g6" data-highlight="ts">import { diff } from '@kgdiff/core';
+import { layoutDiff } from '@kgdiff/layout';
+import { buildScene } from '@kgdiff/scene';
+import { createDiffGraph } from '@kgdiff/g6';
+
+const result = diff(before, after, { hierarchyPredicates: ['is_a'] });
+const scene = buildScene(result, layoutDiff(result), { theme: 'light' });
+
+// A G6 v5 Graph with kgdiff's encodings, hover and click-to-select.
+const view = await createDiffGraph('#container', scene);
+await view.selectHunk(0);
+await view.playReplay({ speed: 1 });</code></pre>
+                </div>
+              </div>
+              <div class="int-panel" role="tabpanel" id="int-delta" aria-labelledby="int-tab-delta" hidden>
+                <p class="int-note" data-i18n-html="int.deltaText">A verifiable, invertible patch: <code>apply(A, delta) ≅ B</code> and <code>apply(B, invert(delta)) ≅ A</code>. Every op checks its precondition; it maps cleanly to KGCL and RDF Patch.</p>
+                <div class="code">
+                  <div class="code-head"><span>patch.json</span>
+                    <button class="copy-btn" type="button" data-copy-from="code-delta" aria-label="Copy" data-i18n-attr="aria-label=copy.code"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
+                  </div>
+                  <pre><code id="code-delta" data-highlight="json">{
+  "format": "kgdiff.delta",
+  "version": 1,
+  "edgeIdentity": "structure",
+  "base": { "name": "mhd", "version": "2026-09-01", "hash": "c53:…", "nodes": 179, "edges": 351 },
+  "target": { "name": "mhd", "version": "2026-10-01", "hash": "c53:…", "nodes": 184, "edges": 353 },
+  "ops": [
+    { "op": "edge.remove",
+      "edge": { "source": "MHD:0000019", "target": "MHD:0002003", "predicate": "has_symptom" } },
+    { "op": "node.set", "id": "MHD:0000018", "field": "aliases",
+      "from": ["MI"], "to": ["MI", "heart attack"] },
+    { "op": "edge.add",
+      "edge": { "source": "MHD:0000018", "target": "MHD:0002030", "predicate": "has_symptom" } }
+  ]
+}</code></pre>
+                </div>
+                <div class="cmd cmd-block">
+                  <span class="prompt" aria-hidden="true">$</span>
+                  <code>npx kgdiff apply v1.json patch.json -o v2.json</code>
+                  <button class="copy-btn" type="button" data-copy="npx kgdiff apply v1.json patch.json -o v2.json" aria-label="Copy command" data-i18n-attr="aria-label=copy.command"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Compare ───────────────────────────────────────────────────── -->
+      <section class="section" id="compare" aria-labelledby="compare-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow" data-i18n="compare.eyebrow">Compare</p>
+            <h2 id="compare-title" data-i18n="compare.title">Why kgdiff</h2>
+            <p class="lede" data-i18n="compare.lede">Good tools already exist for ontologies and for data lineage. kgdiff is a visual, semantic review layer for any graph. An honest comparison, by category:</p>
+          </div>
+
+          <!-- biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable regions must be keyboard-focusable (WCAG 2.1.1) -->
+          <section class="table-scroll" tabindex="0" aria-labelledby="compare-title">
+            <table class="compare">
+              <thead>
+                <tr>
+                  <th scope="col"><span class="sr-only" data-i18n="cmp.capability">Capability</span></th>
+                  <th scope="col"><span data-i18n="cmp.text">Text diff</span><small data-i18n="cmp.textSub">git diff on the files</small></th>
+                  <th scope="col"><span data-i18n="cmp.onto">Ontology diff tools</span><small>ROBOT diff, Protégé Compare Ontologies, owl2vcs, owlcompare</small></th>
+                  <th scope="col"><span data-i18n="cmp.lineage">Lineage diff UIs</span><small data-i18n="cmp.lineageSub">e.g. Recce for dbt</small></th>
+                  <th scope="col" class="us"><span>kgdiff</span><small data-i18n="cmp.usSub">v0.1, MIT</small></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r1">Semantic changes: merge, split, rename, move</th>
+                  <td data-v="no"><span data-i18n="cmp.r1.text">lines added / removed</span></td>
+                  <td data-v="partial"><span data-i18n="cmp.r1.onto">axiom- or entity-level; some detect renames</span></td>
+                  <td data-v="partial"><span data-i18n="cmp.r1.lineage">models added / removed / modified</span></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r1.us">named, grouped into hunks</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r2">Ignores serialization noise (order, prefixes, blank nodes)</th>
+                  <td data-v="no"><span data-i18n="cmp.r2.text">reordering shows as change</span></td>
+                  <td data-v="yes"><span data-i18n="cmp.r2.onto">axiom-level</span></td>
+                  <td data-v="yes"><span data-i18n="cmp.r2.lineage">manifest-level</span></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r2.us">normalized graph model</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r3">Graph view on one stable layout</th>
+                  <td data-v="no"></td>
+                  <td data-v="no"><span data-i18n="cmp.r3.onto">text, tables or trees</span></td>
+                  <td data-v="yes"><span data-i18n="cmp.r3.lineage">lineage DAG</span></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r3.us">any graph, both versions</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r4">Visual replay of the change</th>
+                  <td data-v="no"></td>
+                  <td data-v="no"></td>
+                  <td data-v="no"></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r4.us">step by step, reduced-motion aware</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r5">Review workflow</th>
+                  <td data-v="yes"><span data-i18n="cmp.r5.text">PR review, line by line</span></td>
+                  <td data-v="no"><span data-i18n="cmp.r5.onto">reports</span></td>
+                  <td data-v="yes"><span data-i18n="cmp.r5.lineage">checks and checklists in PRs</span></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r5.us">hunks, reviewed state, keyboard</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r6">Invertible patch format</th>
+                  <td data-v="yes"><span data-i18n="cmp.r6.text">git apply -R</span></td>
+                  <td data-v="partial"><span data-i18n="cmp.r6.onto">varies by tool</span></td>
+                  <td data-v="no"></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r6.us">verifiable JSON delta</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r7">Any graph format</th>
+                  <td data-v="partial"><span data-i18n="cmp.r7.text">any text, compared line by line</span></td>
+                  <td data-v="partial"><span data-i18n="cmp.r7.onto">OWL and OBO ontologies</span></td>
+                  <td data-v="no"><span data-i18n="cmp.r7.lineage">dbt projects</span></td>
+                  <td data-v="yes" class="us"><span data-i18n="cmp.r7.us">RDF, OBO, six JSON shapes</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r8">OWL axiom-level detail</th>
+                  <td data-v="no"></td>
+                  <td data-v="yes"><span data-i18n="cmp.r8.onto">their core strength</span></td>
+                  <td data-v="no"></td>
+                  <td data-v="partial" class="us"><span data-i18n="cmp.r8.us">graph-level; existential restrictions become edges</span></td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="cmp.r9">Data-level diff (rows and values)</th>
+                  <td data-v="no"></td>
+                  <td data-v="no"></td>
+                  <td data-v="yes"><span data-i18n="cmp.r9.lineage">profiles, row counts, values</span></td>
+                  <td data-v="no" class="us"><span data-i18n="cmp.r9.us">out of scope</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <div class="compare-foot">
+            <ul class="compare-key" aria-label="Legend" data-i18n-attr="aria-label=cmp.legend">
+              <li data-v="yes"><svg class="i" aria-hidden="true"><use href="#i-yes" /></svg><span data-i18n="cmp.yes">supported</span></li>
+              <li data-v="partial"><svg class="i" aria-hidden="true"><use href="#i-partial" /></svg><span data-i18n="cmp.partial">partly</span></li>
+              <li data-v="no"><svg class="i" aria-hidden="true"><use href="#i-no" /></svg><span data-i18n="cmp.no">not supported</span></li>
+            </ul>
+            <p class="muted" data-i18n="cmp.note">Summarized by category from each project's public documentation (2026); individual tools differ. Spotted a mistake? Please open an issue.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Datasets ──────────────────────────────────────────────────── -->
+      <section class="section" id="datasets" aria-labelledby="datasets-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow" data-i18n="datasets.eyebrow">Examples</p>
+            <h2 id="datasets-title" data-i18n="datasets.title">Five datasets, five kinds of change</h2>
+            <p class="lede" data-i18n="datasets.lede">Realistic before / after pairs, each with a machine-checked list of what kgdiff must report. Open one in the playground or run it with the CLI.</p>
+          </div>
+          <ul class="datasets" id="dataset-list" aria-labelledby="datasets-title"></ul>
+        </div>
+      </section>
+
+      <!-- ── Closing CTA ───────────────────────────────────────────────── -->
+      <section class="section cta" aria-labelledby="cta-title">
+        <div class="container cta-inner">
+          <svg class="cta-mark" aria-hidden="true"><use href="#logo" /></svg>
+          <h2 id="cta-title" data-i18n="cta.title">Diff your own graphs</h2>
+          <p class="lede" data-i18n="cta.text">Drop two files into the playground. Everything runs in your browser — nothing is uploaded.</p>
+          <div class="hero-ctas center">
+            <a class="btn btn-primary" href="playground.html" data-locale-link>
+              <span data-i18n="cta.open">Open the playground</span>
+              <svg class="i" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+            <a class="btn btn-ghost" href="%KGDIFF_REPO_URL%/blob/main/docs/architecture.md" data-i18n="cta.docs">Read the docs</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="brand" href="./">
+              <svg class="brand-mark" aria-hidden="true"><use href="#logo" /></svg>
+              <span class="brand-name">kgdiff</span>
+            </a>
+            <p class="footer-tagline" data-i18n="footer.tagline">git diff for knowledge graphs: semantic, visual diff and review for graph data.</p>
+          </div>
+          <nav aria-labelledby="f-product">
+            <h3 id="f-product" data-i18n="footer.product">Product</h3>
+            <ul>
+              <li><a href="playground.html" data-locale-link data-i18n="footer.playground">Playground</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/tree/main/packages/cli#readme" data-i18n="footer.cli">CLI</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/tree/main/packages/viewer" data-i18n="footer.viewer">Web component</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/tree/main/packages/g6" data-i18n="footer.g6">AntV G6 adapter</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/tree/main/examples" data-i18n="footer.examples">Example datasets</a></li>
+            </ul>
+          </nav>
+          <nav aria-labelledby="f-docs">
+            <h3 id="f-docs" data-i18n="footer.docs">Docs</h3>
+            <ul>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/docs/architecture.md" data-i18n="footer.architecture">Architecture</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/docs/visual-language.md" data-i18n="footer.visual">Visual language</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/docs/interaction.md" data-i18n="footer.interaction">Interaction</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/docs/cli.md" data-i18n="footer.cliDoc">CLI reference</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/docs/delta-format.md" data-i18n="footer.delta">Delta format</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/docs/algorithms.md" data-i18n="footer.algorithms">Algorithms</a></li>
+            </ul>
+          </nav>
+          <nav aria-labelledby="f-project">
+            <h3 id="f-project" data-i18n="footer.project">Project</h3>
+            <ul>
+              <li><a href="%KGDIFF_REPO_URL%">GitHub</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/issues" data-i18n="footer.issues">Issues</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/CONTRIBUTING.md" data-i18n="footer.contributing">Contributing</a></li>
+              <li><a href="%KGDIFF_REPO_URL%/blob/main/LICENSE" data-i18n="footer.license">MIT License</a></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 <span data-i18n="footer.authors">kgdiff contributors</span> · MIT</span>
+          <span><span data-i18n="footer.examplesLicense">Example data CC0-1.0</span> · kgdiff v%KGDIFF_VERSION%</span>
+        </div>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="toast-text"></span></div>
+  </body>
+</html>

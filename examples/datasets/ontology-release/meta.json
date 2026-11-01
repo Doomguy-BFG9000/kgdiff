@@ -1,0 +1,14 @@
+{
+  "id": "ontology-release",
+  "title": { "en": "Mini Human Disease Ontology release", "zh-CN": "迷你人类疾病本体版本发布" },
+  "description": {
+    "en": "Two monthly releases of a small OBO disease / anatomy / symptom ontology: duplicate terms obsoleted with replaced_by (merges), diabetes insipidus split under the 2022 AVP nomenclature, the 2023 steatotic liver disease renames, is_a moves, a namespace fix, synonym, definition and xref edits.",
+    "zh-CN": "一个小型 OBO 疾病 / 解剖 / 症状本体的两个月度版本：重复术语以 replaced_by 废弃（合并）、尿崩症按 2022 年 AVP 新命名拆分、2023 年脂肪性肝病更名、is_a 迁移、命名空间修正，以及同义词、定义和交叉引用的修改。"
+  },
+  "format": "obo",
+  "files": { "before": "before.obo", "after": "after.obo" },
+  "versions": { "before": "2026-09-01", "after": "2026-10-01" },
+  "options": { "match": { "strategy": "id" }, "hierarchyPredicates": ["is_a"] },
+  "featured": true,
+  "license": "CC0-1.0"
+}

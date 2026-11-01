@@ -1,0 +1,14 @@
+{
+  "id": "enterprise-kg",
+  "title": { "en": "Enterprise credit KG ontology", "zh-CN": "企业信用知识图谱本体" },
+  "description": {
+    "en": "Catalog of a Chinese enterprise-credit knowledge graph: 8 business domains, entity / relation / event concepts with attribute-to-column mappings. Release v13 merges 法人代表 into 法定代表人, adds 受益所有人 (beneficial owner), drops 抽查检查, moves 股权出质 to the equity domain, retargets 十大股东 to 上市公司 and more.",
+    "zh-CN": "企业信用知识图谱的本体目录：8 个业务领域，主体、关系、事件等概念及其属性到物理字段的映射。v13 版本将“法人代表”合并入“法定代表人”，新增“受益所有人”，下线“抽查检查”，把“股权出质”迁入股权投资领域，并将“十大股东”的持股关系改指向“上市公司”等。"
+  },
+  "format": "json",
+  "files": { "before": "before.json", "after": "after.json" },
+  "versions": { "before": "v12", "after": "v13" },
+  "options": { "match": { "strategy": "auto" }, "hierarchyPredicates": ["is_a"] },
+  "featured": true,
+  "license": "CC0-1.0"
+}

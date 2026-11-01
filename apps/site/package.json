@@ -1,0 +1,21 @@
+{
+  "name": "@kgdiff/site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "kgdiff website: landing page and in-browser playground.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.ts",
+    "build": "vite build --config vite.config.ts",
+    "preview": "vite preview --config vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@kgdiff/core": "workspace:*",
+    "@kgdiff/formats": "workspace:*",
+    "@kgdiff/layout": "workspace:*",
+    "@kgdiff/scene": "workspace:*",
+    "@kgdiff/viewer": "workspace:*"
+  }
+}

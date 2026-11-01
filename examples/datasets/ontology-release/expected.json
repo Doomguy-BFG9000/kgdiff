@@ -1,0 +1,297 @@
+{
+  "$schema": "../expected.schema.json",
+  "dataset": "ontology-release",
+  "notes": [
+    "Assumes the OBO mapping of docs/architecture.md as implemented by @kgdiff/formats: [Term] stanzas are nodes ([Typedef] stanzas only name relations); is_a and relationship: lines are edges whose predicate is the tag (is_a) or the relation id as written (part_of, located_in, has_symptom); is_obsolete → deprecated; replaced_by → replacedBy; synonym → aliases and also attrs.synonyms (\"text (SCOPE)\"), so synonym edits appear in both aliasChanges and attrChanges; other tags (def, namespace, xref, comment, consider, subset, created_by, creation_date…) → attrs.",
+    "Obsolete terms stay in the file (OBO practice), so merge sources and the split source are modified, not removed. Their is_a / relationship edges are dropped; edges already present on the survivor become collapsed, new ones on the survivor are carried (retarget, cause merge).",
+    "The split MHD:0000067 → MHD:0000204 + MHD:0000205 is heuristic: OBO consider: is not a kgdiff hint. It is detectable because the new term labels were NARROW synonyms of the obsoleted term (name evidence 1.0; the new terms also carry the old name as a RELATED synonym) and they take over its edges (carry-over 4/4 and 3/4 of the old term's edges, 4/6 and 3/5 of the new terms' edges). Treat a miss as a warning. The edges of the source and targets are listed under edges.uncertain: their status and edge facets (retarget cause split, or plain add / remove) depend on whether and how the split is detected.",
+    "Obsoleted terms lose their is_a parents; per docs/algorithms.md §4 that is part of the obsoletion and yields no move facet. The merge sources carry a replacement facet (replacedBy added); the split source only gains consider: (an attribute), so it has none.",
+    "attrChanges list keys only, because the exact value shape of OBO tags (def text with or without its xref list, multi-valued tags as arrays) is parser-defined."
+  ],
+  "counts": { "before": { "nodes": 179, "edges": 351 }, "after": { "nodes": 184, "edges": 353 } },
+  "nodes": {
+    "added": ["MHD:0000201", "MHD:0000202", "MHD:0000203", "MHD:0000204", "MHD:0000205"],
+    "removed": [],
+    "modified": [
+      "MHD:0000018",
+      "MHD:0000019",
+      "MHD:0000030",
+      "MHD:0000031",
+      "MHD:0000032",
+      "MHD:0000038",
+      "MHD:0000050",
+      "MHD:0000056",
+      "MHD:0000060",
+      "MHD:0000062",
+      "MHD:0000063",
+      "MHD:0000064",
+      "MHD:0000065",
+      "MHD:0000067",
+      "MHD:0000072",
+      "MHD:0000074",
+      "MHD:0000079",
+      "MHD:0000080",
+      "MHD:0000081",
+      "MHD:0000082",
+      "MHD:0000087",
+      "MHD:0000093",
+      "MHD:0002010"
+    ]
+  },
+  "edges": {
+    "added": [
+      ["MHD:0000201", "is_a", "MHD:0000079"],
+      ["MHD:0000202", "is_a", "MHD:0000079"],
+      ["MHD:0000203", "is_a", "MHD:0000010"],
+      ["MHD:0000204", "is_a", "MHD:0000203"],
+      ["MHD:0000204", "located_in", "MHD:0001029"],
+      ["MHD:0000205", "is_a", "MHD:0000092"],
+      ["MHD:0000205", "is_a", "MHD:0000203"]
+    ],
+    "removed": [
+      ["MHD:0000019", "has_symptom", "MHD:0002003"],
+      ["MHD:0000019", "is_a", "MHD:0000017"],
+      ["MHD:0000019", "located_in", "MHD:0001015"],
+      ["MHD:0000032", "has_symptom", "MHD:0002010"],
+      ["MHD:0000032", "is_a", "MHD:0000028"],
+      ["MHD:0000064", "is_a", "MHD:0000061"],
+      ["MHD:0000065", "is_a", "MHD:0000061"],
+      ["MHD:0000065", "located_in", "MHD:0001032"]
+    ],
+    "modified": [
+      ["MHD:0000018", "has_symptom", "MHD:0002030"],
+      ["MHD:0000031", "has_symptom", "MHD:0002011"],
+      ["MHD:0000038", "is_a", "MHD:0000047"],
+      ["MHD:0000062", "has_symptom", "MHD:0002016"],
+      ["MHD:0000072", "is_a", "MHD:0000071"],
+      ["MHD:0000074", "is_a", "MHD:0002046"],
+      ["MHD:0000082", "is_a", "MHD:0000079"],
+      ["MHD:0000087", "is_a", "MHD:0000086"]
+    ],
+    "uncertain": [
+      ["MHD:0000067", "has_symptom", "MHD:0002034"],
+      ["MHD:0000067", "has_symptom", "MHD:0002035"],
+      ["MHD:0000067", "has_symptom", "MHD:0002048"],
+      ["MHD:0000067", "is_a", "MHD:0000075"],
+      ["MHD:0000204", "has_symptom", "MHD:0002034"],
+      ["MHD:0000204", "has_symptom", "MHD:0002035"],
+      ["MHD:0000204", "has_symptom", "MHD:0002048"],
+      ["MHD:0000204", "is_a", "MHD:0000075"],
+      ["MHD:0000205", "has_symptom", "MHD:0002034"],
+      ["MHD:0000205", "has_symptom", "MHD:0002035"],
+      ["MHD:0000205", "has_symptom", "MHD:0002048"]
+    ]
+  },
+  "matches": [],
+  "rekeys": [],
+  "merges": [
+    { "target": "MHD:0000018", "sources": ["MHD:0000019"], "via": "hint" },
+    { "target": "MHD:0000031", "sources": ["MHD:0000032"], "via": "hint" },
+    { "target": "MHD:0000062", "sources": ["MHD:0000064", "MHD:0000065"], "via": "hint" }
+  ],
+  "splits": [
+    {
+      "source": "MHD:0000067",
+      "targets": ["MHD:0000204", "MHD:0000205"],
+      "via": "heuristic",
+      "heuristic": true
+    }
+  ],
+  "renames": [
+    { "id": "MHD:0000019", "from": "heart attack", "to": "obsolete heart attack" },
+    {
+      "id": "MHD:0000032",
+      "from": "chronic obstructive airway disease",
+      "to": "obsolete chronic obstructive airway disease"
+    },
+    { "id": "MHD:0000056", "from": "Alzheimer's disease", "to": "Alzheimer disease" },
+    { "id": "MHD:0000064", "from": "juvenile diabetes", "to": "obsolete juvenile diabetes" },
+    {
+      "id": "MHD:0000065",
+      "from": "insulin-dependent diabetes mellitus",
+      "to": "obsolete insulin-dependent diabetes mellitus"
+    },
+    { "id": "MHD:0000067", "from": "diabetes insipidus", "to": "obsolete diabetes insipidus" },
+    { "id": "MHD:0000079", "from": "fatty liver disease", "to": "steatotic liver disease" },
+    {
+      "id": "MHD:0000080",
+      "from": "non-alcoholic fatty liver disease",
+      "to": "metabolic dysfunction-associated steatotic liver disease"
+    },
+    {
+      "id": "MHD:0000081",
+      "from": "non-alcoholic steatohepatitis",
+      "to": "metabolic dysfunction-associated steatohepatitis"
+    },
+    {
+      "id": "MHD:0000082",
+      "from": "alcoholic liver disease",
+      "to": "alcohol-related liver disease"
+    }
+  ],
+  "moves": [
+    { "id": "MHD:0000038", "predicate": "is_a", "from": ["MHD:0000028"], "to": ["MHD:0000047"] },
+    { "id": "MHD:0000072", "predicate": "is_a", "from": ["MHD:0000069"], "to": ["MHD:0000071"] },
+    { "id": "MHD:0000074", "predicate": "is_a", "from": ["MHD:0000005"], "to": ["MHD:0002046"] },
+    { "id": "MHD:0000082", "predicate": "is_a", "from": ["MHD:0000078"], "to": ["MHD:0000079"] },
+    { "id": "MHD:0000087", "predicate": "is_a", "from": ["MHD:0000085"], "to": ["MHD:0000086"] }
+  ],
+  "deprecations": [
+    { "id": "MHD:0000019", "deprecated": true },
+    { "id": "MHD:0000032", "deprecated": true },
+    { "id": "MHD:0000064", "deprecated": true },
+    { "id": "MHD:0000065", "deprecated": true },
+    { "id": "MHD:0000067", "deprecated": true }
+  ],
+  "replacements": [
+    {
+      "id": "MHD:0000019",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["MHD:0000018"], "removed": [] }
+    },
+    {
+      "id": "MHD:0000032",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["MHD:0000031"], "removed": [] }
+    },
+    {
+      "id": "MHD:0000064",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["MHD:0000062"], "removed": [] }
+    },
+    {
+      "id": "MHD:0000065",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["MHD:0000062"], "removed": [] }
+    }
+  ],
+  "typeChanges": [],
+  "aliasChanges": [
+    { "id": "MHD:0000018", "added": ["heart attack"], "removed": [] },
+    { "id": "MHD:0000031", "added": ["COAD", "chronic obstructive airway disease"], "removed": [] },
+    { "id": "MHD:0000056", "added": ["Alzheimer's disease"], "removed": [] },
+    { "id": "MHD:0000060", "added": [], "removed": ["headache"] },
+    {
+      "id": "MHD:0000062",
+      "added": ["IDDM", "insulin-dependent diabetes mellitus", "juvenile diabetes"],
+      "removed": []
+    },
+    { "id": "MHD:0000079", "added": ["SLD", "fatty liver disease"], "removed": [] },
+    { "id": "MHD:0000080", "added": ["MASLD", "non-alcoholic fatty liver disease"], "removed": [] },
+    { "id": "MHD:0000081", "added": ["MASH", "non-alcoholic steatohepatitis"], "removed": [] },
+    { "id": "MHD:0000082", "added": ["alcoholic liver disease"], "removed": [] },
+    { "id": "MHD:0002010", "added": ["breathlessness", "shortness of breath"], "removed": [] }
+  ],
+  "attrChanges": [
+    { "id": "MHD:0000018", "keys": ["synonyms", "xref"] },
+    { "id": "MHD:0000019", "keys": ["comment", "def", "xref"] },
+    { "id": "MHD:0000030", "keys": ["def", "xref"] },
+    { "id": "MHD:0000031", "keys": ["synonyms"] },
+    { "id": "MHD:0000032", "keys": ["comment", "def", "xref"] },
+    { "id": "MHD:0000050", "keys": ["xref"] },
+    { "id": "MHD:0000056", "keys": ["synonyms"] },
+    { "id": "MHD:0000060", "keys": ["synonyms"] },
+    { "id": "MHD:0000062", "keys": ["synonyms", "xref"] },
+    { "id": "MHD:0000063", "keys": ["xref"] },
+    { "id": "MHD:0000064", "keys": ["comment", "def", "xref"] },
+    { "id": "MHD:0000065", "keys": ["comment", "def", "xref"] },
+    { "id": "MHD:0000067", "keys": ["comment", "consider", "def", "xref"] },
+    { "id": "MHD:0000074", "keys": ["def", "namespace"] },
+    { "id": "MHD:0000079", "keys": ["comment", "def", "synonyms"] },
+    { "id": "MHD:0000080", "keys": ["def", "synonyms"] },
+    { "id": "MHD:0000081", "keys": ["synonyms"] },
+    { "id": "MHD:0000082", "keys": ["synonyms"] },
+    { "id": "MHD:0000093", "keys": ["def", "xref"] },
+    { "id": "MHD:0002010", "keys": ["synonyms"] }
+  ],
+  "retargets": [
+    {
+      "edge": ["MHD:0000018", "has_symptom", "MHD:0002030"],
+      "end": "source",
+      "from": "MHD:0000019",
+      "to": "MHD:0000018",
+      "cause": "merge"
+    },
+    {
+      "edge": ["MHD:0000031", "has_symptom", "MHD:0002011"],
+      "end": "source",
+      "from": "MHD:0000032",
+      "to": "MHD:0000031",
+      "cause": "merge"
+    },
+    {
+      "edge": ["MHD:0000038", "is_a", "MHD:0000047"],
+      "end": "target",
+      "from": "MHD:0000028",
+      "to": "MHD:0000047",
+      "cause": "move"
+    },
+    {
+      "edge": ["MHD:0000062", "has_symptom", "MHD:0002016"],
+      "end": "source",
+      "from": "MHD:0000064",
+      "to": "MHD:0000062",
+      "cause": "merge"
+    },
+    {
+      "edge": ["MHD:0000072", "is_a", "MHD:0000071"],
+      "end": "target",
+      "from": "MHD:0000069",
+      "to": "MHD:0000071",
+      "cause": "move"
+    },
+    {
+      "edge": ["MHD:0000074", "is_a", "MHD:0002046"],
+      "end": "target",
+      "from": "MHD:0000005",
+      "to": "MHD:0002046",
+      "cause": "move"
+    },
+    {
+      "edge": ["MHD:0000082", "is_a", "MHD:0000079"],
+      "end": "target",
+      "from": "MHD:0000078",
+      "to": "MHD:0000079",
+      "cause": "move"
+    },
+    {
+      "edge": ["MHD:0000087", "is_a", "MHD:0000086"],
+      "end": "target",
+      "from": "MHD:0000085",
+      "to": "MHD:0000086",
+      "cause": "move"
+    }
+  ],
+  "predicateChanges": [],
+  "collapsed": [
+    {
+      "edge": ["MHD:0000019", "has_symptom", "MHD:0002003"],
+      "into": ["MHD:0000018", "has_symptom", "MHD:0002003"]
+    },
+    {
+      "edge": ["MHD:0000019", "is_a", "MHD:0000017"],
+      "into": ["MHD:0000018", "is_a", "MHD:0000017"]
+    },
+    {
+      "edge": ["MHD:0000032", "has_symptom", "MHD:0002010"],
+      "into": ["MHD:0000031", "has_symptom", "MHD:0002010"]
+    },
+    {
+      "edge": ["MHD:0000032", "is_a", "MHD:0000028"],
+      "into": ["MHD:0000031", "is_a", "MHD:0000028"]
+    },
+    {
+      "edge": ["MHD:0000064", "is_a", "MHD:0000061"],
+      "into": ["MHD:0000062", "is_a", "MHD:0000061"]
+    },
+    {
+      "edge": ["MHD:0000065", "is_a", "MHD:0000061"],
+      "into": ["MHD:0000062", "is_a", "MHD:0000061"]
+    },
+    {
+      "edge": ["MHD:0000065", "located_in", "MHD:0001032"],
+      "into": ["MHD:0000062", "located_in", "MHD:0001032"]
+    }
+  ],
+  "suggestions": []
+}

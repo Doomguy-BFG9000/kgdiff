@@ -1,0 +1,44 @@
+/**
+ * Golden outputs for two featured datasets, with each dataset's meta.json options. Review the
+ * files under `__snapshots__/` when the diff engine or the layout of the summary changes
+ * (`pnpm vitest run packages/cli -u` updates them).
+ */
+import { describe, expect, it } from 'vitest';
+import { dataset, run } from './helpers.js';
+
+const CASES = [
+  { id: 'enterprise-kg', locale: 'zh-CN' },
+  { id: 'ontology-release', locale: 'en' },
+] as const;
+
+const OUTPUTS = [
+  { name: 'summary', flags: [] as string[], ext: 'txt' },
+  { name: 'stat', flags: ['--stat'], ext: 'txt' },
+  { name: 'name-status', flags: ['--name-status'], ext: 'tsv' },
+  { name: 'markdown', flags: ['--markdown'], ext: 'md.snap' },
+] as const;
+
+describe.each(CASES)('$id ($locale)', ({ id, locale }) => {
+  const d = dataset(id);
+  const base = [d.before, d.after, ...d.flags, '--locale', locale];
+
+  it.each(OUTPUTS)('$name', async ({ name, flags, ext }) => {
+    const r = await run([...base, ...flags], { env: { COLUMNS: '100' } });
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.stderr).toBe('');
+    await expect(r.stdout).toMatchFileSnapshot(`__snapshots__/${id}.${name}.${ext}`);
+  });
+
+  it('summary in color (truecolor)', async () => {
+    const r = await run([...base, '--color', 'always'], {
+      env: { COLUMNS: '100', COLORTERM: 'truecolor' },
+    });
+    expect(r.code).toBe(0);
+    await expect(r.stdout).toMatchFileSnapshot(`__snapshots__/${id}.summary.color.ansi`);
+  });
+
+  it('summary in a narrow terminal (64 columns, 256 colors off)', async () => {
+    const r = await run(base, { isTTY: true, columns: 64, env: { NO_COLOR: '1' } });
+    await expect(r.stdout).toMatchFileSnapshot(`__snapshots__/${id}.summary.64.txt`);
+  });
+});

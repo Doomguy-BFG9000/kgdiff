@@ -1,0 +1,126 @@
+{
+  "$schema": "../expected.schema.json",
+  "dataset": "data-lineage",
+  "notes": [
+    "Strategy auto: exact ids first, then similarity for the leftovers. stg_orders → stg_orders_v2 is recovered by similarity (label + identical neighbours + 5 of 6 equal attrs, score ≈ 0.92) and reported as rekey + rename + attrs; its edges map onto the new id and stay unchanged.",
+    "int_marketing_attribution is split via the `replaces` hint on both new models; all three of its edges are carried (retarget, cause split). Labels of the split pair share only the \"int\" token, so no similarity match or suggestion competes with the hint.",
+    "Removed edges are expressed in union-id space: the removed edge of int_legacy_discounts points at stg_orders_v2."
+  ],
+  "counts": { "before": { "nodes": 43, "edges": 49 }, "after": { "nodes": 44, "edges": 50 } },
+  "nodes": {
+    "added": [
+      "model.shop.fct_customer_ltv",
+      "model.shop.int_order_touchpoints",
+      "model.shop.int_web_sessions"
+    ],
+    "removed": ["model.shop.int_legacy_discounts", "model.shop.int_marketing_attribution"],
+    "modified": [
+      "exposure.shop.support_ops_report",
+      "model.shop.dim_customers",
+      "model.shop.fct_channel_performance",
+      "model.shop.fct_orders",
+      "model.shop.fct_support_tickets",
+      "model.shop.stg_orders_v2"
+    ]
+  },
+  "edges": {
+    "added": [
+      ["model.shop.fct_customer_ltv", "depends_on", "model.shop.dim_customers"],
+      ["model.shop.fct_customer_ltv", "depends_on", "model.shop.fct_orders"],
+      ["model.shop.int_order_touchpoints", "depends_on", "model.shop.int_web_sessions"]
+    ],
+    "removed": [
+      ["model.shop.fct_orders", "depends_on", "model.shop.int_legacy_discounts"],
+      ["model.shop.int_legacy_discounts", "depends_on", "model.shop.stg_orders_v2"]
+    ],
+    "modified": [
+      ["exposure.shop.customer_churn_model", "depends_on", "model.shop.fct_customer_ltv"],
+      ["model.shop.fct_channel_performance", "depends_on", "model.shop.int_order_touchpoints"],
+      ["model.shop.fct_daily_revenue", "depends_on", "model.shop.fct_payments"],
+      ["model.shop.int_order_touchpoints", "depends_on", "model.shop.int_orders_enriched"],
+      ["model.shop.int_web_sessions", "depends_on", "model.shop.stg_ga4_events"]
+    ]
+  },
+  "matches": [{ "before": "model.shop.stg_orders", "after": "model.shop.stg_orders_v2" }],
+  "rekeys": [{ "from": "model.shop.stg_orders", "to": "model.shop.stg_orders_v2" }],
+  "merges": [],
+  "splits": [
+    {
+      "source": "model.shop.int_marketing_attribution",
+      "targets": ["model.shop.int_order_touchpoints", "model.shop.int_web_sessions"],
+      "via": "hint"
+    }
+  ],
+  "renames": [{ "id": "model.shop.stg_orders_v2", "from": "stg_orders", "to": "stg_orders_v2" }],
+  "moves": [],
+  "deprecations": [],
+  "replacements": [],
+  "typeChanges": [],
+  "aliasChanges": [],
+  "attrChanges": [
+    {
+      "id": "exposure.shop.support_ops_report",
+      "changes": [{ "key": "owner", "before": "support-analytics", "after": "cx-analytics" }]
+    },
+    {
+      "id": "model.shop.dim_customers",
+      "changes": [{ "key": "tags", "before": ["core", "pii"], "after": ["core", "gdpr", "pii"] }]
+    },
+    {
+      "id": "model.shop.fct_channel_performance",
+      "changes": [{ "key": "tags", "before": ["marketing"], "after": ["daily", "marketing"] }]
+    },
+    {
+      "id": "model.shop.fct_orders",
+      "changes": [{ "key": "materialization", "before": "table", "after": "incremental" }]
+    },
+    {
+      "id": "model.shop.fct_support_tickets",
+      "changes": [{ "key": "owner", "before": "support-analytics", "after": "cx-analytics" }]
+    },
+    {
+      "id": "model.shop.stg_orders_v2",
+      "changes": [{ "key": "columns_count", "before": 14, "after": 17 }]
+    }
+  ],
+  "retargets": [
+    {
+      "edge": ["exposure.shop.customer_churn_model", "depends_on", "model.shop.fct_customer_ltv"],
+      "end": "target",
+      "from": "model.shop.fct_orders",
+      "to": "model.shop.fct_customer_ltv",
+      "cause": "edit"
+    },
+    {
+      "edge": ["model.shop.fct_channel_performance", "depends_on", "model.shop.int_order_touchpoints"],
+      "end": "target",
+      "from": "model.shop.int_marketing_attribution",
+      "to": "model.shop.int_order_touchpoints",
+      "cause": "split"
+    },
+    {
+      "edge": ["model.shop.fct_daily_revenue", "depends_on", "model.shop.fct_payments"],
+      "end": "target",
+      "from": "model.shop.fct_orders",
+      "to": "model.shop.fct_payments",
+      "cause": "edit"
+    },
+    {
+      "edge": ["model.shop.int_order_touchpoints", "depends_on", "model.shop.int_orders_enriched"],
+      "end": "source",
+      "from": "model.shop.int_marketing_attribution",
+      "to": "model.shop.int_order_touchpoints",
+      "cause": "split"
+    },
+    {
+      "edge": ["model.shop.int_web_sessions", "depends_on", "model.shop.stg_ga4_events"],
+      "end": "source",
+      "from": "model.shop.int_marketing_attribution",
+      "to": "model.shop.int_web_sessions",
+      "cause": "split"
+    }
+  ],
+  "predicateChanges": [],
+  "collapsed": [],
+  "suggestions": []
+}

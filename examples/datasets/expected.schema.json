@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kgdiff/kgdiff/examples/datasets/expected.schema.json",
+  "title": "kgdiff example dataset: expected semantic changes",
+  "description": "Machine-checkable list of the changes kgdiff must report for one dataset, diffed with the dataset's meta.json options. Ids are union ids (docs/algorithms.md §6): the after id for nodes present after, the before id for removed nodes. Edges are written as [source, predicate, target] triples in union-id space. Unless an item says `heuristic: true`, every list is exhaustive: the set of elements carrying that change must equal the list (order is irrelevant unless stated).",
+  "type": "object",
+  "required": ["dataset", "nodes", "edges"],
+  "additionalProperties": false,
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "ids": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+    "triple": {
+      "description": "[source, predicate, target] in union-id space; predicates in their compact form.",
+      "type": "array",
+      "prefixItems": [{ "$ref": "#/$defs/id" }, { "type": "string" }, { "$ref": "#/$defs/id" }],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "triples": { "type": "array", "items": { "$ref": "#/$defs/triple" } },
+    "attrChange": {
+      "type": "object",
+      "required": ["key"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string" },
+        "before": { "description": "Absent when the attribute was added." },
+        "after": { "description": "Absent when the attribute was removed." }
+      }
+    },
+    "setChange": {
+      "type": "object",
+      "required": ["id", "added", "removed"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "added": { "type": "array", "items": { "type": "string" } },
+        "removed": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "idSetChange": {
+      "type": "object",
+      "required": ["added", "removed"],
+      "additionalProperties": false,
+      "properties": { "added": { "$ref": "#/$defs/ids" }, "removed": { "$ref": "#/$defs/ids" } }
+    },
+    "count": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": { "nodes": { "type": "integer" }, "edges": { "type": "integer" } }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string" },
+    "dataset": { "description": "Dataset id (folder name).", "type": "string" },
+    "notes": {
+      "description": "Assumptions and reasoning behind non-obvious expectations.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "counts": {
+      "description": "Node and edge counts of each parsed version (after normalization, before diffing).",
+      "type": "object",
+      "required": ["before", "after"],
+      "properties": { "before": { "$ref": "#/$defs/count" }, "after": { "$ref": "#/$defs/count" } }
+    },
+    "nodes": {
+      "description": "Union node ids by status. Every node not listed is unchanged.",
+      "type": "object",
+      "required": ["added", "removed", "modified"],
+      "additionalProperties": false,
+      "properties": {
+        "added": { "$ref": "#/$defs/ids" },
+        "removed": { "$ref": "#/$defs/ids" },
+        "modified": { "$ref": "#/$defs/ids" }
+      }
+    },
+    "edges": {
+      "description": "Union edges by status. Every edge not listed (and not in `uncertain`) is unchanged.",
+      "type": "object",
+      "required": ["added", "removed", "modified"],
+      "additionalProperties": false,
+      "properties": {
+        "added": { "$ref": "#/$defs/triples" },
+        "removed": { "$ref": "#/$defs/triples" },
+        "modified": { "$ref": "#/$defs/triples" },
+        "uncertain": {
+          "description": "Edges whose status and facets depend on a heuristic (e.g. whether a split is detected and which target carries which edge). Ignore them in every exhaustive edge check: edges.added/removed/modified and the edge-facet lists (retargets, predicateChanges, collapsed, edgeAttrChanges). Written in union-id space: before endpoints mapped through the matching for old edges, after endpoints for new ones.",
+          "$ref": "#/$defs/triples"
+        }
+      }
+    },
+    "matches": {
+      "description": "DiffResult.matches: hint and similarity matches (before id → after id). Exact-id matches are implied and not listed.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["before", "after"],
+        "additionalProperties": false,
+        "properties": { "before": { "$ref": "#/$defs/id" }, "after": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "rekeys": {
+      "description": "`rekey` facets (before id → after id). Only reported under strategies `id` and `auto`; with `similarity` ids are meaningless, so an id difference alone leaves a node unchanged.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "properties": { "from": { "$ref": "#/$defs/id" }, "to": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "merges": {
+      "description": "N → 1 merges: `sources` (before ids, sorted) get `mergedInto`, `target` gets `mergeTarget`.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "sources", "via"],
+        "additionalProperties": false,
+        "properties": {
+          "target": { "$ref": "#/$defs/id" },
+          "sources": { "$ref": "#/$defs/ids" },
+          "via": { "enum": ["hint", "heuristic"] },
+          "heuristic": { "type": "boolean" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "splits": {
+      "description": "1 → N splits: `source` gets `splitInto`, each of `targets` gets `splitFrom`.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "targets", "via"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "$ref": "#/$defs/id" },
+          "targets": { "$ref": "#/$defs/ids" },
+          "via": { "enum": ["hint", "heuristic"] },
+          "heuristic": {
+            "description": "Detection relies on similarity heuristics; tests should treat a miss as a warning, not a failure.",
+            "type": "boolean"
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "renames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to"],
+        "additionalProperties": false,
+        "properties": { "id": { "$ref": "#/$defs/id" }, "from": { "type": "string" }, "to": { "type": "string" } }
+      }
+    },
+    "moves": {
+      "description": "`move` facets: parents removed (`from`) and added (`to`) for one hierarchy predicate.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "predicate", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "predicate": { "type": "string" },
+          "from": { "$ref": "#/$defs/ids" },
+          "to": { "$ref": "#/$defs/ids" }
+        }
+      }
+    },
+    "deprecations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "deprecated"],
+        "additionalProperties": false,
+        "properties": { "id": { "$ref": "#/$defs/id" }, "deprecated": { "type": "boolean" } }
+      }
+    },
+    "replacements": {
+      "description": "`replacement` facets: the node's `replaces` / `replacedBy` links changed (ids as written); a side that did not change has empty `added` / `removed`.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "replaces", "replacedBy"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "replaces": { "$ref": "#/$defs/idSetChange" },
+          "replacedBy": { "$ref": "#/$defs/idSetChange" }
+        }
+      }
+    },
+    "typeChanges": { "type": "array", "items": { "$ref": "#/$defs/setChange" } },
+    "aliasChanges": { "type": "array", "items": { "$ref": "#/$defs/setChange" } },
+    "attrChanges": {
+      "description": "`attrs` facets. Either the exact `changes` (sorted by key) or, when the value shape is parser-defined (OBO, RDF), only the changed `keys`.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "changes": { "type": "array", "items": { "$ref": "#/$defs/attrChange" } },
+          "keys": { "type": "array", "items": { "type": "string" } }
+        },
+        "oneOf": [{ "required": ["changes"] }, { "required": ["keys"] }]
+      }
+    },
+    "retargets": {
+      "description": "`retarget` edge facets. `edge` is the union edge (after key).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "end", "from", "to", "cause"],
+        "additionalProperties": false,
+        "properties": {
+          "edge": { "$ref": "#/$defs/triple" },
+          "end": { "enum": ["source", "target"] },
+          "from": { "$ref": "#/$defs/id" },
+          "to": { "$ref": "#/$defs/id" },
+          "cause": { "enum": ["edit", "merge", "split", "move"] }
+        }
+      }
+    },
+    "predicateChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "from", "to"],
+        "additionalProperties": false,
+        "properties": { "edge": { "$ref": "#/$defs/triple" }, "from": { "type": "string" }, "to": { "type": "string" } }
+      }
+    },
+    "edgeAttrChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "changes"],
+        "additionalProperties": false,
+        "properties": {
+          "edge": { "$ref": "#/$defs/triple" },
+          "changes": { "type": "array", "items": { "$ref": "#/$defs/attrChange" } }
+        }
+      }
+    },
+    "collapsed": {
+      "description": "Edges of a merge source removed because the target already had the same edge (`collapsed` facet).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "into"],
+        "additionalProperties": false,
+        "properties": { "edge": { "$ref": "#/$defs/triple" }, "into": { "$ref": "#/$defs/triple" } }
+      }
+    },
+    "suggestions": {
+      "description": "Match suggestions (dotted “maybe the same?” links).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["before", "after", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "before": { "$ref": "#/$defs/id" },
+          "after": { "$ref": "#/$defs/id" },
+          "reason": { "enum": ["below-threshold", "ambiguous"] }
+        }
+      }
+    },
+    "hunks": {
+      "description": "Optional. Hunks in default review order (docs/algorithms.md §7).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "phase", "anchor"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["add", "remove", "merge", "split", "modify", "relations"] },
+          "phase": { "enum": ["remove", "restructure", "modify", "add"] },
+          "anchor": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "legend": {
+      "description": "Informational only: human-readable names for opaque ids.",
+      "type": "object"
+    }
+  }
+}

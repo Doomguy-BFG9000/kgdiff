@@ -1,0 +1,33 @@
+{
+  "name": "@kgdiff/scene",
+  "version": "0.1.0",
+  "description": "Renderer-agnostic visual model for graph diffs: design tokens, encodings, replay timeline and focus.",
+  "keywords": [
+    "kgdiff",
+    "visualization"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kgdiff/core": "workspace:*",
+    "@kgdiff/layout": "workspace:*"
+  }
+}

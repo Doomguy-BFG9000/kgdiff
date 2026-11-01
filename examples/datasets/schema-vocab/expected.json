@@ -1,0 +1,162 @@
+{
+  "$schema": "../expected.schema.json",
+  "dataset": "schema-vocab",
+  "notes": [
+    "Assumes the RDF mapping of docs/architecture.md: node ids are full IRIs (https://schema.org/…), predicates keep their compact form (rdfs:subClassOf, schema:domainIncludes, schema:itemReviewed…); rdf:type → types; rdfs:label → label (English preferred; the zh labels never change); skos:altLabel → aliases; rdfs:comment → attrs[\"rdfs:comment\"]; owl:deprecated → deprecated; obo:IAO_0100001 → replacedBy (not an edge); the blank-node OWL restriction becomes the edge Review –schema:itemReviewed→ Thing.",
+    "Code and employees are deprecated in place (owl:deprecated true + IAO:0100001), so they are modified merge sources with deprecate and replacement facets; their own edges are unchanged.",
+    "servesCuisine changes its domainIncludes from Restaurant to FoodEstablishment: one removed and one added edge with the same (source, predicate) → a retarget."
+  ],
+  "counts": { "before": { "nodes": 66, "edges": 105 }, "after": { "nodes": 71, "edges": 112 } },
+  "nodes": {
+    "added": [
+      "https://schema.org/CafeOrCoffeeShop",
+      "https://schema.org/DiscussionForumPosting",
+      "https://schema.org/FoodEstablishment",
+      "https://schema.org/SocialMediaPosting",
+      "https://schema.org/VirtualLocation"
+    ],
+    "removed": [],
+    "modified": [
+      "https://schema.org/BlogPosting",
+      "https://schema.org/Code",
+      "https://schema.org/Corporation",
+      "https://schema.org/Dataset",
+      "https://schema.org/Event",
+      "https://schema.org/NGO",
+      "https://schema.org/Restaurant",
+      "https://schema.org/ScholarlyArticle",
+      "https://schema.org/SoftwareSourceCode",
+      "https://schema.org/employee",
+      "https://schema.org/employees",
+      "https://schema.org/servesCuisine"
+    ]
+  },
+  "edges": {
+    "added": [
+      [
+        "https://schema.org/CafeOrCoffeeShop",
+        "rdfs:subClassOf",
+        "https://schema.org/FoodEstablishment"
+      ],
+      [
+        "https://schema.org/DiscussionForumPosting",
+        "rdfs:subClassOf",
+        "https://schema.org/SocialMediaPosting"
+      ],
+      [
+        "https://schema.org/FoodEstablishment",
+        "rdfs:subClassOf",
+        "https://schema.org/LocalBusiness"
+      ],
+      ["https://schema.org/Review", "schema:itemReviewed", "https://schema.org/Thing"],
+      ["https://schema.org/SocialMediaPosting", "rdfs:subClassOf", "https://schema.org/Article"],
+      ["https://schema.org/VirtualLocation", "rdfs:subClassOf", "https://schema.org/Intangible"],
+      ["https://schema.org/location", "schema:rangeIncludes", "https://schema.org/VirtualLocation"]
+    ],
+    "removed": [],
+    "modified": [
+      ["https://schema.org/BlogPosting", "rdfs:subClassOf", "https://schema.org/SocialMediaPosting"],
+      ["https://schema.org/Restaurant", "rdfs:subClassOf", "https://schema.org/FoodEstablishment"],
+      [
+        "https://schema.org/servesCuisine",
+        "schema:domainIncludes",
+        "https://schema.org/FoodEstablishment"
+      ]
+    ]
+  },
+  "matches": [],
+  "rekeys": [],
+  "merges": [
+    {
+      "target": "https://schema.org/SoftwareSourceCode",
+      "sources": ["https://schema.org/Code"],
+      "via": "hint"
+    },
+    {
+      "target": "https://schema.org/employee",
+      "sources": ["https://schema.org/employees"],
+      "via": "hint"
+    }
+  ],
+  "splits": [],
+  "renames": [
+    { "id": "https://schema.org/NGO", "from": "NGO", "to": "Non-governmental organization" },
+    {
+      "id": "https://schema.org/ScholarlyArticle",
+      "from": "Scholarly artcle",
+      "to": "Scholarly article"
+    }
+  ],
+  "moves": [
+    {
+      "id": "https://schema.org/BlogPosting",
+      "predicate": "rdfs:subClassOf",
+      "from": ["https://schema.org/Article"],
+      "to": ["https://schema.org/SocialMediaPosting"]
+    },
+    {
+      "id": "https://schema.org/Restaurant",
+      "predicate": "rdfs:subClassOf",
+      "from": ["https://schema.org/LocalBusiness"],
+      "to": ["https://schema.org/FoodEstablishment"]
+    }
+  ],
+  "deprecations": [
+    { "id": "https://schema.org/Code", "deprecated": true },
+    { "id": "https://schema.org/employees", "deprecated": true }
+  ],
+  "replacements": [
+    {
+      "id": "https://schema.org/Code",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["https://schema.org/SoftwareSourceCode"], "removed": [] }
+    },
+    {
+      "id": "https://schema.org/employees",
+      "replaces": { "added": [], "removed": [] },
+      "replacedBy": { "added": ["https://schema.org/employee"], "removed": [] }
+    }
+  ],
+  "typeChanges": [],
+  "aliasChanges": [
+    { "id": "https://schema.org/Corporation", "added": ["Company"], "removed": [] },
+    { "id": "https://schema.org/NGO", "added": ["NGO"], "removed": [] }
+  ],
+  "attrChanges": [
+    { "id": "https://schema.org/Code", "keys": ["rdfs:comment"] },
+    { "id": "https://schema.org/Dataset", "keys": ["rdfs:comment"] },
+    { "id": "https://schema.org/Event", "keys": ["rdfs:comment"] },
+    { "id": "https://schema.org/employees", "keys": ["rdfs:comment"] },
+    { "id": "https://schema.org/servesCuisine", "keys": ["rdfs:comment"] }
+  ],
+  "retargets": [
+    {
+      "edge": ["https://schema.org/BlogPosting", "rdfs:subClassOf", "https://schema.org/SocialMediaPosting"],
+      "end": "target",
+      "from": "https://schema.org/Article",
+      "to": "https://schema.org/SocialMediaPosting",
+      "cause": "move"
+    },
+    {
+      "edge": ["https://schema.org/Restaurant", "rdfs:subClassOf", "https://schema.org/FoodEstablishment"],
+      "end": "target",
+      "from": "https://schema.org/LocalBusiness",
+      "to": "https://schema.org/FoodEstablishment",
+      "cause": "move"
+    },
+    {
+      "edge": [
+        "https://schema.org/servesCuisine",
+        "schema:domainIncludes",
+        "https://schema.org/FoodEstablishment"
+      ],
+      "end": "target",
+      "from": "https://schema.org/Restaurant",
+      "to": "https://schema.org/FoodEstablishment",
+      "cause": "edit"
+    }
+  ],
+  "predicateChanges": [],
+  "collapsed": [],
+  "suggestions": []
+}

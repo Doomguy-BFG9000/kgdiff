@@ -1,0 +1,126 @@
+import { diff, diffToJSON } from '@kgdiff/core';
+import { layoutDiff, layoutToJSON } from '@kgdiff/layout';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { hydrateEmbeddedPayloads, PAYLOAD_SCRIPT_TYPE, type ReportPayload } from '../src/index.js';
+import { assertPayload, decodePayloadText } from '../src/payload.js';
+import { setRenderBackend } from '../src/renderer-port.js';
+import { mockBackend, until, zoo } from './support.js';
+
+function payload(): ReportPayload {
+  const { before, after } = zoo();
+  const d = diff(before, after);
+  return {
+    format: 'kgdiff.report',
+    version: 1,
+    diff: diffToJSON(d),
+    layout: layoutToJSON(layoutDiff(d)),
+    meta: { generator: 'test', before: { name: 'zoo v1' }, after: { name: 'zoo v2' } },
+    view: { mode: 'replay', locale: 'zh-CN' },
+  };
+}
+
+async function gzipBase64(text: string): Promise<string> {
+  const input = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.enqueue(new TextEncoder().encode(text));
+      c.close();
+    },
+  });
+  const reader = input
+    .pipeThrough(
+      new CompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>,
+    )
+    .getReader();
+  const parts: number[] = [];
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(...value);
+  }
+  let binary = '';
+  for (const b of parts) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+function script(text: string, attrs: Record<string, string> = {}): HTMLScriptElement {
+  const s = document.createElement('script');
+  s.type = PAYLOAD_SCRIPT_TYPE;
+  for (const [k, v] of Object.entries(attrs)) s.setAttribute(k, v);
+  s.textContent = text;
+  return s;
+}
+
+beforeEach(() => setRenderBackend(mockBackend()));
+afterEach(() => {
+  document.body.textContent = '';
+  setRenderBackend(null);
+});
+
+describe('payload decoding', () => {
+  it('decodes plain JSON and gzip-base64', async () => {
+    const p = payload();
+    const json = JSON.stringify(p);
+    expect(await decodePayloadText(json, null)).toEqual(p);
+    expect(await decodePayloadText(await gzipBase64(json), 'gzip-base64')).toEqual(p);
+  });
+
+  it('rejects bad encodings, JSON and envelopes with KgdiffErrors', async () => {
+    await expect(decodePayloadText('{}', 'brotli')).rejects.toMatchObject({
+      code: 'invalid-input',
+    });
+    await expect(decodePayloadText('{nope', null)).rejects.toMatchObject({ code: 'invalid-input' });
+    await expect(decodePayloadText('!!!', 'gzip-base64')).rejects.toMatchObject({
+      code: 'invalid-input',
+    });
+    expect(() => assertPayload({ format: 'kgdiff.diff' })).toThrow(/kgdiff.report/);
+    expect(() => assertPayload({ format: 'kgdiff.report', version: 2 })).toThrow(/version/);
+    expect(() => assertPayload({ format: 'kgdiff.report', version: 1 })).toThrow(/diff/);
+  });
+});
+
+describe('hydrateEmbeddedPayloads', () => {
+  it('assigns a gzip-base64 payload to the targeted viewer, which then honours `view`', async () => {
+    const p = payload();
+    const a = document.createElement('kgdiff-viewer');
+    const b = document.createElement('kgdiff-viewer');
+    b.id = 'second';
+    document.body.append(
+      a,
+      b,
+      script(await gzipBase64(JSON.stringify(p)), {
+        'data-for': 'second',
+        'data-encoding': 'gzip-base64',
+      }),
+    );
+    let ready = false;
+    b.addEventListener('kgdiff-ready', () => {
+      ready = true;
+    });
+    await hydrateEmbeddedPayloads();
+    expect(a.payload).toBeNull();
+    expect(b.payload).toEqual(p);
+    await until(() => ready);
+    expect(b.mode).toBe('replay');
+    expect(b.locale).toBe('zh-CN');
+    expect(b.reviewState().total).toBe(p.diff.hunks.length);
+  });
+
+  it('defaults to the first viewer and works before the element is connected', async () => {
+    const holder = document.createElement('div');
+    const v = document.createElement('kgdiff-viewer');
+    holder.append(v, script(JSON.stringify(payload())));
+    await hydrateEmbeddedPayloads(holder);
+    expect(v.payload?.format).toBe('kgdiff.report');
+  });
+
+  it('reports undecodable payloads on the target viewer', async () => {
+    const v = document.createElement('kgdiff-viewer');
+    const errors: Error[] = [];
+    v.addEventListener('kgdiff-error', (e) =>
+      errors.push((e as CustomEvent<{ error: Error }>).detail.error),
+    );
+    document.body.append(v, script('{"format":"kgdiff.report","version":7}'));
+    await hydrateEmbeddedPayloads();
+    expect(errors[0]).toMatchObject({ code: 'unsupported-version' });
+  });
+});

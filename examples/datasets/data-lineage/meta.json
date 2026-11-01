@@ -1,0 +1,14 @@
+{
+  "id": "data-lineage",
+  "title": { "en": "dbt lineage refactor", "zh-CN": "dbt 数据血缘重构" },
+  "description": {
+    "en": "Lineage DAG of a dbt e-commerce project (sources → staging → intermediate → marts → exposures) across two commits: a model renamed with a new unique_id, a model split in two, a legacy model removed, a new mart, retargeted dependencies, table → incremental and tag / owner changes.",
+    "zh-CN": "一个电商 dbt 项目在两次提交之间的血缘 DAG（source → staging → intermediate → marts → exposure）：模型改名并更换 unique_id、一个模型拆分为两个、移除遗留模型、新增集市模型、依赖改指向、table 改为 incremental，以及标签与负责人变更。"
+  },
+  "format": "json",
+  "files": { "before": "before.json", "after": "after.json" },
+  "versions": { "before": "main@4f2c9e1", "after": "main@b81d07a" },
+  "options": { "match": { "strategy": "auto" } },
+  "featured": false,
+  "license": "CC0-1.0"
+}

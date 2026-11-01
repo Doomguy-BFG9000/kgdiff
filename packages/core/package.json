@@ -1,0 +1,33 @@
+{
+  "name": "@kgdiff/core",
+  "version": "0.1.0",
+  "description": "Semantic diff engine for knowledge graphs: matching, change classification, hunks and invertible deltas.",
+  "keywords": [
+    "kgdiff",
+    "diff",
+    "knowledge-graph",
+    "ontology",
+    "graph"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {}
+}

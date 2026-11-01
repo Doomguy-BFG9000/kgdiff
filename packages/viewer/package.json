@@ -1,0 +1,45 @@
+{
+  "name": "@kgdiff/viewer",
+  "version": "0.1.0",
+  "description": "Drop-in <kgdiff-viewer> web component: overlay, swipe, replay and changes-only views with review workflow.",
+  "keywords": [
+    "kgdiff",
+    "web-component",
+    "viewer",
+    "diff-viewer"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./compute": {
+      "types": "./dist/compute.d.ts",
+      "default": "./dist/compute.js"
+    },
+    "./standalone": "./dist/standalone/kgdiff-viewer.js",
+    "./standalone/compute": "./dist/standalone/kgdiff-viewer-compute.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && vite build -c vite.config.ts && vite build -c vite.config.ts --mode compute",
+    "dev": "vite -c dev/vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kgdiff/core": "workspace:*",
+    "@kgdiff/formats": "workspace:*",
+    "@kgdiff/layout": "workspace:*",
+    "@kgdiff/scene": "workspace:*",
+    "@kgdiff/renderer": "workspace:*"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "llm-extraction",
+  "title": { "en": "Two LLM extraction runs", "zh-CN": "两次 LLM 抽取结果对比" },
+  "description": {
+    "en": "Two runs of an LLM entity/relation extractor over the same short article on Marie Curie. Ids are random per run, so nodes are aligned by similarity: label variants (“Marie Curie” / “Marie Skłodowska-Curie”, “polonium (Po)” / “Polonium”), a hallucinated entity, two entities only the second run found, a few changed relations and one ambiguous pair left as a suggestion.",
+    "zh-CN": "同一篇居里夫人短文的两次 LLM 实体 / 关系抽取结果。两次运行的 id 随机生成，因此按相似度对齐节点：标签变体（“Marie Curie” / “Marie Skłodowska-Curie”、“polonium (Po)” / “Polonium”）、一次幻觉实体、只有第二次抽到的两个实体、若干关系变化，以及一对留作建议的歧义节点。"
+  },
+  "format": "json",
+  "files": { "before": "before.json", "after": "after.json" },
+  "versions": { "before": "run-a", "after": "run-b" },
+  "options": { "match": { "strategy": "similarity" } },
+  "featured": true,
+  "license": "CC0-1.0"
+}

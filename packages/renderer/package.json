@@ -1,0 +1,34 @@
+{
+  "name": "@kgdiff/renderer",
+  "version": "0.1.0",
+  "description": "High-DPI Canvas 2D renderer for kgdiff scenes: smooth camera, LOD, label placement, hit testing and minimap.",
+  "keywords": [
+    "kgdiff",
+    "canvas",
+    "renderer"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kgdiff/core": "workspace:*",
+    "@kgdiff/scene": "workspace:*"
+  }
+}

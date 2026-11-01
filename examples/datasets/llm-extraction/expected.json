@@ -1,0 +1,353 @@
+{
+  "$schema": "../expected.schema.json",
+  "dataset": "llm-extraction",
+  "notes": [
+    "Ids are random per run, so meta.options uses strategy similarity: ids are declared meaningless, matches carry no rekey facet, and a matched pair that differs only by its id is unchanged (13 of the 37 matches). Union ids are the run-B ids for matched and added nodes and the run-A ids for removed nodes.",
+    "Every match below scores ≥ 0.85 on label, types and attributes alone (aliases make most label variants exact); none relies on neighbour propagation.",
+    "pitchblende ↔ uraninite (pitchblende) is deliberately ambiguous (pitchblende is a variety of uraninite): label similarity ≈ 0.69 with equal type and formula gives ≈ 0.77 before and ≈ 0.70 after neighbour evidence, so it stays a below-threshold suggestion and the two nodes are reported as removed / added. Their statements follow suit: radium –extracted_from→ is a target-end retarget (radium exists in both runs), while pitchblende –mined_in→ Jáchymov and uraninite –mined_in→ Jáchymov are a removed plus an added edge, because a source-end retarget requires both subjects to exist in both versions (docs/algorithms.md §5).",
+    "Albert Einstein (and its collaborated_with edge) is a hallucination of run A; Gustave Bémont and the French Academy of Sciences appear only in run B."
+  ],
+  "counts": { "before": { "nodes": 39, "edges": 55 }, "after": { "nodes": 40, "edges": 59 } },
+  "nodes": {
+    "added": ["e_00ce", "e_261f", "e_e4de"],
+    "removed": ["e_7bf2", "e_c3b6"],
+    "modified": [
+      "e_0792",
+      "e_0d5c",
+      "e_1c8f",
+      "e_37c6",
+      "e_3c48",
+      "e_5c50",
+      "e_5cd4",
+      "e_6884",
+      "e_6cfd",
+      "e_71d3",
+      "e_7e22",
+      "e_a587",
+      "e_b206",
+      "e_b4da",
+      "e_c177",
+      "e_ca47",
+      "e_d48f",
+      "e_dc2d",
+      "e_df3b",
+      "e_e1a6",
+      "e_e1f0",
+      "e_ed24",
+      "e_f19e",
+      "e_f6eb"
+    ]
+  },
+  "edges": {
+    "added": [
+      ["e_00ce", "co_discovered", "e_e1a6"],
+      ["e_00ce", "collaborated_with", "e_13af"],
+      ["e_0792", "awarded", "e_7f5c"],
+      ["e_261f", "mined_in", "e_a587"],
+      ["e_b206", "exhibits", "e_ed24"],
+      ["e_e1a6", "announced_at", "e_e4de"],
+      ["e_f6eb", "announced_at", "e_e4de"],
+      ["e_f6eb", "isolated_from", "e_261f"]
+    ],
+    "removed": [
+      ["e_13af", "discovered", "e_b206"],
+      ["e_37c6", "collaborated_with", "e_c3b6"],
+      ["e_7bf2", "mined_in", "e_a587"],
+      ["e_f6eb", "extracted_from", "e_7bf2"]
+    ],
+    "modified": [
+      ["e_37c6", "affiliated_with", "e_1c8f"],
+      ["e_37c6", "born_in", "e_23dd"],
+      ["e_37c6", "married_to", "e_13af"],
+      ["e_e1a6", "extracted_from", "e_261f"]
+    ]
+  },
+  "matches": [
+    { "before": "e_e554", "after": "e_076a" },
+    { "before": "e_21c8", "after": "e_0792" },
+    { "before": "e_495e", "after": "e_0d5c" },
+    { "before": "e_7091", "after": "e_13af" },
+    { "before": "e_4112", "after": "e_149b" },
+    { "before": "e_e87a", "after": "e_1c8f" },
+    { "before": "e_e901", "after": "e_23dd" },
+    { "before": "e_76f7", "after": "e_3775" },
+    { "before": "e_8bd8", "after": "e_37c6" },
+    { "before": "e_a85b", "after": "e_3c48" },
+    { "before": "e_15c1", "after": "e_5c50" },
+    { "before": "e_1b5a", "after": "e_5cd4" },
+    { "before": "e_4c01", "after": "e_6884" },
+    { "before": "e_98eb", "after": "e_6cfd" },
+    { "before": "e_95a8", "after": "e_6fc0" },
+    { "before": "e_fbba", "after": "e_71d3" },
+    { "before": "e_32f9", "after": "e_764a" },
+    { "before": "e_c7c7", "after": "e_7e22" },
+    { "before": "e_7d52", "after": "e_7f5c" },
+    { "before": "e_0b14", "after": "e_8186" },
+    { "before": "e_ab96", "after": "e_914c" },
+    { "before": "e_fd4e", "after": "e_9dea" },
+    { "before": "e_c660", "after": "e_a587" },
+    { "before": "e_611f", "after": "e_b206" },
+    { "before": "e_492f", "after": "e_b4da" },
+    { "before": "e_a79d", "after": "e_c177" },
+    { "before": "e_ac4f", "after": "e_c314" },
+    { "before": "e_caf0", "after": "e_ca47" },
+    { "before": "e_f719", "after": "e_cc4e" },
+    { "before": "e_1e18", "after": "e_d48f" },
+    { "before": "e_3ef4", "after": "e_dc2d" },
+    { "before": "e_d097", "after": "e_df3b" },
+    { "before": "e_3a22", "after": "e_e1a6" },
+    { "before": "e_3cff", "after": "e_e1f0" },
+    { "before": "e_a802", "after": "e_ed24" },
+    { "before": "e_3f72", "after": "e_f19e" },
+    { "before": "e_8805", "after": "e_f6eb" }
+  ],
+  "rekeys": [],
+  "merges": [],
+  "splits": [],
+  "renames": [
+    { "id": "e_0792", "from": "Irène Joliot-Curie", "to": "Irene Joliot-Curie" },
+    { "id": "e_0d5c", "from": "uranic rays", "to": "Becquerel rays" },
+    {
+      "id": "e_1c8f",
+      "from": "ESPCI",
+      "to": "École supérieure de physique et de chimie industrielles"
+    },
+    { "id": "e_37c6", "from": "Marie Curie", "to": "Marie Skłodowska-Curie" },
+    { "id": "e_3c48", "from": "uranium", "to": "Uranium" },
+    {
+      "id": "e_5c50",
+      "from": "Recherches sur les substances radioactives",
+      "to": "Research on Radioactive Substances"
+    },
+    { "id": "e_5cd4", "from": "aplastic anemia", "to": "aplastic anaemia" },
+    { "id": "e_6884", "from": "First World War", "to": "World War I" },
+    { "id": "e_6cfd", "from": "Frédéric Joliot", "to": "Frédéric Joliot-Curie" },
+    { "id": "e_7e22", "from": "Henri Becquerel", "to": "Antoine Henri Becquerel" },
+    { "id": "e_a587", "from": "St. Joachimsthal", "to": "Jáchymov" },
+    { "id": "e_b206", "from": "thorium", "to": "Thorium" },
+    { "id": "e_b4da", "from": "Wilhelm Röntgen", "to": "Wilhelm Conrad Röntgen" },
+    { "id": "e_c177", "from": "artificial radioactivity", "to": "induced radioactivity" },
+    { "id": "e_ca47", "from": "petites Curies", "to": "mobile radiography units" },
+    { "id": "e_dc2d", "from": "Univ. of Paris", "to": "University of Paris" },
+    { "id": "e_df3b", "from": "Curie electrometer", "to": "piezoelectric quartz electrometer" },
+    { "id": "e_e1a6", "from": "radium (Ra)", "to": "Radium" },
+    { "id": "e_e1f0", "from": "André Debierne", "to": "André-Louis Debierne" },
+    { "id": "e_f19e", "from": "Passy", "to": "Passy (Haute-Savoie)" },
+    { "id": "e_f6eb", "from": "polonium (Po)", "to": "Polonium" }
+  ],
+  "moves": [],
+  "deprecations": [],
+  "replacements": [],
+  "typeChanges": [
+    { "id": "e_c177", "added": ["Phenomenon"], "removed": ["Concept"] },
+    { "id": "e_ed24", "added": ["Phenomenon"], "removed": ["Concept"] }
+  ],
+  "aliasChanges": [
+    { "id": "e_0d5c", "added": ["uranic rays", "uranium rays"], "removed": [] },
+    { "id": "e_1c8f", "added": ["ESPCI", "ESPCI Paris"], "removed": [] },
+    { "id": "e_37c6", "added": ["Maria Skłodowska", "Marie Curie"], "removed": [] },
+    { "id": "e_5c50", "added": ["Recherches sur les substances radioactives"], "removed": [] },
+    { "id": "e_6884", "added": ["First World War", "WWI"], "removed": [] },
+    { "id": "e_6cfd", "added": ["Frédéric Joliot"], "removed": [] },
+    { "id": "e_71d3", "added": ["Institut du Radium"], "removed": [] },
+    { "id": "e_a587", "added": ["Joachimsthal", "St. Joachimsthal"], "removed": [] },
+    { "id": "e_c177", "added": ["artificial radioactivity"], "removed": [] },
+    { "id": "e_ca47", "added": ["Little Curies", "petites Curies"], "removed": [] },
+    { "id": "e_d48f", "added": ["Uniwersytet Latający"], "removed": [] },
+    { "id": "e_dc2d", "added": ["Sorbonne", "Univ. of Paris"], "removed": [] },
+    { "id": "e_df3b", "added": ["Curie electrometer"], "removed": [] },
+    { "id": "e_f19e", "added": ["Passy"], "removed": [] }
+  ],
+  "attrChanges": [
+    {
+      "id": "e_37c6",
+      "changes": [{ "key": "nationality", "before": "Polish", "after": "Polish-French" }]
+    }
+  ],
+  "retargets": [
+    {
+      "edge": ["e_37c6", "born_in", "e_23dd"],
+      "end": "target",
+      "from": "e_914c",
+      "to": "e_23dd",
+      "cause": "edit"
+    },
+    {
+      "edge": ["e_e1a6", "extracted_from", "e_261f"],
+      "end": "target",
+      "from": "e_7bf2",
+      "to": "e_261f",
+      "cause": "edit"
+    }
+  ],
+  "predicateChanges": [
+    {
+      "edge": ["e_37c6", "affiliated_with", "e_1c8f"],
+      "from": "worked_at",
+      "to": "affiliated_with"
+    }
+  ],
+  "edgeAttrChanges": [
+    {
+      "edge": ["e_37c6", "married_to", "e_13af"],
+      "changes": [{ "key": "date", "after": "1895-07-26" }]
+    }
+  ],
+  "collapsed": [],
+  "suggestions": [{ "before": "e_7bf2", "after": "e_261f", "reason": "below-threshold" }],
+  "legend": {
+    "marie": {
+      "before": { "id": "e_8bd8", "label": "Marie Curie" },
+      "after": { "id": "e_37c6", "label": "Marie Skłodowska-Curie" }
+    },
+    "pierre": {
+      "before": { "id": "e_7091", "label": "Pierre Curie" },
+      "after": { "id": "e_13af", "label": "Pierre Curie" }
+    },
+    "jacques": {
+      "before": { "id": "e_e554", "label": "Jacques Curie" },
+      "after": { "id": "e_076a", "label": "Jacques Curie" }
+    },
+    "becquerel": {
+      "before": { "id": "e_c7c7", "label": "Henri Becquerel" },
+      "after": { "id": "e_7e22", "label": "Antoine Henri Becquerel" }
+    },
+    "roentgen": {
+      "before": { "id": "e_492f", "label": "Wilhelm Röntgen" },
+      "after": { "id": "e_b4da", "label": "Wilhelm Conrad Röntgen" }
+    },
+    "lippmann": {
+      "before": { "id": "e_32f9", "label": "Gabriel Lippmann" },
+      "after": { "id": "e_764a", "label": "Gabriel Lippmann" }
+    },
+    "debierne": {
+      "before": { "id": "e_3cff", "label": "André Debierne" },
+      "after": { "id": "e_e1f0", "label": "André-Louis Debierne" }
+    },
+    "irene": {
+      "before": { "id": "e_21c8", "label": "Irène Joliot-Curie" },
+      "after": { "id": "e_0792", "label": "Irene Joliot-Curie" }
+    },
+    "frederic": {
+      "before": { "id": "e_98eb", "label": "Frédéric Joliot" },
+      "after": { "id": "e_6cfd", "label": "Frédéric Joliot-Curie" }
+    },
+    "eve": {
+      "before": { "id": "e_4112", "label": "Ève Curie" },
+      "after": { "id": "e_149b", "label": "Ève Curie" }
+    },
+    "einstein": { "before": { "id": "e_c3b6", "label": "Albert Einstein" }, "after": null },
+    "bemont": { "before": null, "after": { "id": "e_00ce", "label": "Gustave Bémont" } },
+    "warsaw": {
+      "before": { "id": "e_e901", "label": "Warsaw" },
+      "after": { "id": "e_23dd", "label": "Warsaw" }
+    },
+    "poland": {
+      "before": { "id": "e_ab96", "label": "Poland" },
+      "after": { "id": "e_914c", "label": "Poland" }
+    },
+    "paris": {
+      "before": { "id": "e_f719", "label": "Paris" },
+      "after": { "id": "e_cc4e", "label": "Paris" }
+    },
+    "joachimsthal": {
+      "before": { "id": "e_c660", "label": "St. Joachimsthal" },
+      "after": { "id": "e_a587", "label": "Jáchymov" }
+    },
+    "bohemia": {
+      "before": { "id": "e_76f7", "label": "Bohemia" },
+      "after": { "id": "e_3775", "label": "Bohemia" }
+    },
+    "passy": {
+      "before": { "id": "e_3f72", "label": "Passy" },
+      "after": { "id": "e_f19e", "label": "Passy (Haute-Savoie)" }
+    },
+    "pantheon": {
+      "before": { "id": "e_0b14", "label": "Panthéon" },
+      "after": { "id": "e_8186", "label": "Panthéon" }
+    },
+    "flying": {
+      "before": { "id": "e_1e18", "label": "Flying University" },
+      "after": { "id": "e_d48f", "label": "Flying University" }
+    },
+    "uparis": {
+      "before": { "id": "e_3ef4", "label": "Univ. of Paris" },
+      "after": { "id": "e_dc2d", "label": "University of Paris" }
+    },
+    "espci": {
+      "before": { "id": "e_e87a", "label": "ESPCI" },
+      "after": { "id": "e_1c8f", "label": "École supérieure de physique et de chimie industrielles" }
+    },
+    "radinst": {
+      "before": { "id": "e_fbba", "label": "Radium Institute" },
+      "after": { "id": "e_71d3", "label": "Radium Institute" }
+    },
+    "academy": { "before": null, "after": { "id": "e_e4de", "label": "French Academy of Sciences" } },
+    "polonium": {
+      "before": { "id": "e_8805", "label": "polonium (Po)" },
+      "after": { "id": "e_f6eb", "label": "Polonium" }
+    },
+    "radium": {
+      "before": { "id": "e_3a22", "label": "radium (Ra)" },
+      "after": { "id": "e_e1a6", "label": "Radium" }
+    },
+    "uranium": {
+      "before": { "id": "e_a85b", "label": "uranium" },
+      "after": { "id": "e_3c48", "label": "Uranium" }
+    },
+    "thorium": {
+      "before": { "id": "e_611f", "label": "thorium" },
+      "after": { "id": "e_b206", "label": "Thorium" }
+    },
+    "pitchblende": { "before": { "id": "e_7bf2", "label": "pitchblende" }, "after": null },
+    "uraninite": { "before": null, "after": { "id": "e_261f", "label": "uraninite (pitchblende)" } },
+    "radioactivity": {
+      "before": { "id": "e_a802", "label": "radioactivity" },
+      "after": { "id": "e_ed24", "label": "radioactivity" }
+    },
+    "uranicrays": {
+      "before": { "id": "e_495e", "label": "uranic rays" },
+      "after": { "id": "e_0d5c", "label": "Becquerel rays" }
+    },
+    "xrays": {
+      "before": { "id": "e_fd4e", "label": "X-rays" },
+      "after": { "id": "e_9dea", "label": "X-rays" }
+    },
+    "artificial": {
+      "before": { "id": "e_a79d", "label": "artificial radioactivity" },
+      "after": { "id": "e_c177", "label": "induced radioactivity" }
+    },
+    "radiography": {
+      "before": { "id": "e_ac4f", "label": "radiography" },
+      "after": { "id": "e_c314", "label": "radiography" }
+    },
+    "electrometer": {
+      "before": { "id": "e_d097", "label": "Curie electrometer" },
+      "after": { "id": "e_df3b", "label": "piezoelectric quartz electrometer" }
+    },
+    "petites": {
+      "before": { "id": "e_caf0", "label": "petites Curies" },
+      "after": { "id": "e_ca47", "label": "mobile radiography units" }
+    },
+    "anemia": {
+      "before": { "id": "e_1b5a", "label": "aplastic anemia" },
+      "after": { "id": "e_5cd4", "label": "aplastic anaemia" }
+    },
+    "nobelphys": {
+      "before": { "id": "e_95a8", "label": "Nobel Prize in Physics" },
+      "after": { "id": "e_6fc0", "label": "Nobel Prize in Physics" }
+    },
+    "nobelchem": {
+      "before": { "id": "e_7d52", "label": "Nobel Prize in Chemistry" },
+      "after": { "id": "e_7f5c", "label": "Nobel Prize in Chemistry" }
+    },
+    "wwi": {
+      "before": { "id": "e_4c01", "label": "First World War" },
+      "after": { "id": "e_6884", "label": "World War I" }
+    },
+    "thesis": {
+      "before": { "id": "e_15c1", "label": "Recherches sur les substances radioactives" },
+      "after": { "id": "e_5c50", "label": "Research on Radioactive Substances" }
+    }
+  }
+}

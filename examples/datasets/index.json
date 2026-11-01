@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "description": "kgdiff example datasets, in display order. Each folder holds before.*, after.*, meta.json, expected.json and README.md.",
+  "datasets": [
+    {
+      "id": "enterprise-kg",
+      "path": "enterprise-kg/",
+      "format": "json",
+      "featured": true,
+      "title": { "en": "Enterprise credit KG ontology", "zh-CN": "企业信用知识图谱本体" },
+      "versions": { "before": "v12", "after": "v13" },
+      "size": { "before": { "nodes": 74, "edges": 171 }, "after": { "nodes": 74, "edges": 171 } },
+      "tags": ["ontology", "zh-CN", "merge", "move", "retarget"]
+    },
+    {
+      "id": "ontology-release",
+      "path": "ontology-release/",
+      "format": "obo",
+      "featured": true,
+      "title": { "en": "Mini Human Disease Ontology release", "zh-CN": "迷你人类疾病本体版本发布" },
+      "versions": { "before": "2026-09-01", "after": "2026-10-01" },
+      "size": { "before": { "nodes": 179, "edges": 351 }, "after": { "nodes": 184, "edges": 353 } },
+      "tags": ["obo", "biomedical", "obsoletion", "merge", "split"]
+    },
+    {
+      "id": "llm-extraction",
+      "path": "llm-extraction/",
+      "format": "json",
+      "featured": true,
+      "title": { "en": "Two LLM extraction runs", "zh-CN": "两次 LLM 抽取结果对比" },
+      "versions": { "before": "run-a", "after": "run-b" },
+      "size": { "before": { "nodes": 39, "edges": 55 }, "after": { "nodes": 40, "edges": 59 } },
+      "tags": ["graphrag", "similarity-matching", "suggestions"]
+    },
+    {
+      "id": "data-lineage",
+      "path": "data-lineage/",
+      "format": "json",
+      "featured": false,
+      "title": { "en": "dbt lineage refactor", "zh-CN": "dbt 数据血缘重构" },
+      "versions": { "before": "main@4f2c9e1", "after": "main@b81d07a" },
+      "size": { "before": { "nodes": 43, "edges": 49 }, "after": { "nodes": 44, "edges": 50 } },
+      "tags": ["dbt", "lineage", "rekey", "split"]
+    },
+    {
+      "id": "schema-vocab",
+      "path": "schema-vocab/",
+      "format": "turtle",
+      "featured": false,
+      "title": { "en": "schema.org-style vocabulary release", "zh-CN": "schema.org 风格词汇表版本" },
+      "versions": { "before": "vocab-2026.09", "after": "vocab-2026.10" },
+      "size": { "before": { "nodes": 66, "edges": 105 }, "after": { "nodes": 71, "edges": 112 } },
+      "tags": ["rdf", "turtle", "owl", "deprecation"]
+    }
+  ]
+}

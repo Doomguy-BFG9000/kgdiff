@@ -1,0 +1,41 @@
+{
+  "name": "@kgdiff/g6",
+  "version": "0.1.0",
+  "description": "AntV G6 v5 adapter for kgdiff: render semantic graph diffs inside your G6 graphs.",
+  "keywords": [
+    "kgdiff",
+    "antv",
+    "g6",
+    "adapter"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kgdiff/core": "workspace:*",
+    "@kgdiff/scene": "workspace:*"
+  },
+  "peerDependencies": {
+    "@antv/g6": "^5.1.0"
+  },
+  "devDependencies": {
+    "@antv/g6": "5.1.1"
+  }
+}
