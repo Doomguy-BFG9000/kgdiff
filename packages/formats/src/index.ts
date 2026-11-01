@@ -1,7 +1,7 @@
 /**
  * @kgdiff/formats: turn real-world graph files into kgdiff `GraphInput`s.
  *
- * Isomorphic (browser + Node), synchronous, no file-system access: callers pass
+ * Isomorphic (browser + Node), synchronous, no file-system or network access: callers pass
  * text. Every parser maps its source into the same `GraphInput` conventions
  * (docs/architecture.md §Formats) so diffs across formats behave identically.
  *
@@ -10,18 +10,29 @@
  * multi-valued fields as sorted arrays.
  */
 import type { GraphInput } from '@kgdiff/core';
-import { FORMAT_EXTENSIONS, formatFromFilename, sniffFormat } from './detect.js';
-import { parseJson } from './json.js';
+import { detect, FORMAT_EXTENSIONS, isJsonLd } from './detect.js';
+import { parseJson, parseJsonText } from './json.js';
+import { readJsonLd } from './jsonld.js';
 import { parseObo } from './obo.js';
 import { tableFor, WELL_KNOWN_PREFIXES } from './prefixes.js';
-import { parseRdf } from './rdf.js';
+import { mapRdf, readN3 } from './rdf.js';
+import { readRdfXml } from './rdfxml.js';
 import { assertNever, invalidInput, isRecord, makeMeta, Warnings } from './shared.js';
 
 export { FORMAT_EXTENSIONS };
 
 export type FormatId =
   /** kgdiff native JSON and the common JSON graph shapes (auto-detected). */
-  'json' | 'turtle' | 'ntriples' | 'nquads' | 'trig' | 'obo';
+  | 'json'
+  /** JSON-LD 1.1, with inline contexts or contexts from `JsonLdOptions.documentLoader`. */
+  | 'jsonld'
+  | 'turtle'
+  | 'ntriples'
+  | 'nquads'
+  | 'trig'
+  /** RDF/XML, including OWL ontologies saved by Protégé, the OWL API or ROBOT (`.owl`). */
+  | 'rdfxml'
+  | 'obo';
 
 /** JSON graph shapes recognised by the `json` format (reported as `ParseResult.dialect`). */
 export type JsonDialect = 'kgdiff' | 'd3' | 'cytoscape' | 'g6' | 'graphology' | 'vis';
@@ -40,6 +51,8 @@ export type ParseWarningCode =
   | 'json-index-ids'
   /** JSON: element fields that are not part of the graph (rendering state, shape types…) were dropped. */
   | 'json-ignored-fields'
+  /** JSON-LD: keys that expand to no IRI (no `@context` term, no `@vocab`) were dropped. */
+  | 'jsonld-unmapped-terms'
   /** OBO: a stanza type other than Term / Typedef / Instance was skipped. */
   | 'obo-unknown-stanza'
   /** OBO: stanzas with the same id were merged. */
@@ -114,15 +127,31 @@ export interface JsonOptions {
   };
 }
 
+export interface JsonLdOptions {
+  /**
+   * Provides remote JSON-LD contexts (`"@context": "https://…"`, `@import`): called once per
+   * URL, it returns the context document — parsed JSON or JSON text — or `undefined` when it
+   * has none. Must be synchronous; load what a document needs beforehand. Default: none, as
+   * kgdiff never fetches anything (for safety and reproducible diffs), so a remote context
+   * without a loader is an `invalid-input` error. Inline contexts need no loader.
+   */
+  readonly documentLoader?: (url: string) => unknown;
+}
+
 export interface ParseOptions {
   /** Default `auto`: detect from `filename` and content. */
   readonly format?: FormatId | 'auto';
   /** Used for format detection and as `meta.source`. */
   readonly filename?: string;
-  /** Base IRI for relative IRIs in RDF. */
+  /**
+   * Base IRI for relative IRIs in RDF (Turtle, RDF/XML, JSON-LD). Without one, relative IRIs
+   * stay relative.
+   */
   readonly baseIRI?: string;
+  /** Mapping options for every RDF syntax (Turtle family, RDF/XML, JSON-LD). */
   readonly rdf?: RdfOptions;
   readonly json?: JsonOptions;
+  readonly jsonld?: JsonLdOptions;
 }
 
 export interface ParseWarning {
@@ -134,6 +163,10 @@ export interface ParseWarning {
 
 export interface ParseResult {
   readonly graph: GraphInput;
+  /**
+   * The format that was read: the requested or detected one (a JSON-LD document read as
+   * `json` reports `jsonld`).
+   */
   readonly format: FormatId;
   /** Detected JSON dialect (json format only). */
   readonly dialect?: JsonDialect;
@@ -157,6 +190,9 @@ const FORMAT_IDS: ReadonlySet<string> = new Set(Object.keys(FORMAT_EXTENSIONS));
  *
  * - `format` defaults to `auto` (`detectFormat(text, filename)`).
  * - `meta.source` is set to `filename` when given.
+ * - Every RDF syntax (Turtle, N-Triples, N-Quads, TriG, RDF/XML, JSON-LD) maps through the same
+ *   conventions, so one graph gives the same `GraphInput` in any of them.
+ * - Synchronous and offline: JSON-LD remote contexts come only from `jsonld.documentLoader`.
  * - Recoverable oddities (named graphs merged, unsupported OBO stanzas, d3 index ids, …) are
  *   reported in `warnings` instead of failing.
  *
@@ -171,45 +207,43 @@ export function parseGraph(text: string, options: ParseOptions = {}): ParseResul
       `Unknown format "${String(requested)}". Expected auto, ${[...FORMAT_IDS].join(', ')}.`,
     );
   }
-  const format = requested === 'auto' ? detectFormat(text, options.filename) : requested;
+  let format = requested === 'auto' ? detectFormat(text, options.filename) : requested;
   const warnings = new Warnings();
-  let graph: GraphInput;
-  let prefixes: Readonly<Record<string, string>> = WELL_KNOWN_PREFIXES;
-  let predicateLabels: Readonly<Record<string, string>> = {};
-  let dialect: JsonDialect | undefined;
+  let parsed: {
+    readonly graph: GraphInput;
+    readonly prefixes?: Readonly<Record<string, string>>;
+    readonly predicateLabels: Readonly<Record<string, string>>;
+    readonly dialect?: JsonDialect;
+  };
   switch (format) {
-    case 'json': {
-      const parsed = parseJson(text, options.json, warnings);
-      graph = parsed.graph;
-      dialect = parsed.dialect;
-      predicateLabels = parsed.predicateLabels;
+    case 'json':
+    case 'jsonld': {
+      const data = parseJsonText(text);
+      // JSON-LD is RDF, also when it arrives as plain `.json`.
+      if (format === 'jsonld' || isJsonLd(data)) {
+        format = 'jsonld';
+        const jsonld = { ...options.jsonld, baseIRI: options.baseIRI };
+        parsed = mapRdf(readJsonLd(data, jsonld, warnings), options.rdf, warnings);
+      } else parsed = parseJson(data, options.json, warnings);
       break;
     }
-    case 'obo': {
-      const parsed = parseObo(text, warnings);
-      graph = parsed.graph;
-      prefixes = parsed.prefixes;
-      predicateLabels = parsed.predicateLabels;
+    case 'obo':
+      parsed = parseObo(text, warnings);
       break;
-    }
     case 'turtle':
     case 'ntriples':
     case 'nquads':
-    case 'trig': {
-      const parsed = parseRdf(
-        text,
-        format,
-        { baseIRI: options.baseIRI, rdf: options.rdf },
-        warnings,
-      );
-      graph = parsed.graph;
-      prefixes = parsed.prefixes;
-      predicateLabels = parsed.predicateLabels;
+    case 'trig':
+      parsed = mapRdf(readN3(text, format, options.baseIRI), options.rdf, warnings);
       break;
-    }
+    case 'rdfxml':
+      parsed = mapRdf(readRdfXml(text, options.baseIRI), options.rdf, warnings);
+      break;
     default:
       return assertNever(format);
   }
+  let { graph } = parsed;
+  const { predicateLabels, dialect, prefixes = WELL_KNOWN_PREFIXES } = parsed;
   const hasLabels = Object.keys(predicateLabels).length > 0;
   if (options.filename !== undefined || hasLabels) {
     const meta = makeMeta({
@@ -233,18 +267,19 @@ export function parseGraph(text: string, options: ParseOptions = {}): ParseResul
  * Best-effort format detection from file name and content sniffing.
  *
  * The extension wins when it is known (`FORMAT_EXTENSIONS`, case-insensitive; query strings
- * are ignored). Otherwise: `{` (or a JSON array) → json; `format-version:` or a
- * `[Term]` / `[Typedef]` / `[Instance]` line → obo; Turtle directives → turtle, or trig when a
- * `{ … }` graph block appears; line-based statements → ntriples (3 terms) or nquads (4 terms).
- * Empty input is an (empty) Turtle graph. Throws `KgdiffError('invalid-input')` for
- * recognisably unsupported formats (RDF/XML, OWL/XML, OWL Functional / Manchester syntax,
- * JSON-LD is reported by the JSON parser) and for unrecognisable text.
+ * are ignored), with two refinements: `.json` holding JSON-LD is `jsonld`, and `.owl` — which
+ * Protégé also uses for Turtle, OWL/XML and Functional Syntax — is decided by its content
+ * (RDF/XML when that cannot tell). Otherwise: `{` (or a JSON array) → json, or jsonld when a
+ * top-level key is `@context`, `@graph`, `@id`, `@type`…; XML → rdfxml for an `rdf:RDF` root
+ * (or a root using the RDF namespace); `format-version:` or a `[Term]` / `[Typedef]` /
+ * `[Instance]` line → obo; Turtle directives → turtle, or trig when a `{ … }` graph block
+ * appears; line-based statements → ntriples (3 terms) or nquads (4 terms). Empty input is an
+ * (empty) Turtle graph. Throws `KgdiffError('invalid-input')` with a conversion hint for
+ * recognisably unsupported formats (OWL/XML, OWL Functional / Manchester Syntax, GraphML,
+ * GEXF, other XML) and for unrecognisable text.
  */
 export function detectFormat(text: string, filename?: string): FormatId {
-  return (
-    (filename !== undefined ? formatFromFilename(filename) : undefined) ??
-    sniffFormat(text, filename)
-  );
+  return detect(text, filename);
 }
 
 /**

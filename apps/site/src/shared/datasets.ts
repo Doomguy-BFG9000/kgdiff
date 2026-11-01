@@ -78,6 +78,10 @@ export function formatLabel(format: string): string {
       return 'N-Quads';
     case 'trig':
       return 'TriG';
+    case 'rdfxml':
+      return 'RDF/XML';
+    case 'jsonld':
+      return 'JSON-LD';
     default:
       return format;
   }

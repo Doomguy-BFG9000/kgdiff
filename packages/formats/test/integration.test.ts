@@ -1,4 +1,4 @@
-import { type DiffResult, diff } from '@kgdiff/core';
+import { type DiffResult, diff, diffToJSON, hashGraph, normalize } from '@kgdiff/core';
 import { describe, expect, it } from 'vitest';
 import { parseGraph } from '../src/index.js';
 import { fixture } from './helpers.js';
@@ -12,10 +12,52 @@ const changed = (result: DiffResult) =>
 describe('formats → core.diff', () => {
   it('sees no change between serializations of the same RDF graph', () => {
     const turtle = parseGraph(fixture('people.ttl')).graph;
-    const nTriples = parseGraph(fixture('people.nt')).graph;
-    const trig = parseGraph(fixture('people.trig')).graph;
-    expect(diff(turtle, nTriples).stats.identical).toBe(true);
-    expect(diff(turtle, trig).stats.identical).toBe(true);
+    for (const name of ['people.nt', 'people.trig', 'people.rdf', 'people.jsonld']) {
+      const other = parseGraph(fixture(name), { filename: name }).graph;
+      expect(diff(turtle, other).stats.identical, name).toBe(true);
+      expect(hashGraph(normalize(other)), name).toBe(hashGraph(normalize(turtle)));
+    }
+    const owl = parseGraph(fixture('go-mini.ttl')).graph;
+    for (const name of ['go-mini.owl', 'go-mini.jsonld']) {
+      const other = parseGraph(fixture(name), { filename: name }).graph;
+      expect(diff(owl, other).stats.identical, name).toBe(true);
+      expect(hashGraph(normalize(other)), name).toBe(hashGraph(normalize(owl)));
+    }
+  });
+
+  it('gives a byte-identical diff for the same ontology change in Turtle, RDF/XML and JSON-LD', () => {
+    // No file names, so nothing but the graphs can tell the syntaxes apart.
+    const diffOf = (name: string, edits: readonly (readonly [string, string])[]) => {
+      const v1 = fixture(name);
+      const v2 = edits.reduce((text, [from, to]) => text.replaceAll(from, to), v1);
+      expect(v2, name).not.toBe(v1);
+      return JSON.stringify(diffToJSON(diff(parseGraph(v1).graph, parseGraph(v2).graph)));
+    };
+    const PURL = 'http://purl.obolibrary.org/obo/';
+    const turtle = diffOf('go-mini.ttl', [
+      ['rdfs:subClassOf obo:GO_0031090', 'rdfs:subClassOf obo:GO_0019866'],
+      ['owl:someValuesFrom obo:GO_0005737', 'owl:someValuesFrom obo:GO_0005829'],
+      ['"mitochondrion"@en', '"mitochondrion (organelle)"@en'],
+    ]);
+    const rdfxml = diffOf('go-mini.owl', [
+      [
+        `subClassOf rdf:resource="${PURL}GO_0031090"`,
+        `subClassOf rdf:resource="${PURL}GO_0019866"`,
+      ],
+      [
+        `someValuesFrom rdf:resource="${PURL}GO_0005737"`,
+        `someValuesFrom rdf:resource="${PURL}GO_0005829"`,
+      ],
+      ['>mitochondrion<', '>mitochondrion (organelle)<'],
+    ]);
+    const jsonld = diffOf('go-mini.jsonld', [
+      ['"subClassOf": "obo:GO_0031090"', '"subClassOf": "obo:GO_0019866"'],
+      ['"someValuesFrom": "obo:GO_0005737"', '"someValuesFrom": "obo:GO_0005829"'],
+      ['"mitochondrion"', '"mitochondrion (organelle)"'],
+    ]);
+    expect(JSON.parse(turtle).hunks.length).toBeGreaterThan(1);
+    expect(rdfxml).toBe(turtle);
+    expect(jsonld).toBe(turtle);
   });
 
   it('sees no change between a Turtle file with a custom prefix and the same N-Triples', () => {

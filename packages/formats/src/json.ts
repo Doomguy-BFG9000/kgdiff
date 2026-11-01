@@ -8,6 +8,8 @@
  *  - `g6`          AntV G6 v5 `{ nodes: [{ id, data, style }], edges: [{ source, target, data }], combos }`
  *  - `graphology`  serialized `{ nodes: [{ key, attributes }], edges: [{ key, source, target, attributes }] }`
  *  - `vis`         vis-network `{ nodes, edges: [{ from, to }] }`
+ *
+ * JSON-LD documents never get here: `parseGraph` reads them as RDF (`jsonld.ts`).
  */
 import type { EdgeInput, GraphInput, GraphMeta, NodeInput, Point } from '@kgdiff/core';
 import type { JsonDialect, JsonOptions } from './index.js';
@@ -41,13 +43,15 @@ export interface JsonParseOutput {
 
 type JsonRecord = Record<string, unknown>;
 
-/** Parses JSON graph text. Throws `KgdiffError('invalid-input')` with line / column on bad input. */
+/**
+ * Maps a parsed JSON graph (see `parseJsonText`) in any supported dialect. Throws
+ * `KgdiffError('invalid-input')` for unrecognised shapes.
+ */
 export function parseJson(
-  text: string,
+  data: unknown,
   options: JsonOptions | undefined,
   warnings: Warnings,
 ): JsonParseOutput {
-  const data = parseJsonText(text);
   const shape = detectShape(data);
   const mapper = new JsonMapper(shape, options?.fields ?? {}, warnings);
   // Nodes first: d3 links may reference nodes by index.
@@ -64,7 +68,8 @@ export function parseJson(
   return { graph: meta ? { ...graph, meta } : graph, dialect: shape.dialect, predicateLabels };
 }
 
-function parseJsonText(text: string): unknown {
+/** `JSON.parse`, with line / column in the `KgdiffError('invalid-input')` on bad input. */
+export function parseJsonText(text: string): unknown {
   const source = stripBom(text);
   try {
     return JSON.parse(source);
@@ -241,11 +246,6 @@ function detectShape(data: unknown): Shape {
     throw invalidInput(`Unrecognized JSON graph: got an array; ${SHAPES_HELP}.`);
   }
   if (!isRecord(data)) throw invalidInput(`Unrecognized JSON graph: ${SHAPES_HELP}.`);
-  if ('@context' in data || '@graph' in data) {
-    throw invalidInput(
-      'JSON-LD is not supported yet. Convert it to Turtle or N-Triples first (e.g. with `riot`).',
-    );
-  }
   if ('elements' in data) return cytoscapeShape(data, data.elements);
 
   const nodes = data.nodes;

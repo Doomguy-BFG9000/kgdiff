@@ -24,6 +24,17 @@ kgdiff --help | --version | help [apply]
 (0 bytes or whitespace only, file or stdin) is an input error unless `--allow-empty`, which
 reads it as an empty graph — a silently empty side would otherwise report "everything removed".
 
+### Input formats
+
+The format comes from the extension — `.json`, `.jsonld`, `.ttl`, `.nt`, `.nq`, `.trig`, `.rdf`,
+`.owl`, `.obo`, also behind `.gz` — or, for other names and stdin, from the content. Two
+extensions get a second look at the content: `.json` holding JSON-LD (a top-level `@context`,
+`@graph`, `@id`, …) is read as JSON-LD, and `.owl`, which Protégé also writes in Turtle, OWL/XML
+or Functional Syntax, is read in whatever syntax it contains. Formats kgdiff recognises but does
+not read — OWL/XML, OWL Functional and Manchester Syntax, GraphML, GEXF — fail with a conversion
+hint. JSON-LD contexts must be inline: kgdiff never fetches a remote `@context` (that keeps runs
+offline and reproducible), so a document that references one fails with a hint to inline it.
+
 ### Output selection (default: summary to stdout)
 
 | Option              | Output                                                                                                                |
@@ -49,17 +60,17 @@ writes into a fresh private temporary directory (`mkdtemp`).
 
 ### Diff options
 
-| Option                              | Meaning                                                                                           |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `-f, --format <fmt>`                | Input format for both files (`json`, `turtle`, `ntriples`, `nquads`, `trig`, `obo`); default auto |
-| `--before-format`, `--after-format` | Per-side override                                                                                 |
-| `--match <strategy>`                | `id`, `auto` (default), `similarity`                                                              |
-| `--threshold <n>`                   | Similarity acceptance threshold (default 0.82)                                                    |
-| `--edge-identity <mode>`            | `structure` (default) or `id`                                                                     |
-| `--hierarchy <predicate>`           | Hierarchy predicate (repeatable); replaces the defaults when given                                |
-| `--ignore-attr <key>`               | Ignore an attribute when comparing (repeatable)                                                   |
-| `--no-merges`, `--no-splits`        | Disable merge / split detection                                                                   |
-| `--lang <tags>`                     | RDF label language preference, comma-separated (e.g. `zh,en`)                                     |
+| Option                              | Meaning                                                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `-f, --format <fmt>`                | Input format for both files (`json`, `jsonld`, `turtle`, `ntriples`, `nquads`, `trig`, `rdfxml`, `obo`); default auto |
+| `--before-format`, `--after-format` | Per-side override                                                                                                     |
+| `--match <strategy>`                | `id`, `auto` (default), `similarity`                                                                                  |
+| `--threshold <n>`                   | Similarity acceptance threshold (default 0.82)                                                                        |
+| `--edge-identity <mode>`            | `structure` (default) or `id`                                                                                         |
+| `--hierarchy <predicate>`           | Hierarchy predicate (repeatable); replaces the defaults when given                                                    |
+| `--ignore-attr <key>`               | Ignore an attribute when comparing (repeatable)                                                                       |
+| `--no-merges`, `--no-splits`        | Disable merge / split detection                                                                                       |
+| `--lang <tags>`                     | RDF label language preference, comma-separated (e.g. `zh,en`)                                                         |
 
 ### Report options
 

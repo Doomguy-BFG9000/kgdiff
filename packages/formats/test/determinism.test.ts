@@ -9,7 +9,11 @@ const FIXTURES = [
   'people.nt',
   'people.nq',
   'people.trig',
+  'people.rdf',
+  'people.jsonld',
   'go-mini.ttl',
+  'go-mini.owl',
+  'go-mini.jsonld',
   'go-mini.obo',
   'kgdiff.json',
   'd3.json',
@@ -61,6 +65,78 @@ describe('determinism', () => {
   it.each(FIXTURES)('%s comes out in canonical order', (name) => {
     // JSON attribute arrays are user data and keep their order; RDF / OBO multi-values are sets.
     expectCanonical(parseFixture(name).graph, !name.endsWith('.json'));
+  });
+
+  it('does not depend on the order of RDF/XML node elements or on rdf:nodeID labels', () => {
+    const text = fixture('go-mini.owl');
+    const open = text.indexOf('>', text.indexOf('<rdf:RDF')) + 1;
+    const close = text.lastIndexOf('</rdf:RDF>');
+    // Top-level elements start on a line indented by four spaces.
+    const blocks = text.slice(open, close).split(/\n(?= {4}<[^/!])/);
+    const labelled = (body: string) =>
+      `${body.replace(
+        '<rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/GO_0043231"/>',
+        '<rdfs:subClassOf rdf:nodeID="parent"/>',
+      )}\n<rdf:Description rdf:nodeID="parent"><rdfs:label>p</rdfs:label></rdf:Description>`;
+    const expected = JSON.stringify(
+      parseGraph(text.slice(0, open) + labelled(blocks.join('\n')) + text.slice(close), {
+        format: 'rdfxml',
+      }),
+    );
+    fc.assert(
+      fc.property(
+        fc.shuffledSubarray(blocks, { minLength: blocks.length, maxLength: blocks.length }),
+        fc.stringMatching(/^[a-z][a-z0-9]{0,5}$/),
+        (shuffled, label) => {
+          const body = labelled(shuffled.join('\n')).replaceAll(
+            'rdf:nodeID="parent"',
+            `rdf:nodeID="${label}"`,
+          );
+          const result = parseGraph(text.slice(0, open) + body + text.slice(close), {
+            format: 'rdfxml',
+          });
+          expect(JSON.stringify(result)).toBe(expected);
+        },
+      ),
+      { numRuns: 40 },
+    );
+  });
+
+  it('does not depend on the order of JSON-LD nodes, object keys or blank node labels', () => {
+    const data = JSON.parse(fixture('people.jsonld')) as { '@context': object; '@graph': object[] };
+    const expected = JSON.stringify(parseGraph(fixture('people.jsonld'), { format: 'jsonld' }));
+    const reverseKeys = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(reverseKeys);
+      if (typeof value !== 'object' || value === null) return value;
+      return Object.fromEntries(
+        Object.entries(value)
+          .reverse()
+          .map(([k, v]) => [k, reverseKeys(v)]),
+      );
+    };
+    fc.assert(
+      fc.property(
+        fc.shuffledSubarray(data['@graph'], {
+          minLength: data['@graph'].length,
+          maxLength: data['@graph'].length,
+        }),
+        fc.boolean(),
+        fc.stringMatching(/^[a-z][a-z0-9]{0,5}$/),
+        (nodes, reversed, label) => {
+          // Name the anonymous address node, as a serializer may or may not do.
+          const named = JSON.parse(
+            JSON.stringify(nodes).replace(
+              '"schema:address":{',
+              `"schema:address":{"@id":"_:${label}",`,
+            ),
+          );
+          const document = { '@graph': named, '@context': data['@context'] };
+          const text = JSON.stringify(reversed ? reverseKeys(document) : document);
+          expect(JSON.stringify(parseGraph(text, { format: 'jsonld' }))).toBe(expected);
+        },
+      ),
+      { numRuns: 60 },
+    );
   });
 
   it('does not depend on the order of N-Triples statements or on blank node labels', () => {

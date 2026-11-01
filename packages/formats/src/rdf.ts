@@ -1,7 +1,10 @@
 /**
- * RDF (Turtle, N-Triples, N-Quads, TriG) → `GraphInput`, following docs/architecture.md
- * §"Formats: mapping conventions".
+ * RDF → `GraphInput`, following docs/architecture.md §"Formats: mapping conventions". Every
+ * RDF syntax produces quads first — Turtle, N-Triples, N-Quads and TriG through n3
+ * (`readN3`), RDF/XML through `rdfxml.ts`, JSON-LD through `jsonld.ts` — and `mapRdf` maps
+ * them all the same way, so one graph diffs identically in any syntax.
  *
+ *  - Triples are a set: repeated triples count once, whatever the syntax.
  *  - Node ids: OBO PURLs become CURIEs (`GO:0008150`), other IRIs stay whole; blank nodes get
  *    content-hashed ids `_:b<hash>` (hash of their sorted outgoing triples, recursive,
  *    cycle-safe), so ids are stable across files and parser runs.
@@ -52,7 +55,14 @@ import {
   type Warnings,
 } from './shared.js';
 
-export type RdfFormat = 'turtle' | 'ntriples' | 'nquads' | 'trig';
+/** RDF syntaxes read by n3. */
+export type N3Format = 'turtle' | 'ntriples' | 'nquads' | 'trig';
+
+/** The quads of one RDF document and the prefixes it declares (for display only). */
+export interface RdfDocument {
+  readonly quads: readonly Quad[];
+  readonly prefixes: Readonly<Record<string, string>>;
+}
 
 export interface RdfParseOutput {
   readonly graph: GraphInput;
@@ -61,7 +71,7 @@ export interface RdfParseOutput {
   readonly predicateLabels: Readonly<Record<string, string>>;
 }
 
-const FORMAT_NAMES: Readonly<Record<RdfFormat, string>> = {
+const FORMAT_NAMES: Readonly<Record<N3Format, string>> = {
   turtle: 'Turtle',
   ntriples: 'N-Triples',
   nquads: 'N-Quads',
@@ -174,46 +184,54 @@ interface EdgeBuilder {
 const keyOf = (term: Resource): string =>
   term.termType === 'BlankNode' ? `_:${term.value}` : term.value;
 
+/** Value lists up to this length are de-duplicated by a linear scan (see `contains`). */
+const SCAN_LIMIT = 8;
+
+const termKey = (term: Value): string => `${term.termType}\u0000${term.id}`;
+
 const isBlankKey = (key: string): boolean => key.startsWith('_:');
 
-/** Parses RDF text with n3. Throws `KgdiffError('invalid-input')` with the line on syntax errors. */
-export function parseRdf(
-  text: string,
-  format: RdfFormat,
-  options: { readonly baseIRI?: string | undefined; readonly rdf?: RdfOptions | undefined },
-  warnings: Warnings,
-): RdfParseOutput {
+/** Reads Turtle-family text with n3. Throws `KgdiffError('invalid-input')` with the line on syntax errors. */
+export function readN3(text: string, format: N3Format, baseIRI: string | undefined): RdfDocument {
   const declared: Record<string, string> = {};
-  const parser = new Parser({ format: FORMAT_NAMES[format], baseIRI: options.baseIRI });
-  let quads: Quad[];
+  const parser = new Parser({ format: FORMAT_NAMES[format], baseIRI });
   try {
-    quads = parser.parse(text, null, (prefix, iri) => {
+    const quads = parser.parse(text, null, (prefix, iri) => {
       setOwn(declared, prefix, iri.value);
     });
+    return { quads, prefixes: declared };
   } catch (error) {
     throw syntaxError(error, format);
   }
-  const user = options.rdf?.prefixes ?? {};
+}
+
+/** Maps the quads of an RDF document (any syntax) to a `GraphInput`. */
+export function mapRdf(
+  document: RdfDocument,
+  options: RdfOptions | undefined,
+  warnings: Warnings,
+): RdfParseOutput {
+  const user = options?.prefixes ?? {};
   const display = new PrefixTable([
     ['well-known', WELL_KNOWN_PREFIXES],
-    ['declared', declared],
+    ['declared', document.prefixes],
     ['user', user],
   ]);
   // Identities must not depend on how a file happens to abbreviate IRIs (see `compactWith`).
   const identity =
-    options.rdf?.compactWith === 'declared'
+    options?.compactWith === 'declared'
       ? display
       : new PrefixTable([
           ['well-known', WELL_KNOWN_PREFIXES],
           ['user', user],
         ]);
-  const mapper = new RdfMapper(identity, display, options.rdf ?? {}, warnings);
-  mapper.ingest(quads);
+  const mapper = new RdfMapper(identity, display, options ?? {}, warnings);
+  mapper.ingest(document.quads);
   const graph = mapper.build();
   return { graph, prefixes: display.record, predicateLabels: mapper.propertyLabels() };
 }
 
-function syntaxError(error: unknown, format: RdfFormat) {
+function syntaxError(error: unknown, format: N3Format) {
   const message = error instanceof Error ? error.message : String(error);
   const context =
     error instanceof Error ? (error as Error & { context?: unknown }).context : undefined;
@@ -249,6 +267,8 @@ class RdfMapper {
   private readonly reifies = new Map<string, TripleTerm>();
   private readonly namedGraphs = new Set<string>();
   private skippedTripleTerms = 0;
+  /** Term keys of long value lists, for `contains`. */
+  private readonly valueIndex = new WeakMap<readonly Value[], Set<string>>();
 
   private readonly labelRanks = new Map<string, number>();
   private readonly aliasPredicates: ReadonlySet<string>;
@@ -335,6 +355,24 @@ class RdfMapper {
     return this.referrers.get(key)?.size ?? 0;
   }
 
+  /**
+   * Whether `values` already holds `object`: RDF graphs are sets, and syntaxes differ in how
+   * often they repeat a triple (JSON-LD embeds a node wherever it is used). Long value lists
+   * get a key index instead of a linear scan; adding a missing key records it.
+   */
+  private contains(values: readonly Value[], object: Value): boolean {
+    if (values.length < SCAN_LIMIT) return values.some((value) => value.equals(object));
+    let index = this.valueIndex.get(values);
+    if (!index) {
+      index = new Set(values.map(termKey));
+      this.valueIndex.set(values, index);
+    }
+    const key = termKey(object);
+    if (index.has(key)) return true;
+    index.add(key);
+    return false;
+  }
+
   private subjectOf(term: Resource, key: string): Subject {
     let subject = this.subjects.get(key);
     if (!subject) {
@@ -347,8 +385,9 @@ class RdfMapper {
   private add(term: Resource, key: string, predicate: string, object: Value): void {
     const props = this.subjectOf(term, key).props;
     const values = props.get(predicate);
-    if (values) values.push(object);
-    else props.set(predicate, [object]);
+    if (!values) props.set(predicate, [object]);
+    else if (this.contains(values, object)) return;
+    else values.push(object);
     if (object.termType === 'BlankNode') {
       const objectKey = `_:${object.value}`;
       let referrers = this.referrers.get(objectKey);
