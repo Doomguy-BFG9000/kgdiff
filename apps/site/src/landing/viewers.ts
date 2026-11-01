@@ -24,6 +24,7 @@ type PayloadModule = { readonly default: ReportPayload };
 const PAYLOADS: Readonly<Record<string, () => Promise<PayloadModule>>> = {
   'enterprise-kg': () => import('virtual:kgdiff/payload/enterprise-kg'),
   'ontology-release': () => import('virtual:kgdiff/payload/ontology-release'),
+  'schema-vocab': () => import('virtual:kgdiff/payload/schema-vocab'),
   'data-lineage': () => import('virtual:kgdiff/payload/data-lineage'),
 };
 

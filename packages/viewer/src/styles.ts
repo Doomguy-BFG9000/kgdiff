@@ -166,6 +166,10 @@ kbd {
   box-shadow: inset 0 0 0 1px var(--kg-border); white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
 }
 .header-center { flex: none; display: flex; justify-content: center; }
+/* header="compact": no brand or names (the host shows them); the names keep their space so the
+   mode control stays centered. */
+:host([header="compact"]) .brand, :host([header="compact"]) .header-sep { display: none; }
+:host([header="compact"]) .versions { visibility: hidden; }
 .header-end { display: flex; align-items: center; gap: 4px; flex: 1 0 auto; justify-content: flex-end; }
 .stats { display: flex; align-items: center; gap: 4px; margin-right: 6px; }
 

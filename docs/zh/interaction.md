@@ -93,7 +93,7 @@
 </script>
 ```
 
-属性：`mode`、`theme`（`auto|light|dark`）、`palette`、`locale`（`en|zh-CN`，默认取自 `navigator.language`）、`sidebar`（`open|closed`）、`sync-hash`（深链接 `#kgdiff=hunk:<id>;mode:<mode>`）。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit()`、`exportDelta()`、`reviewState()`。事件（`CustomEvent`，冒泡，composed）：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode }`、`kgdiff-review` `{ hunk, reviewed, progress }`、`kgdiff-error` `{ error }`。
+属性：`mode`、`theme`（`auto|light|dark`）、`palette`、`locale`（`en|zh-CN`，默认取自 `navigator.language`）、`sidebar`（`open|closed`）、`sync-hash`（深链接 `#kgdiff=hunk:<id>;mode:<mode>`）、`header`（`compact` 时标题栏不显示品牌和比较的图名，适合宿主页面自己显示这些信息的场合）。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit()`、`exportDelta()`、`reviewState()`。事件（`CustomEvent`，冒泡，composed）：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode }`、`kgdiff-review` `{ hunk, reviewed, progress }`、`kgdiff-error` `{ error }`。
 
 ## 状态
 

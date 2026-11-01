@@ -120,7 +120,8 @@ Shortcuts are ignored while typing in an input.
 
 Attributes / properties: `mode`, `theme` (`auto|light|dark`), `palette`, `locale` (`en|zh-CN`,
 default from `navigator.language`), `sidebar` (`open|closed`), `sync-hash` (deep links
-`#kgdiff=hunk:<id>;mode:<mode>`). Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`,
+`#kgdiff=hunk:<id>;mode:<mode>`), `header` (`compact` leaves the brand and the compared names
+out, for hosts that show their own). Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`,
 `play()`, `pause()`, `fit()`, `exportDelta()`, `reviewState()`. Events (`CustomEvent`, bubbling,
 composed): `kgdiff-ready` `{ stats }`, `kgdiff-select` `{ hunk, node }`, `kgdiff-mode`
 `{ mode }`, `kgdiff-review` `{ hunk, reviewed, progress }`, `kgdiff-error` `{ error }`.

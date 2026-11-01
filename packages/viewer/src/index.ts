@@ -93,6 +93,9 @@ export interface KgdiffViewerEventMap {
  * with this attribute they also apply when nothing on the page has focus (for full-page
  * viewers such as HTML reports), except the keys pages scroll with (arrows, Home / End, Page
  * Up / Down, Space).
+ *
+ * `header="compact"` leaves the brand and the compared names out of the header, for hosts that
+ * show their own (such as the playground).
  */
 export interface KgdiffViewerElement extends HTMLElement {
   /** Reflected to the `mode` attribute. Default `overlay` (`changes` for large graphs). */

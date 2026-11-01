@@ -499,6 +499,7 @@ kbd {
 .lang-btn {
   width: auto;
   padding: 0 10px;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 560;
 }
@@ -570,7 +571,7 @@ kbd {
 
 .section-head h2 {
   font-size: clamp(30px, 4.2vw, 46px);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.022em;
 }
 
 .lede {

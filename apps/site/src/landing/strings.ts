@@ -22,7 +22,7 @@ export const ZH: Dictionary = {
   'hero.badge': '开源 · MIT 协议 · 在浏览器中运行',
   'hero.title': '知识图谱的 git diff',
   'hero.sub':
-    '看清 AI 流水线究竟改动了知识图谱的哪些地方——合并、改名、迁移，而不只是增删的三元组——并像审阅 Pull Request 一样逐项审阅。',
+    '看清 AI 流水线究竟改了知识图谱的哪些地方——合并、改名、迁移——并像审阅 Pull Request 一样逐项审阅。',
   'hero.try': '在线试用',
   'hero.viewerLabel': 'kgdiff 实时查看器',
   'hero.live': '实时运行，不是录屏。',

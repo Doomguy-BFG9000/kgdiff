@@ -55,9 +55,10 @@ export function datasetById(id: string | null | undefined): Dataset | undefined 
   return id ? DATASETS.find((d) => d.id === id) : undefined;
 }
 
-/** The dataset featured first for a language: Chinese → enterprise KG, English → ontology. */
+/** The dataset featured first for a language: Chinese → enterprise KG, English → schema.org-style
+ * vocabulary (small, with labels anyone can read). */
 export function featuredFor(locale: Locale): Dataset {
-  const id = locale === 'zh-CN' ? 'enterprise-kg' : 'ontology-release';
+  const id = locale === 'zh-CN' ? 'enterprise-kg' : 'schema-vocab';
   const d = datasetById(id) ?? DATASETS[0];
   if (!d) throw new Error('No example datasets were bundled.');
   return d;
