@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/site/public/og.png" alt="kgdiff：知识图谱的 git diff" width="800">
+  <img src="docs/images/replay-zh.webp" alt="kgdiff 查看器逐组回放企业信用知识图谱本体两个版本之间的变化" width="880">
 </p>
 
 <p align="center">
@@ -51,19 +51,9 @@ npx kgdiff a.ttl b.ttl --exit-code -q        # 有差异时退出码为 1
 
 需要 Node.js ≥ 22。
 
-```
-kgdiff  企业信用知识图谱本体 v12 → v13                          节点 74 · 关系 171
-
-  +1 新增   −1 删除   ~6 修改   ⇄4 结构调整                      12 组共 23 处变化
-
-  删除 1
-  − 删除「抽查检查」及 2 条关系                    删除 · 类型 事件
-  结构调整 4
-  ⊕ 「法人代表」合并入「法定代表人」               身份 · 依据替代声明 · 迁移 1 条关系
-  ⇄ 「股权出质」移至「股权投资」下                 结构 · 原属「经营风险」
-  ⇄ 「十大股东」的「持股」改为指向「上市公司」     结构
-  …
-```
+<p align="center">
+  <img src="docs/images/terminal-zh.webp" alt="kgdiff 的终端摘要：企业信用知识图谱本体两个版本之间的删除、合并、迁移、改名和新增，按变化类别着色" width="720">
+</p>
 
 详见 [docs/cli.md](docs/cli.md) 和 [packages/cli/README.md](packages/cli/README.md)。
 
@@ -82,6 +72,10 @@ kgdiff  企业信用知识图谱本体 v12 → v13                          节�
 ```
 
 事件：`kgdiff-ready`、`kgdiff-select`、`kgdiff-mode`、`kgdiff-review`、`kgdiff-error`。交互细节见 [docs/interaction.md](docs/interaction.md)。
+
+<p align="center">
+  <img src="docs/images/viewer-zh.webp" alt="kgdiff 查看器：两个版本画在同一张图上，变化按类别着色，右侧是待审阅的变更列表" width="880">
+</p>
 
 ### 作为库使用
 

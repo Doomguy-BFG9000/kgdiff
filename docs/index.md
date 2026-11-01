@@ -6,6 +6,8 @@ thinks in: a term merged into another, a class moved under a new parent, a relat
 somewhere else, a label renamed. You get the answer in the terminal, as a pull request comment,
 or in an interactive viewer that shows both versions on one stable map.
 
+![The kgdiff viewer replaying the changes between two versions of a schema.org-style vocabulary, one hunk at a time](./images/replay-en.webp)
+
 ```sh
 npx kgdiff before.obo after.obo
 ```

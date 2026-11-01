@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/site/public/og.png" alt="kgdiff — git diff for knowledge graphs" width="800">
+  <img src="docs/images/replay-en.webp" alt="The kgdiff viewer replaying the changes between two versions of a schema.org-style vocabulary, one hunk at a time" width="880">
 </p>
 
 <p align="center">
@@ -63,19 +63,9 @@ npx kgdiff a.ttl b.ttl --exit-code -q        # exit 1 when the graphs differ
 
 Requires Node.js ≥ 22.
 
-```
-kgdiff  企业信用知识图谱本体 v12 → v13                          节点 74 · 关系 171
-
-  +1 新增   −1 删除   ~6 修改   ⇄4 结构调整                      12 组共 23 处变化
-
-  删除 1
-  − 删除「抽查检查」及 2 条关系                    删除 · 类型 事件
-  结构调整 4
-  ⊕ 「法人代表」合并入「法定代表人」               身份 · 依据替代声明 · 迁移 1 条关系
-  ⇄ 「股权出质」移至「股权投资」下                 结构 · 原属「经营风险」
-  ⇄ 「十大股东」的「持股」改为指向「上市公司」     结构
-  …
-```
+<p align="center">
+  <img src="docs/images/terminal-en.webp" alt="kgdiff's terminal summary of an OBO ontology release: merges, moves, a split, renames and additions, colored by kind of change" width="720">
+</p>
 
 See [docs/cli.md](docs/cli.md) and [packages/cli/README.md](packages/cli/README.md).
 
@@ -95,6 +85,10 @@ See [docs/cli.md](docs/cli.md) and [packages/cli/README.md](packages/cli/README.
 
 Events: `kgdiff-ready`, `kgdiff-select`, `kgdiff-mode`, `kgdiff-review`, `kgdiff-error`.
 Behaviour: [docs/interaction.md](docs/interaction.md).
+
+<p align="center">
+  <img src="docs/images/viewer-en.webp" alt="The kgdiff viewer: both versions on one map, changes colored by kind, and the list of changes to review" width="880">
+</p>
 
 ### As a library
 

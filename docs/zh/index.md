@@ -2,6 +2,8 @@
 
 kgdiff 是知识图谱的 `git diff`。给它一张图的两个版本（一次本体发布、一次 GraphRAG 抽取、一张数据血缘 DAG），它会按审阅者的思路告诉你发生了什么：某个术语合并进了另一个，某个类挪到了新的父类下，某条关系改为指向别处，某个标签改了名。结果可以输出在终端里，可以作为 Pull Request 评论，也可以放进交互式查看器：两个版本画在同一张稳定的地图上。
 
+![kgdiff 查看器逐组回放企业信用知识图谱本体两个版本之间的变化](../images/replay-zh.webp)
+
 ```sh
 npx kgdiff before.json after.json
 ```

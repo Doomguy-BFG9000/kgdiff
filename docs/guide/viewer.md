@@ -3,6 +3,8 @@
 `<kgdiff-viewer>` is a web component: one custom element that works with any framework, or none.
 It is the same viewer as in the HTML reports and the playground.
 
+![The kgdiff viewer: both versions on one map, changes colored by kind, and the list of changes to review](../images/viewer-en.webp)
+
 ## Install
 
 ```sh
@@ -50,15 +52,16 @@ viewer.mode = 'replay';
 viewer.play();
 ```
 
-| Attribute          | Values                                                     | Default                        |
-| ------------------ | ---------------------------------------------------------- | ------------------------------ |
-| `mode`             | `overlay`, `swipe`, `replay`, `changes`                    | `overlay` (`changes` if large) |
-| `theme`            | `auto`, `light`, `dark`                                    | `auto`                         |
-| `palette`          | `default`, `colorblind`                                    | `default`                      |
-| `locale`           | `en`, `zh-CN`                                              | from `navigator.language`      |
-| `sidebar`          | `open`, `closed`                                           |                                |
-| `sync-hash`        | boolean: deep links `#kgdiff=hunk:<id>;mode:<mode>`        |                                |
-| `global-shortcuts` | boolean: shortcuts work when nothing on the page has focus |                                |
+| Attribute          | Values                                                        | Default                        |
+| ------------------ | ------------------------------------------------------------- | ------------------------------ |
+| `mode`             | `overlay`, `swipe`, `replay`, `changes`                       | `overlay` (`changes` if large) |
+| `theme`            | `auto`, `light`, `dark`                                       | `auto`                         |
+| `palette`          | `default`, `colorblind`                                       | `default`                      |
+| `locale`           | `en`, `zh-CN`                                                 | from `navigator.language`      |
+| `sidebar`          | `open`, `closed`                                              |                                |
+| `sync-hash`        | boolean: deep links `#kgdiff=hunk:<id>;mode:<mode>`           |                                |
+| `global-shortcuts` | boolean: shortcuts work when nothing on the page has focus    |                                |
+| `header`           | `compact`: no brand or graph names, when your page shows them |                                |
 
 `mode`, `theme`, `palette` and `locale` are also properties. Methods: `load()`,
 `selectHunk(id)`, `next()`, `prev()`, `play()`, `pause()`, `fit()`, `exportDelta()`,

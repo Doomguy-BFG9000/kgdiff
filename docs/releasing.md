@@ -64,6 +64,21 @@ npm checks that `repository.url` in each `package.json` matches the GitHub repos
 6. **Lock it down.** Once a release from CI has gone through, set each package to require 2FA and
    disallow tokens, and revoke publish tokens that are no longer needed.
 
+## Website
+
+The landing page, the playground and the documentation build together into static files
+(`pnpm build:site` → `apps/site/dist`). Deploy them with either:
+
+- **GitHub Pages**: [`pages.yml`](../.github/workflows/pages.yml) builds and deploys on every push
+  to `main` that touches the site, the packages or the docs. Under Settings → Pages, set the source
+  to GitHub Actions; the base path (`/<repo>/`, or `/` with a custom domain) comes from there.
+- **Vercel**: import the repository. [`vercel.json`](../vercel.json) sets the install and build
+  commands and the output directory; the production domain and the repository come from Vercel's
+  environment. Set `KGDIFF_SITE_URL` for a custom domain, and `ENABLE_EXPERIMENTAL_COREPACK=1` so
+  that Vercel installs with the pnpm version in `packageManager`. Pull requests get previews.
+
+Choose one as the canonical address: canonical and Open Graph tags point at `KGDIFF_SITE_URL`.
+
 ## What ships
 
 Each package publishes `dist` (JavaScript, declarations and their source maps), `src` (the

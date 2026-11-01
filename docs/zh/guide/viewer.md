@@ -2,6 +2,8 @@
 
 `<kgdiff-viewer>` 是一个 Web 组件：一个自定义元素，可以配合任何框架使用，也可以不用框架。它和 HTML 报告、Playground 里的查看器是同一个。
 
+![kgdiff 查看器：两个版本画在同一张图上，变化按类别着色，右侧是待审阅的变更列表](../../images/viewer-zh.webp)
+
 ## 安装
 
 ```sh
@@ -46,15 +48,16 @@ viewer.mode = 'replay';
 viewer.play();
 ```
 
-| 属性               | 取值                                           | 默认                          |
-| ------------------ | ---------------------------------------------- | ----------------------------- |
-| `mode`             | `overlay`、`swipe`、`replay`、`changes`        | `overlay`（大图为 `changes`） |
-| `theme`            | `auto`、`light`、`dark`                        | `auto`                        |
-| `palette`          | `default`、`colorblind`                        | `default`                     |
-| `locale`           | `en`、`zh-CN`                                  | 取自 `navigator.language`     |
-| `sidebar`          | `open`、`closed`                               |                               |
-| `sync-hash`        | 布尔值：深链接 `#kgdiff=hunk:<id>;mode:<mode>` |                               |
-| `global-shortcuts` | 布尔值：页面上没有焦点时快捷键也生效           |                               |
+| 属性               | 取值                                                    | 默认                          |
+| ------------------ | ------------------------------------------------------- | ----------------------------- |
+| `mode`             | `overlay`、`swipe`、`replay`、`changes`                 | `overlay`（大图为 `changes`） |
+| `theme`            | `auto`、`light`、`dark`                                 | `auto`                        |
+| `palette`          | `default`、`colorblind`                                 | `default`                     |
+| `locale`           | `en`、`zh-CN`                                           | 取自 `navigator.language`     |
+| `sidebar`          | `open`、`closed`                                        |                               |
+| `sync-hash`        | 布尔值：深链接 `#kgdiff=hunk:<id>;mode:<mode>`          |                               |
+| `global-shortcuts` | 布尔值：页面上没有焦点时快捷键也生效                    |                               |
+| `header`           | `compact`：不显示品牌和图名，适合页面自己显示这些信息时 |                               |
 
 `mode`、`theme`、`palette` 和 `locale` 同时也是 JavaScript 属性。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit()`、`exportDelta()`、`reviewState()` 和 `setReviewed(id, reviewed)`。事件都会冒泡并穿过 Shadow DOM：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode }`、`kgdiff-review` `{ hunk, reviewed, progress }` 和 `kgdiff-error` `{ error }`。详见[查看器：交互与 API](../interaction.md#嵌入-api)。
 
