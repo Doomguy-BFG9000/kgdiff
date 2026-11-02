@@ -32,7 +32,7 @@ jobs:
           BASE: ${{ github.base_ref }}
         run: |
           git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl"
-          npx --yes kgdiff@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
+          npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
             --title "onto.ttl: $BASE → pull request" \
             -o kgdiff-report.html --reproducible \
             --markdown >> "$GITHUB_STEP_SUMMARY"
@@ -44,7 +44,7 @@ jobs:
 
 - `fetch-depth: 0` 会取回基准分支，这样 `git show` 才能读到文件原来的样子。仓库很大时，可以只取这一个分支：`git fetch --depth=1 origin "$BASE"`，然后用 `git show "FETCH_HEAD:ontology/onto.ttl"`。
 - 分支名通过 `env` 传给脚本，而不是在 `run` 里直接展开 <code v-pre>${{ github.base_ref }}</code>，这样精心构造的分支名就无法注入 shell 代码。
-- `npx --yes kgdiff@0.1` 不经确认就运行 0.1 系列的版本；固定版本可以避免新版本在你不知情时改变 CI 的输出。也可以把 kgdiff 加进 devDependencies，然后运行 `npx kgdiff`。
+- `npx --yes @kgdiff/cli@0.1` 不经确认就运行 0.1 系列的版本；固定版本可以避免新版本在你不知情时改变 CI 的输出。也可以把 `@kgdiff/cli` 加进 devDependencies，然后运行 `npx @kgdiff/cli`。
 - 一次运行写出两种输出：Markdown 写到标准输出，追加进作业摘要；`-o` 写出报告。`--title` 同时用作两者的标题。`--reproducible` 不在报告里写时间戳，输入相同，文件就完全相同。
 
 审阅者在这次运行的摘要页里阅读变更列表，从运行的工件里下载 `kgdiff-report` 进一步查看。摘要会转义所有标签，并让 GitHub 的自动链接失效，所以标签永远不会 @ 到别人、链接到 issue，也不会被渲染成 HTML。
@@ -56,7 +56,7 @@ jobs:
 ```sh
 git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl" 2>/dev/null \
   || : > "$RUNNER_TEMP/onto.ttl"
-npx --yes kgdiff@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl --allow-empty --markdown
+npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl --allow-empty --markdown
 ```
 
 `--allow-empty` 把空输入当作空图，而不是报错。要比较多个文件，就每个文件运行一次 kgdiff，每次运行都会在作业摘要里追加自己的一节。
@@ -76,7 +76,7 @@ permissions:
           BASE: ${{ github.base_ref }}
         run: |
           git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl"
-          npx --yes kgdiff@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
+          npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
             --markdown kgdiff.md -q
       - name: Comment
         env:
@@ -93,7 +93,7 @@ permissions:
 
 ```sh
 ./build-graph.sh > "$RUNNER_TEMP/graph.json"
-npx --yes kgdiff@0.1 graph.json "$RUNNER_TEMP/graph.json" --exit-code
+npx --yes @kgdiff/cli@0.1 graph.json "$RUNNER_TEMP/graph.json" --exit-code
 ```
 
 ## 其他 CI 系统
@@ -109,7 +109,7 @@ graph-diff:
   script:
     - git fetch --depth=1 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - git show "FETCH_HEAD:ontology/onto.ttl" > base.ttl
-    - npx --yes kgdiff@0.1 base.ttl ontology/onto.ttl -o kgdiff-report.html --markdown kgdiff.md
+    - npx --yes @kgdiff/cli@0.1 base.ttl ontology/onto.ttl -o kgdiff-report.html --markdown kgdiff.md
   artifacts:
     paths: [kgdiff-report.html, kgdiff.md]
     expose_as: kgdiff report

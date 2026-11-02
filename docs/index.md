@@ -9,7 +9,7 @@ or in an interactive viewer that shows both versions on one stable map.
 ![The kgdiff viewer replaying the changes between two versions of a schema.org-style vocabulary, one hunk at a time](./images/replay-en.webp)
 
 ```sh
-npx kgdiff before.obo after.obo
+npx @kgdiff/cli before.obo after.obo
 ```
 
 ```

@@ -3,12 +3,12 @@
 `kgdiff` 比较两个图文件，就像 `git diff` 比较两个文本文件一样：在终端里、在 CI 中，或者生成一份可以分享的单文件 HTML 报告。
 
 ```sh
-npx kgdiff before.ttl after.ttl                 # 彩色摘要 + 变更列表
-npx kgdiff before.obo after.obo -o report.html  # 自包含的交互式报告
-npx kgdiff a.json b.json --json > diff.json     # 完整的机器可读 diff
-npx kgdiff a.json b.json --delta > patch.json   # 只输出可反向的增量
-npx kgdiff a.json b.json --markdown             # PR 评论 / 作业摘要
-npx kgdiff apply a.json patch.json -o b.json    # 应用增量
+npx @kgdiff/cli before.ttl after.ttl                 # 彩色摘要 + 变更列表
+npx @kgdiff/cli before.obo after.obo -o report.html  # 自包含的交互式报告
+npx @kgdiff/cli a.json b.json --json > diff.json     # 完整的机器可读 diff
+npx @kgdiff/cli a.json b.json --delta > patch.json   # 只输出可反向的增量
+npx @kgdiff/cli a.json b.json --markdown             # PR 评论 / 作业摘要
+npx @kgdiff/cli apply a.json patch.json -o b.json    # 应用增量
 ```
 
 ## 用法

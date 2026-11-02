@@ -5,7 +5,7 @@ kgdiff 是知识图谱的 `git diff`。给它一张图的两个版本（一次�
 ![kgdiff 查看器逐组回放企业信用知识图谱本体两个版本之间的变化](../images/replay-zh.webp)
 
 ```sh
-npx kgdiff before.json after.json
+npx @kgdiff/cli before.json after.json
 ```
 
 ```

@@ -163,8 +163,8 @@
             </a>
             <div class="cmd">
               <span class="prompt" aria-hidden="true">$</span>
-              <code id="hero-cmd">npx kgdiff a.ttl b.ttl</code>
-              <button class="copy-btn" type="button" data-copy="npx kgdiff a.ttl b.ttl" aria-label="Copy command" data-i18n-attr="aria-label=copy.command">
+              <code id="hero-cmd">npx @kgdiff/cli a.ttl b.ttl</code>
+              <button class="copy-btn" type="button" data-copy="npx @kgdiff/cli a.ttl b.ttl" aria-label="Copy command" data-i18n-attr="aria-label=copy.command">
                 <svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg>
                 <svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg>
               </button>
@@ -523,7 +523,7 @@
               </div>
               <!-- biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable regions must be keyboard-focusable (WCAG 2.1.1) -->
               <section class="term-scroll" tabindex="0" aria-label="Terminal output" data-i18n-attr="aria-label=cli.termLabel">
-                <pre class="term-body"><code><span class="term-prompt"><span class="tp">$</span> <span id="term-cmd">npx kgdiff before.obo after.obo --match id --hierarchy is_a</span></span>
+                <pre class="term-body"><code><span class="term-prompt"><span class="tp">$</span> <span id="term-cmd">npx @kgdiff/cli before.obo after.obo --match id --hierarchy is_a</span></span>
 <span id="term-out"></span></code></pre>
               </section>
               <figcaption class="term-caption" id="term-caption" data-i18n="cli.termCaption">Real output from the CLI's golden test snapshots (100 columns, truecolor).</figcaption>
@@ -556,9 +556,9 @@
     fetch-depth: 0
 - run: git show origin/main:ontology.ttl &gt; main.ttl
 # Explain what changed in the job summary…
-- run: npx kgdiff main.ttl ontology.ttl --markdown &gt;&gt; "$GITHUB_STEP_SUMMARY"
+- run: npx @kgdiff/cli main.ttl ontology.ttl --markdown &gt;&gt; "$GITHUB_STEP_SUMMARY"
 # …and attach the interactive report.
-- run: npx kgdiff main.ttl ontology.ttl -o kgdiff-report.html
+- run: npx @kgdiff/cli main.ttl ontology.ttl -o kgdiff-report.html
 - uses: actions/upload-artifact@v4
   with:
     name: kgdiff-report
@@ -699,8 +699,8 @@ await view.playReplay({ speed: 1 });</code></pre>
                 </div>
                 <div class="cmd cmd-block">
                   <span class="prompt" aria-hidden="true">$</span>
-                  <code>npx kgdiff apply v1.json patch.json -o v2.json</code>
-                  <button class="copy-btn" type="button" data-copy="npx kgdiff apply v1.json patch.json -o v2.json" aria-label="Copy command" data-i18n-attr="aria-label=copy.command"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
+                  <code>npx @kgdiff/cli apply v1.json patch.json -o v2.json</code>
+                  <button class="copy-btn" type="button" data-copy="npx @kgdiff/cli apply v1.json patch.json -o v2.json" aria-label="Copy command" data-i18n-attr="aria-label=copy.command"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
                 </div>
               </div>
             </div>

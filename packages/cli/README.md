@@ -5,17 +5,17 @@ terminal, in CI, or as a single-file interactive HTML report. kgdiff understands
 a merge is a merge, a rename is a rename, a moved class is a move.
 
 ```sh
-npx kgdiff before.ttl after.ttl
+npx @kgdiff/cli before.ttl after.ttl
 ```
 
 ## Install
 
 ```sh
-npm install --global kgdiff      # or: pnpm add -g kgdiff
+npm install --global @kgdiff/cli      # or: pnpm add -g @kgdiff/cli
 kgdiff --version
 ```
 
-Node.js ≥ 22. `npx kgdiff …` works without installing.
+Node.js ≥ 22. `npx @kgdiff/cli …` works without installing.
 
 ## Usage
 
@@ -53,8 +53,8 @@ before a first release), so a failed upstream command cannot pass for "everythin
 
 ```yaml
 # Fail the job when the ontology changed, and explain what changed in the job summary.
-- run: npx kgdiff main/ontology.ttl ontology.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
-- run: npx kgdiff main/ontology.ttl ontology.ttl --exit-code --quiet
+- run: npx @kgdiff/cli main/ontology.ttl ontology.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
+- run: npx @kgdiff/cli main/ontology.ttl ontology.ttl --exit-code --quiet
 ```
 
 `--markdown` is GitHub-flavoured Markdown (a diffstat table, a family legend and the hunk list

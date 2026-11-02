@@ -74,7 +74,7 @@ const KGDIFF_HINTS: Readonly<Record<string, string>> = {
   'delta-conflict':
     'The graph changed since the delta was made. --no-strict skips the failing operations.',
   'unsupported-version':
-    'Upgrade kgdiff (npm install -g kgdiff@latest), or check that the file is a kgdiff delta.',
+    'Upgrade kgdiff (npm install -g @kgdiff/cli@latest), or check that the file is a kgdiff delta.',
   'dangling-edge': 'An edge refers to a node the graph does not define.',
 };
 

@@ -11,7 +11,7 @@ The CLI and the viewer are built from packages you can use directly:
 | `@kgdiff/renderer` | A Canvas 2D renderer: camera, level of detail, labels, picking, minimap.                |
 | `@kgdiff/viewer`   | The [`<kgdiff-viewer>` web component](./viewer.md).                                     |
 | `@kgdiff/g6`       | Draws kgdiff scenes in AntV G6 v5 graphs.                                               |
-| `kgdiff`           | The command-line tool.                                                                  |
+| `@kgdiff/cli`      | The command-line tool, `kgdiff`.                                                        |
 
 All of them are ESM only and run in Node.js 22 or later and in evergreen browsers. Core and
 formats are synchronous and do no I/O: you pass text and objects in and get objects out.

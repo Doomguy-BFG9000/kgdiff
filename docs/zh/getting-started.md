@@ -9,14 +9,14 @@
 kgdiff 需要 [Node.js](https://nodejs.org) 22 或更高版本。不安装也能直接运行：
 
 ```sh
-npx kgdiff before.ttl after.ttl
+npx @kgdiff/cli before.ttl after.ttl
 ```
 
 也可以安装：
 
 ```sh
-npm install --global kgdiff     # 全局可用的 kgdiff 命令
-npm install --save-dev kgdiff   # 在项目里固定版本，用 npx kgdiff 运行
+npm install --global @kgdiff/cli     # 全局可用的 kgdiff 命令
+npm install --save-dev @kgdiff/cli   # 在项目里固定版本，用 npx @kgdiff/cli 运行
 ```
 
 ## 第一次 diff

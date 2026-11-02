@@ -35,7 +35,7 @@ jobs:
           BASE: ${{ github.base_ref }}
         run: |
           git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl"
-          npx --yes kgdiff@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
+          npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
             --title "onto.ttl: $BASE → pull request" \
             -o kgdiff-report.html --reproducible \
             --markdown >> "$GITHUB_STEP_SUMMARY"
@@ -51,9 +51,9 @@ jobs:
 - The branch name reaches the script through `env`, not by expanding
   <code v-pre>${{ github.base_ref }}</code> inside `run`, so a crafted branch name cannot inject
   shell code.
-- `npx --yes kgdiff@0.1` runs the 0.1 release line without a prompt; pinning keeps a new release
-  from changing your CI output unannounced. Alternatively, add kgdiff to your devDependencies and
-  run `npx kgdiff`.
+- `npx --yes @kgdiff/cli@0.1` runs the 0.1 release line without a prompt; pinning keeps a new release
+  from changing your CI output unannounced. Alternatively, add `@kgdiff/cli` to your devDependencies and
+  run `npx @kgdiff/cli`.
 - One run writes both outputs: the Markdown goes to standard output, appended to the job
   summary, and `-o` writes the report. `--title` names both. `--reproducible` leaves the
   timestamp out of the report, so identical inputs give identical files.
@@ -70,7 +70,7 @@ instead:
 ```sh
 git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl" 2>/dev/null \
   || : > "$RUNNER_TEMP/onto.ttl"
-npx --yes kgdiff@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl --allow-empty --markdown
+npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl --allow-empty --markdown
 ```
 
 `--allow-empty` reads an empty input as an empty graph instead of failing. For several files, run
@@ -92,7 +92,7 @@ permissions:
           BASE: ${{ github.base_ref }}
         run: |
           git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl"
-          npx --yes kgdiff@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
+          npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
             --markdown kgdiff.md -q
       - name: Comment
         env:
@@ -111,7 +111,7 @@ changed. For example, to require that a generated graph is committed up to date:
 
 ```sh
 ./build-graph.sh > "$RUNNER_TEMP/graph.json"
-npx --yes kgdiff@0.1 graph.json "$RUNNER_TEMP/graph.json" --exit-code
+npx --yes @kgdiff/cli@0.1 graph.json "$RUNNER_TEMP/graph.json" --exit-code
 ```
 
 ## Other CI systems
@@ -128,7 +128,7 @@ graph-diff:
   script:
     - git fetch --depth=1 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - git show "FETCH_HEAD:ontology/onto.ttl" > base.ttl
-    - npx --yes kgdiff@0.1 base.ttl ontology/onto.ttl -o kgdiff-report.html --markdown kgdiff.md
+    - npx --yes @kgdiff/cli@0.1 base.ttl ontology/onto.ttl -o kgdiff-report.html --markdown kgdiff.md
   artifacts:
     paths: [kgdiff-report.html, kgdiff.md]
     expose_as: kgdiff report

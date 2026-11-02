@@ -25,7 +25,7 @@ a new parent, a relation that now points somewhere else — on one stable map, i
 for review.
 
 ```sh
-npx kgdiff before.ttl after.ttl -o report.html --open
+npx @kgdiff/cli before.ttl after.ttl -o report.html --open
 ```
 
 ## Four ideas
@@ -55,10 +55,10 @@ npx kgdiff before.ttl after.ttl -o report.html --open
 ### Terminal and CI
 
 ```sh
-npx kgdiff v12.json v13.json                 # colored summary
-npx kgdiff old.obo new.obo --stat            # diffstat
-npx kgdiff a.ttl b.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
-npx kgdiff a.ttl b.ttl --exit-code -q        # exit 1 when the graphs differ
+npx @kgdiff/cli v12.json v13.json                 # colored summary
+npx @kgdiff/cli old.obo new.obo --stat            # diffstat
+npx @kgdiff/cli a.ttl b.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
+npx @kgdiff/cli a.ttl b.ttl --exit-code -q        # exit 1 when the graphs differ
 ```
 
 Requires Node.js ≥ 22.
@@ -128,7 +128,7 @@ The same graph in different serializations diffs as identical. Mapping conventio
 | [`@kgdiff/renderer`](packages/renderer) | Canvas 2D engine: smooth camera, LOD, label placement, picking, swipe, minimap.          |
 | [`@kgdiff/viewer`](packages/viewer)     | The `<kgdiff-viewer>` web component.                                                     |
 | [`@kgdiff/g6`](packages/g6)             | Render kgdiff scenes inside AntV G6 v5 graphs.                                           |
-| [`kgdiff`](packages/cli)                | The command-line tool.                                                                   |
+| [`@kgdiff/cli`](packages/cli)           | The command-line tool.                                                                   |
 | [`apps/site`](apps/site)                | Landing page and playground.                                                             |
 
 ## Correctness and performance

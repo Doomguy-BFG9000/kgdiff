@@ -1,5 +1,5 @@
 {
-  "name": "kgdiff",
+  "name": "@kgdiff/cli",
   "version": "0.1.0",
   "description": "git diff for knowledge graphs. Compare two graph files from the terminal, CI, or as a shareable HTML report.",
   "keywords": [

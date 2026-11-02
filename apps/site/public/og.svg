@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="t">
   <title id="t">kgdiff — git diff for knowledge graphs</title>
   <!--
-    Open Graph card (source of og.png, rendered once with headless Chrome:
-    chrome --headless --screenshot=og.png --window-size=1200,630 og.svg).
+    Open Graph card, the source of og.png: a 1200 by 630 screenshot of this SVG, inlined in an
+    HTML page, taken with headless Chrome. (No double hyphens in here: XML comments forbid them.)
     Drawn in the visual language of docs/visual-language.md (dark "night" tokens).
   -->
   <defs>
@@ -92,8 +92,8 @@
     <text x="82" y="442" font-size="25" fill="#A6AFBF" letter-spacing="-.2">Merges, renames, moves — on one stable map.</text>
   </g>
   <g font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="20">
-    <rect x="80" y="496" width="356" height="52" rx="12" fill="#11151D" stroke="#fff" stroke-opacity=".13"/>
+    <rect x="80" y="496" width="404" height="52" rx="12" fill="#11151D" stroke="#fff" stroke-opacity=".13"/>
     <text x="102" y="529" fill="#737D8F">$</text>
-    <text x="126" y="529" fill="#E7EBF3">npx kgdiff a.ttl b.ttl</text>
+    <text x="126" y="529" fill="#E7EBF3">npx @kgdiff/cli a.ttl b.ttl</text>
   </g>
 </svg>

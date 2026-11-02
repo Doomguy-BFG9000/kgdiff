@@ -6,7 +6,7 @@
   "baseBranch": "main",
   "fixed": [
     [
-      "kgdiff",
+      "@kgdiff/cli",
       "@kgdiff/core",
       "@kgdiff/formats",
       "@kgdiff/layout",

@@ -340,7 +340,7 @@ html[data-i18n-pending] [data-i18n-html] {
   color: var(--text);
 }
 
-/* Command chip: `$ npx kgdiff a.ttl b.ttl` + copy. */
+/* Command chip: `$ npx @kgdiff/cli a.ttl b.ttl` + copy. */
 .cmd {
   display: inline-flex;
   align-items: center;

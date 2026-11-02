@@ -20,7 +20,7 @@
 如今，GraphRAG 流水线、Agent 记忆、本体助手、语义层都在由 AI 编写和改写知识图谱，这些改动需要有人审阅。文本 diff 只能看到三元组的增删；多数可视化工具则是重新跑一次力导布局再给节点换个颜色，整张图都会跳。**kgdiff 告诉你真正发生了什么**：一次合并、一次改名、一个类被挪到新的父类下、一条关系改为指向别处——它们都画在同一张稳定的地图上，配一个为审阅而设计的查看器。
 
 ```sh
-npx kgdiff before.ttl after.ttl -o report.html --open
+npx @kgdiff/cli before.ttl after.ttl -o report.html --open
 ```
 
 ## 四个理念
@@ -43,10 +43,10 @@ npx kgdiff before.ttl after.ttl -o report.html --open
 ### 终端与 CI
 
 ```sh
-npx kgdiff v12.json v13.json                 # 彩色摘要
-npx kgdiff old.obo new.obo --stat            # 统计
-npx kgdiff a.ttl b.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
-npx kgdiff a.ttl b.ttl --exit-code -q        # 有差异时退出码为 1
+npx @kgdiff/cli v12.json v13.json                 # 彩色摘要
+npx @kgdiff/cli old.obo new.obo --stat            # 统计
+npx @kgdiff/cli a.ttl b.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
+npx @kgdiff/cli a.ttl b.ttl --exit-code -q        # 有差异时退出码为 1
 ```
 
 需要 Node.js ≥ 22。
@@ -114,7 +114,7 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result, 'zh-CN').t
 | [`@kgdiff/renderer`](packages/renderer) | Canvas 2D 引擎：平滑镜头、细节分级、标签布局、拾取、滑动对比、小地图。 |
 | [`@kgdiff/viewer`](packages/viewer)     | `<kgdiff-viewer>` Web 组件。                                           |
 | [`@kgdiff/g6`](packages/g6)             | 在 AntV G6 v5 中渲染 kgdiff 场景。                                     |
-| [`kgdiff`](packages/cli)                | 命令行工具。                                                           |
+| [`@kgdiff/cli`](packages/cli)           | 命令行工具。                                                           |
 | [`apps/site`](apps/site)                | 官网和在线体验页。                                                     |
 
 ## 正确性与性能

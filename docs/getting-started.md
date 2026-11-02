@@ -11,14 +11,14 @@ and what the viewer can do.
 kgdiff needs [Node.js](https://nodejs.org) 22 or later. Run it without installing anything:
 
 ```sh
-npx kgdiff before.ttl after.ttl
+npx @kgdiff/cli before.ttl after.ttl
 ```
 
 or install it:
 
 ```sh
-npm install --global kgdiff     # a kgdiff command everywhere
-npm install --save-dev kgdiff   # a pinned version in one project, run with npx kgdiff
+npm install --global @kgdiff/cli     # a kgdiff command everywhere
+npm install --save-dev @kgdiff/cli   # a pinned version in one project, run with npx @kgdiff/cli
 ```
 
 ## Your first diff

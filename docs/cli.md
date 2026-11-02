@@ -4,12 +4,12 @@
 in CI, or as a shareable single-file HTML report.
 
 ```sh
-npx kgdiff before.ttl after.ttl                 # colored summary + change list
-npx kgdiff before.obo after.obo -o report.html  # self-contained interactive report
-npx kgdiff a.json b.json --json > diff.json     # full machine-readable diff
-npx kgdiff a.json b.json --delta > patch.json   # invertible delta only
-npx kgdiff a.json b.json --markdown             # PR comment / job summary
-npx kgdiff apply a.json patch.json -o b.json    # apply a delta
+npx @kgdiff/cli before.ttl after.ttl                 # colored summary + change list
+npx @kgdiff/cli before.obo after.obo -o report.html  # self-contained interactive report
+npx @kgdiff/cli a.json b.json --json > diff.json     # full machine-readable diff
+npx @kgdiff/cli a.json b.json --delta > patch.json   # invertible delta only
+npx @kgdiff/cli a.json b.json --markdown             # PR comment / job summary
+npx @kgdiff/cli apply a.json patch.json -o b.json    # apply a delta
 ```
 
 ## Usage
