@@ -77,6 +77,29 @@ function fail(message: string, details?: Record<string, unknown>): never {
   throw new KgdiffError('invalid-input', message, details);
 }
 
+/**
+ * Checks the optional kgdiff JSON marker. Only `kgdiff.*` formats are kgdiff's: a `format`
+ * field with any other value belongs to someone else and is ignored, like other unknown keys.
+ */
+function checkFormat(input: Readonly<Record<string, unknown>>): void {
+  const { format, version } = input;
+  if (typeof format !== 'string' || !format.startsWith('kgdiff.')) return;
+  if (format !== 'kgdiff.graph') {
+    throw new KgdiffError(
+      'unsupported-version',
+      `Expected a kgdiff graph (format "kgdiff.graph"), got format "${format}"`,
+      { format },
+    );
+  }
+  if (version !== 1) {
+    throw new KgdiffError(
+      'unsupported-version',
+      `Unsupported graph version ${String(version)}; this reader supports version 1`,
+      { version },
+    );
+  }
+}
+
 /** Ids are strings; finite numbers are accepted and stringified. Empty → undefined. */
 function coerceId(value: unknown): Id | undefined {
   if (typeof value === 'string') return value === '' ? undefined : value;
@@ -339,10 +362,14 @@ export function isKGraph(value: unknown): value is KGraph {
  *   field-wise. Both cases record a `duplicate-edge` issue.
  * - Dangling endpoints (`danglingEdges`, default `create`): `create` adds an implicit node,
  *   `drop` discards the edge, `error` throws `KgdiffError('dangling-edge')`.
+ * - The kgdiff JSON marker is optional; a `kgdiff.*` format other than `kgdiff.graph`, or a
+ *   version other than 1, is rejected.
  *
- * @throws KgdiffError `invalid-input` for malformed input, `dangling-edge` (policy `error`).
+ * @throws KgdiffError `invalid-input` for malformed input, `dangling-edge` (policy `error`),
+ *   `unsupported-version` for another kgdiff format or graph version.
  */
 export function normalize(input: GraphInput, options: NormalizeOptions = {}): KGraph {
+  if (isRecord(input)) checkFormat(input);
   if (!isRecord(input) || !Array.isArray(input.nodes)) {
     fail('normalize expects a graph of the form { nodes: [...], edges: [...] }');
   }

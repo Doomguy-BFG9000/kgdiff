@@ -99,6 +99,8 @@ const updated = applyDelta(graph, delta);
 - `graphToJSON(graph)`：kgdiff JSON 格式的图，`parseGraph` 可以无损读回。
 - `result.delta` 本身就是普通 JSON，格式见[增量格式](../delta-format.md)。
 
+这三种 JSON 都写明了自己的 `format`（`kgdiff.diff`、`kgdiff.graph`、`kgdiff.delta`）和 `version`，并且在 `@kgdiff/core/schema/` 里各有一份 JSON Schema（见[格式](../formats.md#格式标记与-json-schema)）。读取方遇到不支持的版本，会抛出 `KgdiffError('unsupported-version')`。
+
 ## 布局与绘制
 
 这些查看器都会替你做好。如果要构建自己的界面：

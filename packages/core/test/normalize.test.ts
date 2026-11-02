@@ -322,6 +322,8 @@ describe('isKGraph and graphToJSON', () => {
     });
     const json = graphToJSON(g);
     expect(json).toEqual({
+      format: 'kgdiff.graph',
+      version: 1,
       meta: { name: 'demo' },
       nodes: [
         { id: 'a' },
@@ -343,6 +345,44 @@ describe('isKGraph and graphToJSON', () => {
     const back = normalize(json);
     expect(graphToJSON(back)).toEqual(json);
     expect(back.nodes.get('ghost')?.implicit).toBe(true);
+  });
+
+  it('leads with the format marker, with or without meta', () => {
+    const bare = graphToJSON(normalize({ nodes: [{ id: 'a' }], edges: [] }));
+    expect(Object.keys(bare)).toEqual(['format', 'version', 'nodes', 'edges']);
+    const withMeta = graphToJSON(normalize({ meta: { name: 'm' }, nodes: [], edges: [] }));
+    expect(Object.keys(withMeta)).toEqual(['format', 'version', 'meta', 'nodes', 'edges']);
+  });
+});
+
+describe('normalize: the kgdiff JSON marker', () => {
+  const graph = { nodes: [{ id: 'a' }], edges: [] };
+  const unsupported = expect.objectContaining({ code: 'unsupported-version' });
+
+  it('is optional, and accepted when it names kgdiff.graph version 1', () => {
+    const marked = normalize({ format: 'kgdiff.graph', version: 1, ...graph });
+    expect(hashGraph(marked)).toBe(hashGraph(normalize(graph)));
+  });
+
+  it('rejects other graph versions, a missing version included', () => {
+    for (const version of [2, 0, '1', undefined]) {
+      const input = { format: 'kgdiff.graph', version, ...graph } as unknown as GraphInput;
+      expect(() => normalize(input)).toThrowError(unsupported);
+    }
+  });
+
+  it('rejects the other kgdiff formats, such as a diff passed as a graph', () => {
+    for (const format of ['kgdiff.diff', 'kgdiff.delta', 'kgdiff.graph2']) {
+      const input = { format, version: 1, ...graph } as unknown as GraphInput;
+      expect(() => normalize(input)).toThrowError(unsupported);
+    }
+  });
+
+  it("ignores a format field that is not kgdiff's", () => {
+    for (const format of ['graphml', 7, null]) {
+      const input = { format, version: 9, ...graph } as unknown as GraphInput;
+      expect(normalize(input).nodes.size).toBe(1);
+    }
   });
 });
 

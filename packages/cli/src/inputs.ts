@@ -254,11 +254,16 @@ export function parseInput(input: RawInput, options: GraphParseOptions): ParseRe
       ? `Cannot tell the format of ${where}.`
       : `${where}: ${error.message.replace(/\.$/, '')}.`;
     const formats = FORMATS.filter((format) => format !== 'auto').join(', ');
+    // A kgdiff file names its own format and version: another --format cannot help.
+    const marked = error.code === 'unsupported-version';
+    const newer = marked && typeof error.details?.version === 'number' && error.details.version > 1;
     const hint = undetected
       ? `Pass ${options.formatFlag} <fmt> (${formats}) or use a known file extension.`
-      : options.format === 'auto'
-        ? `If the format was detected wrongly, pass ${options.formatFlag} <fmt> (${formats}).`
-        : undefined;
+      : newer
+        ? 'Upgrade kgdiff: npm install -g @kgdiff/cli@latest.'
+        : options.format === 'auto' && !marked
+          ? `If the format was detected wrongly, pass ${options.formatFlag} <fmt> (${formats}).`
+          : undefined;
     throw new CliError('input', message, hint, { cause: error });
   }
 }

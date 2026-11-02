@@ -1,0 +1,566 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/diff.v1.json",
+  "title": "kgdiff diff, version 1",
+  "description": "A complete diff, as `kgdiff --json` and diffToJSON write it: the union of both graphs with what changed, the review hunks, the matches and the delta. diffFromJSON rebuilds both graphs from it. See https://github.com/iiwish/kgdiff/blob/main/docs/architecture.md",
+  "type": "object",
+  "properties": {
+    "format": { "const": "kgdiff.diff" },
+    "version": {
+      "const": 1,
+      "description": "Readers reject versions they do not support."
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "before": { "$ref": "graph.v1.json#/$defs/meta" },
+        "after": { "$ref": "graph.v1.json#/$defs/meta" }
+      },
+      "required": ["before", "after"],
+      "additionalProperties": false
+    },
+    "options": { "$ref": "#/$defs/options" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unionNode" },
+      "description": "Every node of either version, sorted by id."
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unionEdge" },
+      "description": "Every edge of either version, sorted by id."
+    },
+    "hunks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/hunk" },
+      "description": "The review units, sorted by order."
+    },
+    "matches": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/match" },
+      "description": "Node pairs found by replacement hints or by similarity, sorted by after. Pairs with equal ids are implied."
+    },
+    "suggestions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/suggestion" },
+      "description": "Plausible pairs that were not applied."
+    },
+    "delta": { "$ref": "delta.v1.json" },
+    "stats": { "$ref": "#/$defs/stats" }
+  },
+  "required": [
+    "format",
+    "version",
+    "meta",
+    "options",
+    "nodes",
+    "edges",
+    "hunks",
+    "matches",
+    "suggestions",
+    "delta",
+    "stats"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "unionId": {
+      "type": "string",
+      "description": "Id of an element of the union: the after-version id, or the before-version id for a removed node."
+    },
+    "unionIds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unionId" }
+    },
+    "strings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "unit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": ["unchanged", "added", "removed", "modified"]
+    },
+    "setChange": {
+      "type": "object",
+      "properties": {
+        "added": { "$ref": "#/$defs/strings" },
+        "removed": { "$ref": "#/$defs/strings" }
+      },
+      "required": ["added", "removed"],
+      "additionalProperties": false
+    },
+    "attrChange": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "before": { "description": "The value before; absent when the attribute was added." },
+        "after": { "description": "The value after; absent when the attribute was removed." }
+      },
+      "required": ["key"],
+      "additionalProperties": false
+    },
+    "attrsFacet": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "attrs" },
+        "changes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/attrChange" }
+        }
+      },
+      "required": ["kind", "changes"],
+      "additionalProperties": false
+    },
+    "nodeFacet": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "rename" },
+            "from": { "type": "string" },
+            "to": { "type": "string" }
+          },
+          "required": ["kind", "from", "to"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "rekey" },
+            "from": { "type": "string" },
+            "to": { "type": "string" },
+            "score": { "$ref": "#/$defs/unit" }
+          },
+          "required": ["kind", "from", "to", "score"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["types", "aliases"] },
+            "added": { "$ref": "#/$defs/strings" },
+            "removed": { "$ref": "#/$defs/strings" }
+          },
+          "required": ["kind", "added", "removed"],
+          "additionalProperties": false
+        },
+        { "$ref": "#/$defs/attrsFacet" },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "move" },
+            "predicate": { "type": "string" },
+            "from": {
+              "$ref": "#/$defs/unionIds",
+              "description": "Parents removed."
+            },
+            "to": {
+              "$ref": "#/$defs/unionIds",
+              "description": "Parents added."
+            }
+          },
+          "required": ["kind", "predicate", "from", "to"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "deprecate" },
+            "deprecated": {
+              "type": "boolean",
+              "description": "True when the node became deprecated, false when it was un-deprecated."
+            }
+          },
+          "required": ["kind", "deprecated"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "replacement" },
+            "replaces": { "$ref": "#/$defs/setChange" },
+            "replacedBy": { "$ref": "#/$defs/setChange" }
+          },
+          "required": ["kind", "replaces", "replacedBy"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "mergedInto" },
+            "target": { "$ref": "#/$defs/unionId" },
+            "confidence": { "$ref": "#/$defs/unit" },
+            "via": { "enum": ["hint", "heuristic"] }
+          },
+          "required": ["kind", "target", "confidence", "via"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "mergeTarget" },
+            "sources": { "$ref": "#/$defs/unionIds" }
+          },
+          "required": ["kind", "sources"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "splitFrom" },
+            "source": { "$ref": "#/$defs/unionId" },
+            "confidence": { "$ref": "#/$defs/unit" },
+            "via": { "enum": ["hint", "heuristic"] }
+          },
+          "required": ["kind", "source", "confidence", "via"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "splitInto" },
+            "targets": { "$ref": "#/$defs/unionIds" }
+          },
+          "required": ["kind", "targets"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "edgeFacet": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "retarget" },
+            "end": { "enum": ["source", "target"] },
+            "from": { "$ref": "#/$defs/unionId" },
+            "to": { "$ref": "#/$defs/unionId" },
+            "cause": { "enum": ["edit", "merge", "split", "move"] }
+          },
+          "required": ["kind", "end", "from", "to", "cause"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["predicate", "label"] },
+            "from": { "type": "string" },
+            "to": { "type": "string" }
+          },
+          "required": ["kind", "from", "to"],
+          "additionalProperties": false
+        },
+        { "$ref": "#/$defs/attrsFacet" },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "collapsed" },
+            "into": {
+              "$ref": "#/$defs/unionId",
+              "description": "The union edge this one would duplicate after a merge."
+            }
+          },
+          "required": ["kind", "into"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "facetKind": {
+      "enum": [
+        "rename",
+        "rekey",
+        "types",
+        "aliases",
+        "attrs",
+        "move",
+        "deprecate",
+        "replacement",
+        "mergedInto",
+        "mergeTarget",
+        "splitFrom",
+        "splitInto",
+        "retarget",
+        "predicate",
+        "label",
+        "collapsed"
+      ]
+    },
+    "hunkKind": {
+      "enum": ["add", "remove", "merge", "split", "modify", "relations"]
+    },
+    "unionNode": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/unionId" },
+        "beforeId": { "$ref": "graph.v1.json#/$defs/id" },
+        "afterId": { "$ref": "graph.v1.json#/$defs/id" },
+        "before": {
+          "$ref": "graph.v1.json#/$defs/node",
+          "description": "The node before, stored only when it differs from after."
+        },
+        "after": { "$ref": "graph.v1.json#/$defs/node" },
+        "status": { "$ref": "#/$defs/status" },
+        "facets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nodeFacet" },
+          "description": "What changed, in canonical order."
+        },
+        "hunk": {
+          "type": "string",
+          "description": "Id of the hunk this change belongs to."
+        }
+      },
+      "required": ["id", "status"],
+      "additionalProperties": false
+    },
+    "unionEdge": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/unionId" },
+        "source": { "$ref": "#/$defs/unionId" },
+        "target": { "$ref": "#/$defs/unionId" },
+        "sourceBefore": {
+          "$ref": "#/$defs/unionId",
+          "description": "Present only when the source changed."
+        },
+        "targetBefore": {
+          "$ref": "#/$defs/unionId",
+          "description": "Present only when the target changed."
+        },
+        "predicateBefore": {
+          "type": "string",
+          "description": "Present only when the predicate changed."
+        },
+        "before": {
+          "$ref": "graph.v1.json#/$defs/edge",
+          "description": "The edge before, stored only when it differs from after."
+        },
+        "after": { "$ref": "graph.v1.json#/$defs/edge" },
+        "status": { "$ref": "#/$defs/status" },
+        "facets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/edgeFacet" }
+        },
+        "hunk": { "type": "string" }
+      },
+      "required": ["id", "source", "target", "status"],
+      "additionalProperties": false
+    },
+    "countTriplet": {
+      "type": "object",
+      "properties": {
+        "added": { "$ref": "#/$defs/count" },
+        "removed": { "$ref": "#/$defs/count" },
+        "modified": { "$ref": "#/$defs/count" }
+      },
+      "required": ["added", "removed", "modified"],
+      "additionalProperties": false
+    },
+    "countDelta": {
+      "type": "object",
+      "properties": {
+        "added": { "$ref": "#/$defs/count" },
+        "removed": { "$ref": "#/$defs/count" },
+        "modified": { "$ref": "#/$defs/count" },
+        "unchanged": { "$ref": "#/$defs/count" }
+      },
+      "required": ["added", "removed", "modified", "unchanged"],
+      "additionalProperties": false
+    },
+    "hunk": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "$ref": "#/$defs/hunkKind" },
+        "phase": {
+          "enum": ["remove", "restructure", "modify", "add"],
+          "description": "Replay phase: clean up, restructure, refine, grow."
+        },
+        "anchor": {
+          "$ref": "#/$defs/unionId",
+          "description": "The node the hunk is about."
+        },
+        "nodes": {
+          "$ref": "#/$defs/unionIds",
+          "description": "Changed nodes owned by the hunk, anchor first."
+        },
+        "edges": {
+          "$ref": "#/$defs/unionIds",
+          "description": "Changed edges owned by the hunk."
+        },
+        "context": {
+          "$ref": "#/$defs/unionIds",
+          "description": "Nodes needed to read the hunk that it does not own."
+        },
+        "ops": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Indices into delta.ops that implement the hunk, ascending."
+        },
+        "requires": {
+          "$ref": "#/$defs/strings",
+          "description": "Ids of the hunks that must be applied before this one."
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "nodes": { "$ref": "#/$defs/countTriplet" },
+            "edges": { "$ref": "#/$defs/countTriplet" },
+            "facets": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/facetKind" }
+            }
+          },
+          "required": ["nodes", "edges", "facets"],
+          "additionalProperties": false
+        },
+        "order": {
+          "$ref": "#/$defs/count",
+          "description": "Default review order, 0-based."
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "phase",
+        "anchor",
+        "nodes",
+        "edges",
+        "context",
+        "ops",
+        "requires",
+        "summary",
+        "order"
+      ],
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "object",
+      "description": "The options the diff was made with, defaults filled in.",
+      "properties": {
+        "match": {
+          "type": "object",
+          "properties": {
+            "strategy": { "enum": ["id", "auto", "similarity"] },
+            "threshold": { "$ref": "#/$defs/unit" },
+            "suggestThreshold": { "$ref": "#/$defs/unit" },
+            "maxCandidates": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["strategy", "threshold", "suggestThreshold", "maxCandidates"],
+          "additionalProperties": false
+        },
+        "edgeIdentity": { "enum": ["structure", "id"] },
+        "hierarchyPredicates": { "$ref": "#/$defs/strings" },
+        "detectMerges": { "type": "boolean" },
+        "detectSplits": { "type": "boolean" },
+        "ignoreAttrs": { "$ref": "#/$defs/strings" }
+      },
+      "required": [
+        "match",
+        "edgeIdentity",
+        "hierarchyPredicates",
+        "detectMerges",
+        "detectSplits",
+        "ignoreAttrs"
+      ],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Similarity per signal.",
+      "properties": {
+        "label": { "$ref": "#/$defs/unit" },
+        "neighbors": { "$ref": "#/$defs/unit" },
+        "types": { "$ref": "#/$defs/unit" },
+        "attrs": { "$ref": "#/$defs/unit" }
+      },
+      "required": ["label", "neighbors", "types", "attrs"],
+      "additionalProperties": false
+    },
+    "match": {
+      "type": "object",
+      "properties": {
+        "before": { "$ref": "graph.v1.json#/$defs/id" },
+        "after": { "$ref": "graph.v1.json#/$defs/id" },
+        "method": { "enum": ["id", "hint", "similarity"] },
+        "score": {
+          "$ref": "#/$defs/unit",
+          "description": "1 for id and hint matches."
+        },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      },
+      "required": ["before", "after", "method", "score"],
+      "additionalProperties": false
+    },
+    "suggestion": {
+      "type": "object",
+      "properties": {
+        "before": { "$ref": "graph.v1.json#/$defs/id" },
+        "after": { "$ref": "graph.v1.json#/$defs/id" },
+        "score": { "$ref": "#/$defs/unit" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "reason": { "enum": ["below-threshold", "ambiguous"] }
+      },
+      "required": ["before", "after", "score", "evidence", "reason"],
+      "additionalProperties": false
+    },
+    "size": {
+      "type": "object",
+      "properties": {
+        "nodes": { "$ref": "#/$defs/count" },
+        "edges": { "$ref": "#/$defs/count" }
+      },
+      "required": ["nodes", "edges"],
+      "additionalProperties": false
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "nodes": { "$ref": "#/$defs/countDelta" },
+        "edges": { "$ref": "#/$defs/countDelta" },
+        "before": { "$ref": "#/$defs/size" },
+        "after": { "$ref": "#/$defs/size" },
+        "facets": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/facetKind" },
+          "additionalProperties": { "$ref": "#/$defs/count" },
+          "description": "Number of union elements carrying each facet kind."
+        },
+        "hunks": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/hunkKind" },
+          "additionalProperties": { "$ref": "#/$defs/count" },
+          "description": "Number of hunks of each kind."
+        },
+        "byType": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "A node type; untyped nodes count under the empty string."
+              },
+              "added": { "$ref": "#/$defs/count" },
+              "removed": { "$ref": "#/$defs/count" },
+              "modified": { "$ref": "#/$defs/count" },
+              "unchanged": { "$ref": "#/$defs/count" }
+            },
+            "required": ["type", "added", "removed", "modified", "unchanged"],
+            "additionalProperties": false
+          }
+        },
+        "identical": { "type": "boolean" }
+      },
+      "required": ["nodes", "edges", "before", "after", "facets", "hunks", "byType", "identical"],
+      "additionalProperties": false
+    }
+  }
+}

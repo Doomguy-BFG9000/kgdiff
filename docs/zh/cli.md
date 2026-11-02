@@ -118,7 +118,7 @@ kgdiff  企业信用知识图谱本体 v12 → v13                              
 
 ## 输入与 `apply`
 
-输入可以是 gzip 压缩的，也可以是 UTF-16（自动识别）；无效的 UTF-8 会报错。`kgdiff apply` 接受 `Delta` 或完整的 `DiffJSON`（来自 `--json`）作为补丁，可以来自文件或标准输入，并写出 kgdiff JSON（`graphToJSON`），所以连续 apply 可以无损往返。`kgdiff help` 和 `-v` 分别是 `--help` 和 `--version` 的别名。
+输入可以是 gzip 压缩的，也可以是 UTF-16（自动识别）；无效的 UTF-8 会报错。`kgdiff apply` 接受 `Delta` 或完整的 `DiffJSON`（来自 `--json`）作为补丁，可以来自文件或标准输入，并写出 kgdiff JSON（`graphToJSON`，带有 `kgdiff.graph` 格式标记），所以连续 apply 可以无损往返。在需要图的地方传入 diff 或增量文件，会被拒绝，并且报错信息会说明这是什么文件。`kgdiff help` 和 `-v` 分别是 `--help` 和 `--version` 的别名。
 
 如果图不是增量的基准，会被拒绝（退出码 2）；提示会说明，图必须按生成增量时的方式解析（相同的 `--format` / `--lang`）。`--no-strict` 会应用所有前置条件成立的操作，并在标准错误中报告跳过了多少个；`--verbose` 逐个列出（`#序号 操作: 原因`）。
 

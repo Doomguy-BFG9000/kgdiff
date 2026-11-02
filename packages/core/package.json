@@ -26,10 +26,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./schema/graph.v1.json": "./schema/graph.v1.json",
+    "./schema/diff.v1.json": "./schema/diff.v1.json",
+    "./schema/delta.v1.json": "./schema/delta.v1.json"
   },
   "files": [
     "dist",
+    "schema",
     "src",
     "!src/**/*.test.ts"
   ],

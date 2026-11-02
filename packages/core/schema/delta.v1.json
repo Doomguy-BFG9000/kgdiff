@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/delta.v1.json",
+  "title": "kgdiff delta, version 1",
+  "description": "An invertible, verifiable patch from one graph version to another, as `kgdiff --delta` writes it. See https://github.com/iiwish/kgdiff/blob/main/docs/delta-format.md",
+  "type": "object",
+  "properties": {
+    "format": { "const": "kgdiff.delta" },
+    "version": {
+      "const": 1,
+      "description": "Readers reject versions they do not support."
+    },
+    "edgeIdentity": {
+      "enum": ["structure", "id"],
+      "description": "How edges are identified: by (source, predicate, target), or by their ids."
+    },
+    "base": {
+      "$ref": "#/$defs/graphRef",
+      "description": "The graph the delta applies to."
+    },
+    "target": {
+      "$ref": "#/$defs/graphRef",
+      "description": "The graph it produces."
+    },
+    "ops": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/op" },
+      "description": "Operations in canonical order. Ids refer to the graph reached by the previous operations."
+    }
+  },
+  "required": ["format", "version", "edgeIdentity", "base", "target", "ops"],
+  "additionalProperties": false,
+  "$defs": {
+    "graphRef": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "hash": {
+          "type": "string",
+          "pattern": "^c53:[0-9a-f]{14}$",
+          "description": "hashGraph of the normalized graph (positions and meta excluded)."
+        },
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["hash", "nodes", "edges"],
+      "additionalProperties": false
+    },
+    "id": { "$ref": "graph.v1.json#/$defs/id" },
+    "node": {
+      "$ref": "graph.v1.json#/$defs/node",
+      "description": "A full snapshot of the node."
+    },
+    "edge": {
+      "$ref": "graph.v1.json#/$defs/edge",
+      "description": "The edge, which identifies it and states its expected content."
+    },
+    "nodeFieldValue": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } },
+        { "type": "boolean" }
+      ]
+    },
+    "op": {
+      "oneOf": [
+        { "$ref": "#/$defs/node.rekey" },
+        { "$ref": "#/$defs/edge.remove" },
+        { "$ref": "#/$defs/node.remove" },
+        { "$ref": "#/$defs/node.set" },
+        { "$ref": "#/$defs/node.attr" },
+        { "$ref": "#/$defs/node.add" },
+        { "$ref": "#/$defs/edge.add" },
+        { "$ref": "#/$defs/edge.set" },
+        { "$ref": "#/$defs/edge.attr" }
+      ]
+    },
+    "node.rekey": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "node.rekey" },
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" }
+      },
+      "required": ["op", "from", "to"],
+      "additionalProperties": false
+    },
+    "edge.remove": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "edge.remove" },
+        "edge": { "$ref": "#/$defs/edge" }
+      },
+      "required": ["op", "edge"],
+      "additionalProperties": false
+    },
+    "node.remove": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "node.remove" },
+        "node": { "$ref": "#/$defs/node" }
+      },
+      "required": ["op", "node"],
+      "additionalProperties": false
+    },
+    "node.set": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "node.set" },
+        "id": { "$ref": "#/$defs/id" },
+        "field": {
+          "enum": ["label", "types", "aliases", "deprecated", "replaces", "replacedBy"]
+        },
+        "from": { "$ref": "#/$defs/nodeFieldValue" },
+        "to": { "$ref": "#/$defs/nodeFieldValue" }
+      },
+      "required": ["op", "id", "field", "from", "to"],
+      "additionalProperties": false
+    },
+    "node.attr": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "node.attr" },
+        "id": { "$ref": "#/$defs/id" },
+        "key": { "type": "string" },
+        "from": { "description": "The value before; absent when the attribute is added." },
+        "to": { "description": "The value after; absent when the attribute is removed." }
+      },
+      "required": ["op", "id", "key"],
+      "additionalProperties": false
+    },
+    "node.add": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "node.add" },
+        "node": { "$ref": "#/$defs/node" }
+      },
+      "required": ["op", "node"],
+      "additionalProperties": false
+    },
+    "edge.add": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "edge.add" },
+        "edge": { "$ref": "#/$defs/edge" }
+      },
+      "required": ["op", "edge"],
+      "additionalProperties": false
+    },
+    "edge.set": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "edge.set" },
+        "edge": { "$ref": "#/$defs/edge" },
+        "field": { "const": "label" },
+        "from": { "type": "string" },
+        "to": { "type": "string" }
+      },
+      "required": ["op", "edge", "field", "from", "to"],
+      "additionalProperties": false
+    },
+    "edge.attr": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "edge.attr" },
+        "edge": { "$ref": "#/$defs/edge" },
+        "key": { "type": "string" },
+        "from": { "description": "The value before; absent when the attribute is added." },
+        "to": { "description": "The value after; absent when the attribute is removed." }
+      },
+      "required": ["op", "edge", "key"],
+      "additionalProperties": false
+    }
+  }
+}

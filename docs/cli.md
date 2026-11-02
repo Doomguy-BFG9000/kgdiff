@@ -153,7 +153,9 @@ Colors follow the families of `docs/visual-language.md` (truecolor, ANSI 256 or 
 
 Inputs may be gzip-compressed or UTF-16 (detected); invalid UTF-8 is an error. `kgdiff apply`
 accepts a `Delta` or a full `DiffJSON` (from `--json`) as the patch, from a file or stdin, and
-writes kgdiff JSON (`graphToJSON`), so apply chains round-trip losslessly. `kgdiff help` and `-v`
+writes kgdiff JSON (`graphToJSON`, with its `kgdiff.graph` format marker), so apply chains
+round-trip losslessly. A diff or a delta given where a graph is expected is refused with a message
+that says what the file is. `kgdiff help` and `-v`
 are aliases of `--help` and `--version`.
 
 A graph that is not the delta's base is refused (exit 2); the hint explains that the graph must

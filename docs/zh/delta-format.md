@@ -17,6 +17,7 @@
 
 - `hash` 是规范化后的图的 `hashGraph`（不含位置和元数据）。
 - 读取方必须拒绝未知的 `format`，以及比自己支持的版本更高的 `version`（`KgdiffError('unsupported-version')`）。
+- JSON Schema 是 [`delta.v1.json`](../../packages/core/schema/delta.v1.json)，随 `@kgdiff/core` 发布（`@kgdiff/core/schema/delta.v1.json`），也可以从 `https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/delta.v1.json` 获取。
 
 ## 操作
 

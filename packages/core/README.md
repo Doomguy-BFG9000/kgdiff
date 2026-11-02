@@ -59,6 +59,19 @@ hashGraph(undone) === hashGraph(result.before); // true
   neighbourhood with `diff(a, b, { match: { strategy: 'similarity' } })`.
 - `formatHunk(hunk, result, 'zh-CN')` gives Chinese titles.
 
+## JSON formats
+
+`graphToJSON(graph)`, `diffToJSON(result)` and `result.delta` are JSON documents that name their
+format and version: `kgdiff.graph`, `kgdiff.diff` and `kgdiff.delta`, all version 1. Their JSON
+Schemas ship with this package, to validate what other tools write before kgdiff reads it:
+
+```ts
+import graphSchema from '@kgdiff/core/schema/graph.v1.json' with { type: 'json' };
+```
+
+They are also served at `https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/graph.v1.json`
+(`diff.v1.json`, `delta.v1.json`).
+
 ## Learn more
 
 - [Algorithms](../../docs/algorithms.md): normalization, matching, classification, hunks, delta.

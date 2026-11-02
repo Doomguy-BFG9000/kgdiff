@@ -445,6 +445,26 @@ describe('exit codes and errors', () => {
     expect(r.stderr).toContain('hint: Pass --format <fmt>');
   });
 
+  it('says so when a kgdiff diff is given as a graph', async () => {
+    const made = await run(['before.json', 'after.json', '--json', 'diff.json', '-q'], { files });
+    const r = await run(['before.json', 'diff.json'], {
+      files: { ...files, 'diff.json': made.file('diff.json') },
+    });
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain(
+      'error: "diff.json": This is a kgdiff diff (format "kgdiff.diff", as `kgdiff --json` writes it), not a graph.',
+    );
+    expect(r.stderr).not.toContain('hint:');
+  });
+
+  it('suggests an upgrade for a graph from a newer kgdiff', async () => {
+    const v2 = JSON.stringify({ format: 'kgdiff.graph', version: 2, nodes: [], edges: [] });
+    const r = await run(['before.json', 'v2.json'], { files: { ...files, 'v2.json': v2 } });
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain('error: "v2.json": Unsupported kgdiff graph version 2;');
+    expect(r.stderr).toContain('hint: Upgrade kgdiff: npm install -g @kgdiff/cli@latest.');
+  });
+
   it('rejects binary input', async () => {
     const r = await run(['before.json', 'bin.json'], {
       files: { ...files, 'bin.json': new Uint8Array([0x7b, 0xc3, 0x28, 0x7d]) },
@@ -688,6 +708,16 @@ describe('apply', () => {
     expect(r.stderr.split('\n').filter((l) => /^ {2}#\d+ /.test(l))).toHaveLength(count);
     const indices = [...r.stderr.matchAll(/^ {2}#(\d+) /gm)].map((m) => Number(m[1]));
     expect(indices).toEqual([...indices].sort((a, b) => a - b));
+  });
+
+  it('writes kgdiff JSON that leads with its format marker', async () => {
+    const made = await run(['before.json', 'after.json', '--delta', 'd.json', '-q'], { files });
+    const out = await run(['apply', 'before.json', 'd.json'], {
+      files: { ...files, 'd.json': made.file('d.json') },
+    });
+    const graph = JSON.parse(out.stdout);
+    expect(Object.keys(graph)).toEqual(['format', 'version', 'meta', 'nodes', 'edges']);
+    expect(graph).toMatchObject({ format: 'kgdiff.graph', version: 1 });
   });
 
   it('records the target version and the output file in meta', async () => {

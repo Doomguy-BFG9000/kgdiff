@@ -1,0 +1,179 @@
+/**
+ * The JSON Schemas in schema/ describe what kgdiff writes: graphs (`graphToJSON`), diffs
+ * (`diffToJSON`) and deltas. Everything kgdiff writes must validate, and the schemas must
+ * reject what it would not write.
+ */
+import { readFileSync } from 'node:fs';
+import {
+  type DiffOptions,
+  diff,
+  diffToJSON,
+  type GraphInput,
+  graphToJSON,
+  invertDelta,
+} from '@kgdiff/core';
+import { parseGraph } from '@kgdiff/formats';
+import { Ajv2020, type ValidateFunction } from 'ajv/dist/2020.js';
+import fc from 'fast-check';
+import { describe, expect, it } from 'vitest';
+import { versionPairArb } from './support/arbitraries.js';
+import {
+  enterpriseAfter,
+  enterpriseBefore,
+  extractionAfter,
+  extractionBefore,
+  oboAfter,
+  oboBefore,
+  taxonomyAfter,
+  taxonomyBefore,
+} from './support/fixtures.js';
+
+const BASE = 'https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/';
+const NAMES = ['graph', 'delta', 'diff'] as const;
+const schemas = NAMES.map(
+  (name) =>
+    JSON.parse(
+      readFileSync(new URL(`../schema/${name}.v1.json`, import.meta.url), 'utf8'),
+    ) as Record<string, unknown>,
+);
+
+const ajv = new Ajv2020({ allErrors: true, strict: true, strictTypes: true });
+ajv.addSchema(schemas);
+function validator(name: (typeof NAMES)[number]): ValidateFunction {
+  const validate = ajv.getSchema(`${BASE}${name}.v1.json`);
+  if (validate === undefined) throw new Error(`${name}.v1.json is not registered`);
+  return validate;
+}
+const graph = validator('graph');
+const delta = validator('delta');
+const diffSchema = validator('diff');
+
+/** Asserts validity, listing the schema errors on failure. */
+function expectValid(validate: ValidateFunction, value: unknown): void {
+  validate(value);
+  expect(validate.errors ?? []).toEqual([]);
+}
+
+function expectAllValid(before: GraphInput, after: GraphInput, options?: DiffOptions): void {
+  const result = diff(before, after, options);
+  expectValid(graph, graphToJSON(result.before));
+  expectValid(graph, graphToJSON(result.after));
+  expectValid(diffSchema, diffToJSON(result));
+  expectValid(delta, result.delta);
+  expectValid(delta, invertDelta(result.delta));
+}
+
+describe('JSON Schemas', () => {
+  it('have the $id their file name gives them', () => {
+    expect(schemas.map((schema) => schema.$id)).toEqual(NAMES.map((n) => `${BASE}${n}.v1.json`));
+  });
+
+  it('accept the graphs, diffs and deltas of random version pairs', () => {
+    const options = fc.constantFrom<DiffOptions | undefined>(
+      undefined,
+      { edgeIdentity: 'id' },
+      { match: { strategy: 'similarity' } },
+      { match: { strategy: 'id' }, detectMerges: false, detectSplits: false },
+    );
+    fc.assert(
+      fc.property(versionPairArb(), options, ([before, after], opts) => {
+        expectAllValid(before, after, opts);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it('accept merges, splits, rekeys and moves', () => {
+    expectAllValid(enterpriseBefore, enterpriseAfter('hint'));
+    expectAllValid(enterpriseBefore, enterpriseAfter('heuristic'));
+    expectAllValid(oboBefore, oboAfter);
+    expectAllValid(taxonomyBefore, taxonomyAfter);
+    expectAllValid(extractionBefore, extractionAfter, { match: { strategy: 'similarity' } });
+  });
+
+  it.each(['enterprise-kg', 'llm-extraction', 'data-lineage', 'ontology-release', 'schema-vocab'])(
+    'accept everything kgdiff writes for the example dataset %s',
+    (dataset) => {
+      const root = new URL(`../../../examples/datasets/${dataset}/`, import.meta.url);
+      const read = (file: string) => readFileSync(new URL(file, root), 'utf8');
+      const meta = JSON.parse(read('meta.json')) as {
+        readonly options: DiffOptions;
+        readonly files: { readonly before: string; readonly after: string };
+      };
+      const parse = (file: string) => parseGraph(read(file), { filename: file }).graph;
+      expectAllValid(parse(meta.files.before), parse(meta.files.after), meta.options);
+    },
+  );
+});
+
+describe('the graph schema', () => {
+  const valid = {
+    format: 'kgdiff.graph',
+    version: 1,
+    meta: { name: 'zoo', version: 'v2', curator: { name: 'Ana' } },
+    nodes: [
+      { id: 'cat', label: 'Cat', type: 'Species', aliases: ['house cat'], attrs: { legs: 4 } },
+      { id: 'mammal', types: ['Class'], deprecated: false, replaces: ['mammalia'] },
+      { id: 'ghost', implicit: true, position: { x: 1, y: 2 } },
+    ],
+    edges: [
+      { source: 'cat', target: 'mammal', predicate: 'subClassOf' },
+      { id: 'e1', source: 'cat', target: 'ghost', label: 'haunts', attrs: { since: null } },
+    ],
+  };
+
+  it('accepts a hand-written graph, with or without the marker', () => {
+    expectValid(graph, valid);
+    const { format: _format, version: _version, ...bare } = valid;
+    expectValid(graph, bare);
+    expectValid(graph, { $schema: `${BASE}graph.v1.json`, nodes: [] });
+  });
+
+  it.each([
+    ['a misspelt node field', { nodes: [{ id: 'a', lable: 'A' }] }],
+    ['a node without an id', { nodes: [{ label: 'A' }] }],
+    ['an empty id', { nodes: [{ id: '' }] }],
+    ['a numeric id', { nodes: [{ id: 1 }] }],
+    ['both type and types', { nodes: [{ id: 'a', type: 'T', types: ['T'] }] }],
+    ['an edge without a target', { nodes: [], edges: [{ source: 'a' }] }],
+    ['a misspelt edge field', { nodes: [], edges: [{ source: 'a', target: 'b', predicat: 'p' }] }],
+    ['a newer version', { format: 'kgdiff.graph', version: 2, nodes: [] }],
+    ['a marker without a version', { format: 'kgdiff.graph', nodes: [] }],
+    ['a version without a marker', { version: 1, nodes: [] }],
+    ['another format', { format: 'kgdiff.diff', version: 1, nodes: [] }],
+    ['a field at the top level', { nodes: [], name: 'zoo' }],
+    ['no nodes', { edges: [] }],
+  ])('rejects %s', (_case, value) => {
+    expect(graph(value)).toBe(false);
+  });
+});
+
+describe('the delta and diff schemas', () => {
+  const result = diff(enterpriseBefore, enterpriseAfter('hint'));
+
+  it.each([
+    ['an unknown op', { ...result.delta, ops: [{ op: 'node.rename', id: 'a' }] }],
+    ['a malformed hash', { ...result.delta, base: { ...result.delta.base, hash: 'abc' } }],
+    ['a newer version', { ...result.delta, version: 2 }],
+  ])('the delta schema rejects %s', (_case, value) => {
+    expect(delta(value)).toBe(false);
+  });
+
+  it.each([
+    ['an unknown status', { nodes: [{ id: 'x', status: 'gone' }] }],
+    [
+      'an unknown facet',
+      { nodes: [{ id: 'x', status: 'modified', facets: [{ kind: 'recolor' }] }] },
+    ],
+    ['a delta that is not one', { delta: { ops: [] } }],
+    ['a missing field', { stats: undefined }],
+  ])('the diff schema rejects %s', (_case, spoiled) => {
+    const json = JSON.parse(JSON.stringify({ ...diffToJSON(result), ...spoiled }));
+    expect(diffSchema(json)).toBe(false);
+  });
+
+  it('accept an identical pair', () => {
+    const g = { nodes: [{ id: 'a' }], edges: [] };
+    expectAllValid(g, g);
+  });
+});

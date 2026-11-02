@@ -91,6 +91,13 @@ reproducible and open instantly.
 
 The full, documented signatures live in each package's `src/index.ts` (and `src/types.ts`).
 
+The JSON documents kgdiff writes are contracts too: graphs (`kgdiff.graph`), diffs
+(`kgdiff.diff`) and deltas (`kgdiff.delta`) each carry their `format` and `version`, and each has
+a JSON Schema in `packages/core/schema/` (`graph.v1.json`, `diff.v1.json`, `delta.v1.json`,
+published with `@kgdiff/core`). Tests validate everything kgdiff writes against them, so a
+change to these formats changes its schema in the same commit; an incompatible change bumps the
+version.
+
 ## Formats: mapping conventions
 
 All parsers produce the same `GraphInput` shape:
@@ -148,9 +155,12 @@ of the annotated edge (or node, for literal statements) instead of becoming node
 are recognised from their alternative ids.
 
 kgdiff JSON reads core's `graphToJSON` output losslessly (`types`, `implicit`; a `label` is
-never taken for the predicate). Fields a JSON dialect does not map (rendering state, G6 shape
-types, …) are dropped with a `json-ignored-fields` warning. Values nested deeper than 1000
-levels are rejected with `invalid-input`.
+never taken for the predicate). Its optional marker (`format: "kgdiff.graph"`, `version: 1`)
+skips shape detection; another `kgdiff.*` format (a diff, a delta) or graph version is rejected
+with `unsupported-version`, while a `format` field outside the `kgdiff.` namespace is ignored.
+Fields a JSON dialect does not map (rendering state, G6 shape types, …) are dropped with a
+`json-ignored-fields` warning. Values nested deeper than 1000 levels are rejected with
+`invalid-input`.
 
 ## Budgets
 

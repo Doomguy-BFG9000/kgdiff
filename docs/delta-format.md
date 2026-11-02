@@ -21,6 +21,9 @@ exact. Types: `Delta`, `DeltaOp` in `packages/core/src/types.ts`.
 - `hash` is `hashGraph` of the normalized graph (positions and meta excluded).
 - Readers must reject unknown `format` and any `version` greater than they support
   (`KgdiffError('unsupported-version')`).
+- The JSON Schema is [`delta.v1.json`](../packages/core/schema/delta.v1.json), shipped as
+  `@kgdiff/core/schema/delta.v1.json` and served at
+  `https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/delta.v1.json`.
 
 ## Operations
 

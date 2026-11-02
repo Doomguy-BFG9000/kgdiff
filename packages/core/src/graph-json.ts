@@ -35,8 +35,9 @@ export function edgeToJSON(
 }
 
 /**
- * Canonical JSON form of a graph: nodes sorted by id, edges by key, defaults omitted,
- * attribute keys sorted. `normalize(graphToJSON(g))` rebuilds `g` (positions excepted).
+ * Canonical JSON form of a graph: the `kgdiff.graph` version 1 marker, nodes sorted by id,
+ * edges by key, defaults omitted, attribute keys sorted. `normalize(graphToJSON(g))` rebuilds
+ * `g` (positions excepted).
  */
 export function graphToJSON(graph: KGraph): GraphJSON {
   const nodes = [...graph.nodes.values()]
@@ -45,7 +46,10 @@ export function graphToJSON(graph: KGraph): GraphJSON {
   const edges = [...graph.edges.values()]
     .sort((a, b) => compareStrings(a.key, b.key))
     .map((edge) => edgeToJSON(edge));
-  return Object.keys(graph.meta).length ? { meta: graph.meta, nodes, edges } : { nodes, edges };
+  const marker = { format: 'kgdiff.graph', version: 1 } as const;
+  return Object.keys(graph.meta).length
+    ? { ...marker, meta: graph.meta, nodes, edges }
+    : { ...marker, nodes, edges };
 }
 
 /**

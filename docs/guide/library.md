@@ -109,6 +109,11 @@ the others to `onSkip`. [Deltas](./deltas.md) covers the same from the command l
 - `graphToJSON(graph)`: a graph in kgdiff JSON, which `parseGraph` reads back losslessly.
 - `result.delta` is plain JSON already; [Delta format](../delta-format.md) specifies it.
 
+Each of the three names its `format` (`kgdiff.diff`, `kgdiff.graph`, `kgdiff.delta`) and
+`version`, and has a JSON Schema in `@kgdiff/core/schema/`
+([Formats](../formats.md#format-marker-and-json-schema)). Readers reject a version they do not
+support with `KgdiffError('unsupported-version')`.
+
 ## Lay out and draw
 
 The viewer does all of this for you. To build your own interface:

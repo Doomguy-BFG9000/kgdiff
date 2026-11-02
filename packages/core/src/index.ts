@@ -68,9 +68,11 @@ export function resolveOptions(options?: DiffOptions): ResolvedDiffOptions {
  *
  * Labels default to ids; sets are sorted and de-duplicated; duplicate nodes are merged;
  * parallel edges are keyed `#2`, `#3`… in content order; dangling endpoints follow
- * `danglingEdges` (default `create`). Problems are reported in `issues`.
+ * `danglingEdges` (default `create`). Problems are reported in `issues`. The kgdiff JSON
+ * marker (`format: 'kgdiff.graph'`, `version: 1`) is optional.
  *
- * @throws KgdiffError `invalid-input` for malformed input, `dangling-edge` (policy `error`).
+ * @throws KgdiffError `invalid-input` for malformed input, `dangling-edge` (policy `error`),
+ *   `unsupported-version` for another kgdiff format or graph version.
  */
 export function normalize(input: GraphInput, options?: NormalizeOptions): KGraph {
   return normalizeGraph(input, options);
@@ -129,7 +131,10 @@ export function hashGraph(graph: KGraph): string {
   return hash(graph);
 }
 
-/** Canonical JSON form of a graph (sorted, defaults omitted). Accepted by `normalize`. */
+/**
+ * Canonical JSON form of a graph: kgdiff JSON with its `kgdiff.graph` version 1 marker, sorted,
+ * defaults omitted. Accepted by `normalize`.
+ */
 export function graphToJSON(graph: KGraph): GraphJSON {
   return toGraphJSON(graph);
 }

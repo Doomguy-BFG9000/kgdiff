@@ -2,7 +2,8 @@
  * JSON graph dialects → `GraphInput`.
  *
  * Supported shapes (auto-detected, reported as `dialect`):
- *  - `kgdiff`      `{ nodes: [{ id, label, type, aliases, attrs, … }], edges: [{ source, target, predicate, … }] }`
+ *  - `kgdiff`      `{ nodes: [{ id, label, type, aliases, attrs, … }], edges: [{ source, target, predicate, … }] }`,
+ *                  recognised for certain by its optional marker `format: 'kgdiff.graph', version: 1`
  *  - `d3`          `{ nodes, links }`, link ends as id, index or node object (also NetworkX node-link)
  *  - `cytoscape`   `{ elements: { nodes, edges } }`, `{ elements: [{ group, data }] }` or a bare element array
  *  - `g6`          AntV G6 v5 `{ nodes: [{ id, data, style }], edges: [{ source, target, data }], combos }`
@@ -12,6 +13,7 @@
  * JSON-LD documents never get here: `parseGraph` reads them as RDF (`jsonld.ts`).
  */
 import type { EdgeInput, GraphInput, GraphMeta, NodeInput, Point } from '@kgdiff/core';
+import { KgdiffError } from '@kgdiff/core';
 import type { JsonDialect, JsonOptions } from './index.js';
 import {
   AttrBag,
@@ -238,7 +240,59 @@ const SHAPES_HELP =
   'expected { nodes, edges } (kgdiff, AntV G6, graphology, vis-network), { nodes, links } (d3, ' +
   'NetworkX) or { elements } (Cytoscape.js)';
 
+/**
+ * Reads the kgdiff JSON marker: true for `kgdiff.graph` version 1, false when there is none.
+ * Only `kgdiff.*` formats are kgdiff's; any other `format` value is left to shape detection.
+ */
+function hasGraphMarker(data: JsonRecord): boolean {
+  const format = getOwn(data, 'format');
+  if (typeof format !== 'string' || !format.startsWith('kgdiff.')) return false;
+  switch (format) {
+    case 'kgdiff.graph':
+      break;
+    case 'kgdiff.diff':
+      throw new KgdiffError(
+        'unsupported-version',
+        'This is a kgdiff diff (format "kgdiff.diff", as `kgdiff --json` writes it), not a graph.',
+        { format },
+      );
+    case 'kgdiff.delta':
+      throw new KgdiffError(
+        'unsupported-version',
+        'This is a kgdiff delta (format "kgdiff.delta"), not a graph: apply it to a graph with `kgdiff apply`.',
+        { format },
+      );
+    default:
+      throw new KgdiffError(
+        'unsupported-version',
+        `Unknown kgdiff format "${format}"; expected "kgdiff.graph".`,
+        { format },
+      );
+  }
+  const version = getOwn(data, 'version');
+  if (version !== 1) {
+    throw new KgdiffError(
+      'unsupported-version',
+      `Unsupported kgdiff graph version ${String(version)}; this reader supports version 1.`,
+      { version },
+    );
+  }
+  return true;
+}
+
 function detectShape(data: unknown): Shape {
+  if (isRecord(data) && hasGraphMarker(data)) {
+    if (!Array.isArray(data.nodes)) throw invalidInput('A kgdiff graph needs a `nodes` array.');
+    const edges = arrayField(data, 'edges');
+    return {
+      dialect: 'kgdiff',
+      root: data,
+      nodes: data.nodes,
+      edges,
+      nodesKey: 'nodes',
+      edgesKey: 'edges',
+    };
+  }
   if (Array.isArray(data)) {
     if (data.length > 0 && data.every((element) => isRecord(element) && isRecord(element.data))) {
       return cytoscapeShape(undefined, data);

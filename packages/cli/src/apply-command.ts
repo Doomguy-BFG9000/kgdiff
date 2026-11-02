@@ -64,10 +64,12 @@ export function readDelta(input: RawInput): Delta {
  * claims to be the input file.
  */
 export function graphOutputJSON(graph: KGraph, source?: string): GraphJSON {
-  const { meta, ...json } = graphToJSON(graph);
+  const { format, version, meta, nodes, edges } = graphToJSON(graph);
   const { source: _inputSource, ...rest } = meta ?? {};
   const outMeta = source !== undefined ? { ...rest, source } : rest;
-  return Object.keys(outMeta).length > 0 ? { meta: outMeta, ...json } : json;
+  return Object.keys(outMeta).length > 0
+    ? { format, version, meta: outMeta, nodes, edges }
+    : { format, version, nodes, edges };
 }
 
 const EDGE_IDENTITIES: readonly unknown[] = ['structure', 'id'];

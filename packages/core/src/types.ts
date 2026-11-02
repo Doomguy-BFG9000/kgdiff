@@ -105,6 +105,12 @@ export interface GraphMeta {
 }
 
 export interface GraphInput {
+  /**
+   * Format marker of kgdiff JSON, as `graphToJSON` writes it. Optional; when present, `version`
+   * must be 1 (anything else is rejected with `unsupported-version`).
+   */
+  readonly format?: 'kgdiff.graph';
+  readonly version?: 1;
   readonly nodes: readonly NodeInput[];
   readonly edges: readonly EdgeInput[];
   readonly meta?: GraphMeta;
@@ -618,7 +624,10 @@ export interface DiffResult {
 
 // ─── JSON transport ─────────────────────────────────────────────────────────
 
+/** kgdiff JSON (docs/formats.md §kgdiff JSON), schema `schema/graph.v1.json`. */
 export interface GraphJSON {
+  readonly format: 'kgdiff.graph';
+  readonly version: 1;
   readonly meta?: GraphMeta;
   readonly nodes: readonly NodeJSON[];
   readonly edges: readonly EdgeJSON[];

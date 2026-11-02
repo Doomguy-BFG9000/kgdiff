@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/graph.v1.json",
+  "title": "kgdiff graph, version 1",
+  "description": "A graph in kgdiff JSON, as graphToJSON and `kgdiff apply` write it. kgdiff also reads looser JSON (other field names, numeric ids, loose fields as attributes); this schema describes the canonical form. See https://github.com/iiwish/kgdiff/blob/main/docs/formats.md#kgdiff-json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "The URI of this schema, for editors."
+    },
+    "format": {
+      "const": "kgdiff.graph",
+      "description": "Format marker. Optional, together with version; it makes readers recognise the file for certain."
+    },
+    "version": {
+      "const": 1,
+      "description": "Version of the format (not of the graph: that is meta.version). Readers reject versions they do not support."
+    },
+    "meta": { "$ref": "#/$defs/meta" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    }
+  },
+  "required": ["nodes"],
+  "dependentRequired": {
+    "format": ["version"],
+    "version": ["format"]
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A node id: an IRI, a CURIE such as GO:0008150, or any non-empty string."
+    },
+    "ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "strings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "attrs": {
+      "type": "object",
+      "description": "Any other values, by name: strings, numbers, booleans, null, arrays and objects."
+    },
+    "meta": {
+      "type": "object",
+      "description": "About the graph. Other keys are kept as they are.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Shown in headers and titles."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version of the graph, shown in headers and titles."
+        },
+        "source": {
+          "type": "string",
+          "description": "Where the graph came from: a file name, a URL…"
+        },
+        "predicateLabels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Display names of relations, by predicate."
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": {
+          "type": "string",
+          "description": "The display name; defaults to the id. A changed label is a rename."
+        },
+        "type": {
+          "anyOf": [{ "type": "string" }, { "$ref": "#/$defs/strings" }],
+          "description": "A type, or several (class, category, rdf:type)."
+        },
+        "types": {
+          "$ref": "#/$defs/strings",
+          "description": "The types, as graphToJSON writes them. Use type or types, not both."
+        },
+        "aliases": {
+          "$ref": "#/$defs/strings",
+          "description": "Synonyms."
+        },
+        "attrs": { "$ref": "#/$defs/attrs" },
+        "deprecated": {
+          "type": "boolean",
+          "description": "True for an obsolete node that is still present."
+        },
+        "replaces": {
+          "$ref": "#/$defs/ids",
+          "description": "Ids of the nodes this one replaces in the other version: a strong merge hint."
+        },
+        "replacedBy": {
+          "$ref": "#/$defs/ids",
+          "description": "Ids of the nodes that replace this one: a strong merge hint."
+        },
+        "implicit": {
+          "type": "boolean",
+          "description": "Written by graphToJSON for a node created at an edge end the graph does not describe."
+        },
+        "position": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          },
+          "required": ["x", "y"],
+          "additionalProperties": false,
+          "description": "A pinned layout position. Never part of the diff."
+        }
+      },
+      "required": ["id"],
+      "dependentSchemas": {
+        "types": { "type": "object", "properties": { "type": false } }
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id",
+          "description": "An explicit edge id, used for identity only when edges are identified by id."
+        },
+        "source": { "$ref": "#/$defs/id" },
+        "target": { "$ref": "#/$defs/id" },
+        "predicate": {
+          "type": "string",
+          "description": "The relation: an IRI, a CURIE or a plain name. Defaults to the empty string."
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label of the relation; defaults to a readable form of the predicate."
+        },
+        "attrs": { "$ref": "#/$defs/attrs" }
+      },
+      "required": ["source", "target"],
+      "additionalProperties": false
+    }
+  }
+}

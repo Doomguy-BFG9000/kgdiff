@@ -23,8 +23,9 @@ import { formatMessage } from 'publint/utils';
 const ROOT = resolve(import.meta.dirname, '..');
 const OUT = join(ROOT, 'node_modules', '.cache', 'kgdiff-packs');
 const REQUIRED_FILES = ['package.json', 'README.md', 'LICENSE'];
-/** Entry points that are plain scripts for `<script>` tags, not typed modules. */
+/** Entry points that are not typed modules: scripts for `<script>` tags, JSON Schemas. */
 const UNTYPED_ENTRYPOINTS: Readonly<Record<string, readonly string[]>> = {
+  '@kgdiff/core': ['./schema/graph.v1.json', './schema/diff.v1.json', './schema/delta.v1.json'],
   '@kgdiff/viewer': ['./standalone', './standalone/compute'],
 };
 const SOURCE_MAPPING_URL = /\/\/# sourceMappingURL=(\S+)\s*$/;

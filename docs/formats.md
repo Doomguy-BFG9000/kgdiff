@@ -39,6 +39,8 @@ kgdiff's own format, and what `kgdiff apply` writes:
 
 ```json
 {
+  "format": "kgdiff.graph",
+  "version": 1,
   "meta": { "name": "zoo", "version": "v2" },
   "nodes": [
     { "id": "animal", "label": "Animal" },
@@ -62,6 +64,7 @@ kgdiff's own format, and what `kgdiff apply` writes:
 
 | Field                                    | Meaning                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `format`, `version`                      | `"kgdiff.graph"` and `1`: optional, but together; see below                                |
 | `meta.name`, `meta.version`              | Shown in headers and titles                                                                |
 | `nodes[].id`                             | Required and unique                                                                        |
 | `nodes[].label`                          | The display name; a changed label is a rename                                              |
@@ -90,6 +93,21 @@ kgdiff  zoo v1 → v2                                    3 → 4 nodes · 2 → 
   Added 1
   + Added “Mammal” and 1 relation    added · linked to “Animal”
 ```
+
+### Format marker and JSON Schema
+
+kgdiff writes `"format": "kgdiff.graph"` and `"version": 1` first, as it does for its diffs and
+deltas. A file without them is still read, by its shape. A file with them is read as kgdiff JSON
+without guessing, a version kgdiff does not support is refused, and so is a diff or a delta given
+where a graph is expected, with a message that says what the file is.
+
+[`graph.v1.json`](../packages/core/schema/graph.v1.json) is the JSON Schema of kgdiff JSON.
+`@kgdiff/core` ships it as `@kgdiff/core/schema/graph.v1.json`, and it is served at
+`https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/graph.v1.json`. Name it in `$schema` for
+completion and checks in your editor, or validate what a pipeline writes, such as an LLM's
+structured output, before kgdiff reads it. The schema describes the canonical form: kgdiff also
+reads looser files, with numeric ids, the label in `name` or other fields folded into `attrs`.
+`diff.v1.json` and `delta.v1.json` next to it describe what `--json` and `--delta` write.
 
 ## Other JSON graph shapes
 

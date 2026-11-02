@@ -1,4 +1,4 @@
-import { type GraphInput, graphToJSON, hashGraph, normalize } from '@kgdiff/core';
+import { diff, diffToJSON, type GraphInput, graphToJSON, hashGraph, normalize } from '@kgdiff/core';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { parseGraph } from '../src/index.js';
@@ -586,6 +586,76 @@ describe('JSON dialect detection', () => {
     for (const name of ['kgdiff.json', 'networkx.json', 'cytoscape-elements.json']) {
       expect(parseFixture(name).warnings).toEqual([]);
     }
+  });
+});
+
+describe('the kgdiff JSON marker', () => {
+  const marker = { format: 'kgdiff.graph', version: 1 } as const;
+
+  it('makes a graph kgdiff JSON even when its elements look like AntV G6', () => {
+    const g6Like = { nodes: [{ id: 'a', data: { label: 'A' } }], edges: [] };
+    expect(json(g6Like).dialect).toBe('g6');
+    const result = json({ ...marker, ...g6Like });
+    expect(result.dialect).toBe('kgdiff');
+    expect(result.graph.nodes).toEqual([{ id: 'a', attrs: { data: { label: 'A' } } }]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('reads neither the marker nor $schema into the graph', () => {
+    const schema = 'https://cdn.jsdelivr.net/npm/@kgdiff/core/schema/graph.v1.json';
+    const result = json({ $schema: schema, ...marker, nodes: [{ id: 'a' }], edges: [] });
+    expect(result.graph).toEqual({ nodes: [{ id: 'a' }], edges: [] });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('is recognised from the content alone', () => {
+    const result = parseGraph(JSON.stringify({ ...marker, nodes: [{ id: 'a' }] }));
+    expect(result).toMatchObject({ format: 'json', dialect: 'kgdiff' });
+  });
+
+  it.each([
+    [
+      { ...marker, version: 2 },
+      'Unsupported kgdiff graph version 2; this reader supports version 1.',
+    ],
+    [
+      { format: 'kgdiff.graph' },
+      'Unsupported kgdiff graph version undefined; this reader supports version 1.',
+    ],
+    [
+      { format: 'kgdiff.diff', version: 1 },
+      'This is a kgdiff diff (format "kgdiff.diff", as `kgdiff --json` writes it), not a graph.',
+    ],
+    [
+      { format: 'kgdiff.delta', version: 1 },
+      'This is a kgdiff delta (format "kgdiff.delta"), not a graph: apply it to a graph with `kgdiff apply`.',
+    ],
+    [
+      { format: 'kgdiff.patch', version: 1 },
+      'Unknown kgdiff format "kgdiff.patch"; expected "kgdiff.graph".',
+    ],
+  ])('rejects %j', (envelope, message) => {
+    const error = catchError(() => json({ ...envelope, nodes: [], edges: [] }));
+    expect(error.code).toBe('unsupported-version');
+    expect(error.message).toBe(message);
+  });
+
+  it('rejects the diffs and deltas kgdiff writes when they are read as a graph', () => {
+    const result = diff({ nodes: [{ id: 'a' }], edges: [] }, { nodes: [{ id: 'b' }], edges: [] });
+    for (const document of [diffToJSON(result), result.delta]) {
+      const error = catchError(() => parseGraph(JSON.stringify(document)));
+      expect(error.code).toBe('unsupported-version');
+    }
+  });
+
+  it('needs a nodes array', () => {
+    expect(catchError(() => json(marker)).code).toBe('invalid-input');
+  });
+
+  it("leaves a format field that is not kgdiff's to shape detection", () => {
+    const result = json({ format: 'graphml', version: 3, nodes: [{ id: 'a' }], edges: [] });
+    expect(result.dialect).toBe('kgdiff');
+    expect(result.graph).toEqual({ nodes: [{ id: 'a' }], edges: [] });
   });
 });
 
