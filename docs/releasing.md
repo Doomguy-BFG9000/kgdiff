@@ -16,11 +16,41 @@ report payload ties core, layout and scene together, so "kgdiff 0.3.1" names one
 3. Merging that pull request publishes: the workflow runs `pnpm release` (`pnpm check`,
    `pnpm build`, `pnpm check:packages`, `changeset publish`), publishes every package whose
    version is not on npm yet, pushes the `<package>@<version>` tags and creates GitHub releases.
+   It also tags the GitHub Action (below).
 
 The version pull request is opened with the workflow's `GITHUB_TOKEN`, and GitHub does not run
 other workflows for pull requests created that way, so CI does not start on it by itself. Its diff
 only touches versions and changelogs; close and reopen it to run CI, or give
 `changesets/action` a GitHub App token through `github-token`.
+
+## The GitHub Action
+
+[`action.yml`](../action.yml), at the root of the repository, is the kgdiff GitHub Action
+(`uses: iiwish/kgdiff@v0`; [guide](./guide/ci.md)), with its scripts in [`action/`](../action).
+It runs the `@kgdiff/cli` version that `packages/cli/package.json` has in the same commit, so a
+tag names one action and one CLI version:
+
+- Once `release.yml` has published `@kgdiff/cli`, it tags the release commit `v<version>`
+  (`v0.2.0`, never moved) and moves `v<major>` (`v0`) to it, through the GitHub API with the job's
+  token. A prerelease gets only its own tag. Users pin `@v0`, `@v0.2.0`, or the commit with a
+  `# v0.2.0` comment, which Dependabot updates from these tags.
+- [`action.yml`](../.github/workflows/action.yml) (the workflow) runs the action on the example
+  datasets whenever the action or the datasets change: job summary, artifact, a pull request
+  comment updated in place (on pull requests from this repository), a run with a read-only token
+  like a fork's, and Windows and macOS. Unit tests in `action/test` run with `pnpm test`.
+- The action arrived after the last release, so its first tags are set by hand, on the first
+  `main` commit that has it: `v<version>` with the version in that commit's
+  `packages/cli/package.json` (already on npm), and `v0`. From the next release on, `release.yml`
+  takes over.
+
+  ```sh
+  git tag v0.1.0 <commit>   # the CLI version in that commit
+  git tag v0 <commit>
+  git push origin v0.1.0 v0
+  ```
+
+The action is not listed on GitHub Marketplace: listing goes through a GitHub release of the
+action, and GitHub expects a repository that holds only the action.
 
 ## Publishing: npm trusted publishing
 

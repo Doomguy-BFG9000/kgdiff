@@ -43,10 +43,33 @@ jobs:
           # No caches in a job that publishes: a poisoned cache would end up in the packages.
           package-manager-cache: false
       - run: pnpm install --frozen-lockfile
-      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+      - id: changesets
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           version-script: pnpm version-packages
           # build → check:packages → changeset publish (package.json "release")
           publish-script: pnpm release
           commit-message: "chore: release packages"
           pr-title: "chore: release packages"
+      # The GitHub Action (action.yml) runs the @kgdiff/cli version of its commit: tag the release
+      # commit v<version> for `uses: iiwish/kgdiff@v0.2.0` (and Dependabot), and move v<major>
+      # there for `uses: iiwish/kgdiff@v0`. Prereleases only get their own tag.
+      - name: Tag the GitHub Action
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}
+        run: |
+          version=$(jq -r '.[] | select(.name == "@kgdiff/cli") | .version' <<<"$PUBLISHED")
+          if [ -z "$version" ]; then exit 0; fi
+          refs="repos/$GITHUB_REPOSITORY/git/refs"
+          if ! gh api "$refs" -f ref="refs/tags/v$version" -f sha="$GITHUB_SHA" --silent; then
+            # Already there from an earlier attempt of this run: fine if it is this commit.
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" --jq .object.sha)
+            test "$sha" = "$GITHUB_SHA"
+          fi
+          case "$version" in *-*) exit 0 ;; esac
+          major="v${version%%.*}"
+          gh api -X PATCH "$refs/tags/$major" -f sha="$GITHUB_SHA" -F force=true --silent ||
+            gh api "$refs" -f ref="refs/tags/$major" -f sha="$GITHUB_SHA" --silent
+          echo "Tagged $GITHUB_SHA as v$version and $major"
