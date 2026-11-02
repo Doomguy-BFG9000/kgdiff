@@ -45,10 +45,12 @@ num2048@163.com.
 2. **npm.** Create the `kgdiff` organization, which owns the `@kgdiff` scope, and turn on 2FA.
 3. **First publish, by hand.** Trusted publishing can only be configured for a package that
    already exists, so the first version is published from a maintainer's machine (it has no
-   provenance attestation; later versions do):
+   provenance attestation; later versions do). Every package publishes to
+   `https://registry.npmjs.org/` (`publishConfig.registry`), whatever registry the machine
+   installs from, so log in there too: a mirror such as npmmirror cannot log you in.
 
    ```sh
-   npm login
+   npm login --registry=https://registry.npmjs.org/
    pnpm install
    pnpm release            # check, build, check:packages, changeset publish (asks for the 2FA code)
    git push --follow-tags

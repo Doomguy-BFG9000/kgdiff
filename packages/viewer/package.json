@@ -42,7 +42,8 @@
     "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build -c vite.config.ts && vite build -c vite.config.ts --mode compute",
