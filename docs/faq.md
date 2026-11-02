@@ -56,6 +56,14 @@ Text diffs compare serializations; ontology tools such as ROBOT diff list change
 kgdiff matches nodes, names the changes (merges, splits, moves, renames) and shows both versions
 on one stable map for review. The [comparison on the home page](/#compare) goes into more detail.
 
+## Can kgdiff show a single graph?
+
+No. kgdiff always compares two versions, and its colors mean change, so a graph on its own would
+be drawn all in gray. To explore one graph, use a graph visualization library: [Browse a graph
+with G6](./guide/g6.md) reads any file kgdiff reads and draws it with AntV G6. While you review a
+diff, the viewer already lets you look around: search the whole graph with `/`, click an
+unchanged node to see its details, and widen the context in Changes only.
+
 ## What does kgdiff need?
 
 Node.js 22 or later for the CLI and the libraries in Node, and an evergreen browser for the
