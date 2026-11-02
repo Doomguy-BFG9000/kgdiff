@@ -72,19 +72,25 @@ threshold.
 
 ## Detail panel
 
-For the selected hunk (or node):
+For the selected hunk (or node), what changed comes first and the unchanged rest last:
 
 - Title, family pill, prev / next arrows, reviewed toggle.
-- Identity: id (before → after for rekeys, with match confidence), types, status.
-- Name: old → new with character-level diff highlighting.
-- Attributes table: key · before · after; changed cells highlighted (word-level diff for text,
-  values truncated with expand).
-- Aliases / types: chips with `+` / `−`.
-- Hierarchy: parents before → after.
-- Relations: changed edges as sentences — `→ holds → 上市公司 (was 企业)`, each clickable.
+- Changes: one row per changed facet, before → after.
+  - Name and id: character-level diff highlighting; a rekey adds its match confidence.
+  - Attributes: one row per key. Text gets a word-level diff; values over 60 characters (both
+    sides together) get a line per side, truncated with expand. `+` / `−` mark added and
+    removed keys.
+  - Synonyms, types, parents and list values: a lone removal and addition read as one edit
+    (`老赖 → 失信人`). Otherwise removals and additions sharing at least half their characters
+    pair up, closest first; the rest are chips with `+` / `−`.
+  - Deprecation, and replacement links named by the nodes they point at.
 - Merge / split composition: sources → target with confidence and "via hint / heuristic".
+- Relations: changed edges as sentences — `→ holds → 上市公司 (was 企业)`, each clickable.
 - Match evidence (rekeys and suggestions): bars for label / neighbours / types / attrs.
-- Unchanged node: its attributes and relations, read-only.
+- Overview: id, types, synonyms and status that did not change. The unchanged attributes are
+  folded behind a toggle.
+- Added and removed nodes, and an unchanged node clicked on its own, lead with the overview and
+  all their attributes, then their relations.
 
 ## Keyboard map
 

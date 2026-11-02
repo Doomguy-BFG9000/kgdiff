@@ -5,6 +5,7 @@ import {
   diffChars,
   diffSequences,
   diffWords,
+  pairItems,
   sideOf,
   tokenize,
 } from '../src/text-diff.js';
@@ -173,5 +174,39 @@ describe('changes larger than a call’s argument limit', () => {
       { op: 'delete', text: a },
       { op: 'insert', text: b },
     ]);
+  });
+});
+
+describe('pairItems', () => {
+  it('pairs a lone removal with a lone addition, however different', () => {
+    expect(pairItems(['老赖'], ['失信人'])).toEqual({
+      pairs: [['老赖', '失信人']],
+      removed: [],
+      added: [],
+    });
+  });
+
+  it('pairs items sharing at least half their characters, closest first', () => {
+    expect(pairItems(['Feline', 'Cat'], ['Kitty', 'Cats', 'Felines'])).toEqual({
+      pairs: [
+        ['Feline', 'Felines'],
+        ['Cat', 'Cats'],
+      ],
+      removed: [],
+      added: ['Kitty'],
+    });
+    expect(pairItems(['老赖', '失信者'], ['失信人', '黑名单'])).toEqual({
+      pairs: [['失信者', '失信人']],
+      removed: ['老赖'],
+      added: ['黑名单'],
+    });
+  });
+
+  it('leaves one-sided changes and very large ones unpaired', () => {
+    expect(pairItems([], ['a'])).toEqual({ pairs: [], removed: [], added: ['a'] });
+    expect(pairItems(['a', 'b'], [])).toEqual({ pairs: [], removed: ['a', 'b'], added: [] });
+    const many = Array.from({ length: 21 }, (_, i) => `item ${i}`);
+    const edited = many.map((x) => `${x}!`);
+    expect(pairItems(many, edited).pairs).toEqual([]);
   });
 });

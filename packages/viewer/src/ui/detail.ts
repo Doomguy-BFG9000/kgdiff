@@ -1,12 +1,13 @@
 /**
  * Detail panel (docs/interaction.md §Detail panel): for the selected hunk (or node) — title,
- * family pill, prev / next, reviewed toggle; identity, name (character diff), attributes
- * (word diff), synonyms / types chips, hierarchy, relations as sentences, merge / split
- * composition and match evidence. Unchanged nodes show their attributes and relations.
+ * family pill, prev / next, reviewed toggle; then what changed, first: one row per changed
+ * facet, before → after (character diff for names, word diff for text, set changes paired into
+ * edits); merge / split composition, relations as sentences and match evidence; the unchanged
+ * rest last, its attributes folded. Added, removed and inspected nodes show their overview,
+ * attributes and relations.
  */
 import type {
   AttrChange,
-  AttrValue,
   DiffResult,
   EdgeFacet,
   MatchEvidence,
@@ -19,12 +20,14 @@ import type { Family, Scene, SceneHunk } from '@kgdiff/scene';
 import type { Topic } from '../controller.js';
 import { attr, h, icon, iconButton, replaceKeepingFocus } from '../dom.js';
 import { formatPercent, type Translator } from '../i18n.js';
-import { type DiffSegment, diffChars, diffWords } from '../text-diff.js';
+import { type DiffSegment, diffChars, diffWords, pairItems } from '../text-diff.js';
 import { formatValue, listItems, sceneHunkGlyph, type UiContext } from './context.js';
 
 const MAX_NODES = 12;
 const MAX_RELATIONS = 12;
 const CLAMP_CHARS = 180;
+/** Up to this many characters (both sides together) a value change reads `before → after`. */
+const INLINE_CHARS = 60;
 
 type Child = Node | string | null | false | undefined;
 
@@ -77,6 +80,63 @@ function chips(
     removed.map((x) => chip(x, 'del')),
     added.map((x) => chip(x, 'add')),
     same.map((x) => chip(x, 'same')),
+  );
+}
+
+/** `before → after` on one line, wrapping when long. */
+function pair(before: Child[], after: Child[], tr: Translator): HTMLElement {
+  return h(
+    'div',
+    { class: 'pair' },
+    h('span', { class: 'b' }, before),
+    h('span', { class: 'arr', 'aria-hidden': 'true', text: '→' }),
+    h('span', { class: 'sr-only', text: tr.t('detail.changedTo') }),
+    h('span', null, after),
+  );
+}
+
+/** `before → after` with the changed characters marked. */
+function textPair(before: string, after: string, tr: Translator): HTMLElement {
+  const segs = diffChars(before, after);
+  return pair(marked(segs, 'before'), marked(segs, 'after'), tr);
+}
+
+/** One side of a change on a line of its own: `− before` or `+ after`. */
+function signed(side: 'old' | 'new', content: Child): HTMLElement {
+  return h(
+    'div',
+    { class: `line ${side}` },
+    h('span', { class: 'sign', 'aria-hidden': 'true', text: side === 'old' ? '−' : '+' }),
+    h('div', null, content),
+  );
+}
+
+/** A set change (synonyms, types, parents, list values): edits as pairs, the rest as chips. */
+function items(
+  added: readonly string[],
+  removed: readonly string[],
+  tr: Translator,
+  same: readonly string[] = [],
+): Child[] {
+  const p = pairItems(removed, added);
+  const out: Child[] = p.pairs.map(([b, a]) => textPair(b, a, tr));
+  if (p.added.length > 0 || p.removed.length > 0 || same.length > 0) {
+    out.push(chips(p.added, p.removed, same));
+  }
+  return out;
+}
+
+/** Key · value rows. */
+function table(rows: readonly (readonly [string, Child | Child[]])[], cls = 'attrs'): HTMLElement {
+  return h(
+    'table',
+    { class: cls },
+    h('colgroup', null, h('col', { class: 'k' }), h('col')),
+    h(
+      'tbody',
+      null,
+      rows.map(([k, v]) => h('tr', null, h('td', { class: 'k', text: k }), h('td', null, v))),
+    ),
   );
 }
 
@@ -228,11 +288,15 @@ export class Detail {
     ];
     const nodeIds = core?.nodes ?? [];
     if (nodeIds.length > 1) parts.push(this.#nodeList(nodeIds, focusId, scene, diff, tr));
-    if (focus) parts.push(...this.#nodeSections(focus, diff, tr, nodeIds.length > 1));
+    const [lead, rest] = focus
+      ? this.#nodeSections(focus, diff, tr, nodeIds.length > 1, true)
+      : [[], []];
     const edges = (core?.edges ?? [])
       .map((id) => diff.index.edge(id))
       .filter((e): e is UnionEdge => e !== undefined);
+    parts.push(...lead);
     if (edges.length > 0) parts.push(this.#relations(edges, focusId, scene, diff, tr, true));
+    parts.push(...rest);
     replaceKeepingFocus(this.#ctx.root, this.#body, this.#body, ...parts);
   }
 
@@ -245,6 +309,7 @@ export class Detail {
       return;
     }
     const edges = diff.index.edgesOf(node.id);
+    const [lead, rest] = this.#nodeSections(node, diff, tr, false, false);
     replaceKeepingFocus(
       this.#ctx.root,
       this.#body,
@@ -261,8 +326,9 @@ export class Detail {
         this.#nav(tr, undefined),
       ),
       h('h2', { class: 'd-title', text: node.label }),
-      ...this.#nodeSections(node, diff, tr, false),
+      ...lead,
       edges.length > 0 ? this.#relations(edges, node.id, scene, diff, tr, false) : null,
+      ...rest,
     );
   }
 
@@ -329,265 +395,207 @@ export class Detail {
     );
   }
 
+  /**
+   * The node's sections, split around the relations. A modified node (or an unchanged one a hunk
+   * points at) leads with what changed and ends with its unchanged rest; added, removed and
+   * inspected nodes lead with what they are.
+   */
   #nodeSections(
     node: UnionNode,
     diff: DiffResult,
     tr: Translator,
     showName: boolean,
-  ): HTMLElement[] {
-    const out: HTMLElement[] = [];
-    const facets = node.facets;
-    const find = <K extends NodeFacet['kind']>(kind: K) =>
-      facets.find((f): f is Extract<NodeFacet, { kind: K }> => f.kind === kind);
+    inHunk: boolean,
+  ): [HTMLElement[], HTMLElement[]] {
     const label = (id: UnionId): string => diff.index.node(id)?.label ?? id;
-
-    // Identity
-    const rekey = find('rekey');
-    const types = find('types');
-    const deprecate = find('deprecate');
-    const current = node.after ?? node.before;
-    const idRows: [string, Child | Child[]][] = [];
-    if (showName) idRows.push([tr.t('detail.name'), h('span', { text: node.label })]);
-    idRows.push([
-      tr.t('detail.id'),
-      rekey
-        ? [
-            h(
-              'span',
-              { class: 'id-text' },
-              h('del', { class: 'hl', text: rekey.from }),
-              ' → ',
-              h('ins', { class: 'hl', text: rekey.to }),
-            ),
-            rekey.score < 1
-              ? h('span', {
-                  class: 'note-line',
-                  text: ` · ${tr.t('detail.matchScore', { p: formatPercent(rekey.score) })}`,
-                })
-              : null,
-          ]
-        : h('span', { class: 'id-text', text: node.afterId ?? node.beforeId ?? node.id }),
-    ]);
-    if (types) idRows.push([tr.t('detail.types'), chips(types.added, types.removed)]);
-    else if (node.types.length > 0) idRows.push([tr.t('detail.types'), chips([], [], node.types)]);
-    const statusBits: Child[] = [tr.t(`status.${node.status}`)];
-    if (current?.deprecated && !deprecate) statusBits.push(` · ${tr.t('detail.deprecated')}`);
-    if (deprecate) {
-      statusBits.push(
-        ' · ',
-        h('strong', {
-          text: tr.t(deprecate.deprecated ? 'detail.deprecated' : 'detail.undeprecated'),
-        }),
-      );
-    }
-    if (current?.implicit) statusBits.push(` · ${tr.t('detail.implicit')}`);
-    idRows.push([tr.t('detail.status'), statusBits]);
-    out.push(section(tr.t('detail.identity'), null, kv(idRows)));
-
-    // Name
-    const rename = find('rename');
-    if (rename) {
-      const segs = diffChars(rename.from, rename.to);
-      out.push(
-        section(
-          tr.t('detail.name'),
-          null,
-          h(
-            'div',
-            { class: 'namediff' },
-            h(
-              'div',
-              { class: 'line old', 'aria-label': `${tr.t('detail.before')}: ${rename.from}` },
-              h('span', { class: 'sign', 'aria-hidden': 'true', text: '−' }),
-              h('span', null, ...marked(segs, 'before')),
-            ),
-            h(
-              'div',
-              { class: 'line new', 'aria-label': `${tr.t('detail.after')}: ${rename.to}` },
-              h('span', { class: 'sign', 'aria-hidden': 'true', text: '+' }),
-              h('span', null, ...marked(segs, 'after')),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Attributes
-    const attrs = find('attrs');
-    const changes = attrs?.changes ?? [];
-    const all = current?.attrs ?? {};
-    const changedKeys = new Set(changes.map((x) => x.key));
-    const unchanged = Object.keys(all)
-      .filter((k) => !changedKeys.has(k))
-      .sort();
-    if (changes.length > 0 || unchanged.length > 0) {
-      out.push(this.#attributes(node.id, changes, unchanged, all, tr));
-    }
-
-    // Synonyms
-    const aliases = find('aliases');
-    if (aliases)
-      out.push(section(tr.t('detail.aliases'), null, chips(aliases.added, aliases.removed)));
-    else if (current && current.aliases.length > 0 && node.status === 'unchanged') {
-      out.push(section(tr.t('detail.aliases'), null, chips([], [], current.aliases)));
-    }
-
-    // Hierarchy
-    const move = find('move');
-    if (move) {
-      const dl = h('dl', { class: 'hier' });
-      dl.append(
-        h('dt', { text: tr.t('detail.before') }),
-        h(
-          'dd',
-          null,
-          move.from.length
-            ? move.from.map((id) => chip(label(id), 'del'))
-            : chip(tr.t('detail.none'), 'same'),
-        ),
-        h('dt', { text: tr.t('detail.after') }),
-        h(
-          'dd',
-          null,
-          move.to.length
-            ? move.to.map((id) => chip(label(id), 'add'))
-            : chip(tr.t('detail.none'), 'same'),
-        ),
-      );
-      out.push(section(tr.t('detail.hierarchy'), null, dl));
-    }
-
-    // Replacement links
-    const replacement = find('replacement');
-    if (replacement) {
-      const rows: [string, Child][] = [];
-      const { replacedBy, replaces } = replacement;
-      if (replacedBy.added.length || replacedBy.removed.length) {
-        rows.push([tr.t('detail.replacedBy'), chips(replacedBy.added, replacedBy.removed)]);
-      }
-      if (replaces.added.length || replaces.removed.length) {
-        rows.push([tr.t('detail.replaces'), chips(replaces.added, replaces.removed)]);
-      }
-      if (rows.length) out.push(section(tr.t('detail.deprecated'), null, kv(rows)));
-    }
-
-    // Composition
+    const fold = node.status === 'modified' || (inHunk && node.status === 'unchanged');
+    const changes = this.#changes(node, diff, tr, label);
     const comp = this.#composition(node, diff, tr, label);
-    if (comp) out.push(comp);
-
-    // Evidence
     const evidence = this.#evidence(node, diff, tr, label);
-    if (evidence) out.push(evidence);
-    return out;
+    const overview = this.#overview(node, tr, showName, fold);
+    const present = (xs: readonly (HTMLElement | null)[]): HTMLElement[] =>
+      xs.filter((x): x is HTMLElement => x !== null);
+    return fold
+      ? [present([comp, changes]), present([evidence, ...overview])]
+      : [present([...overview, changes, comp, evidence]), []];
   }
 
-  #attributes(
-    nodeId: string,
-    changes: readonly AttrChange[],
-    unchanged: readonly string[],
-    all: Readonly<Record<string, AttrValue>>,
+  /** What changed on the node: one row per facet (per key for attributes), in facet order. */
+  #changes(
+    node: UnionNode,
+    diff: DiffResult,
     tr: Translator,
-  ): HTMLElement {
-    const table = h(
-      'table',
-      { class: 'attrs' },
-      h('colgroup', null, h('col', { class: 'k' }), h('col'), h('col')),
-    );
-    if (changes.length > 0) {
-      table.appendChild(
-        h(
-          'thead',
-          null,
-          h(
-            'tr',
-            null,
-            h('th', { scope: 'col', text: tr.t('detail.key') }),
-            h('th', { scope: 'col', text: tr.t('detail.before') }),
-            h('th', { scope: 'col', text: tr.t('detail.after') }),
-          ),
-        ),
-      );
-    }
-    const body = h('tbody');
-    for (const ch of changes) body.appendChild(this.#changeRow(nodeId, ch, tr));
-    if (this.#showUnchangedAttrs || changes.length === 0) {
-      for (const k of unchanged) {
-        body.appendChild(
-          h(
-            'tr',
-            { class: 'unchanged' },
-            h('td', { class: 'k', text: k }),
-            h('td', { colspan: '2' }, this.#value(`${nodeId}|u|${k}`, formatValue(all[k]), tr)),
-          ),
-        );
+    label: (id: UnionId) => string,
+  ): HTMLElement | null {
+    // Replacement links hold ids as written: name the node they point at when there is one.
+    const named = (ids: readonly string[]): string[] =>
+      ids.map((id) => (diff.index.nodeByAfter(id) ?? diff.index.nodeByBefore(id))?.label ?? id);
+    const rows: [string, Child | Child[]][] = [];
+    for (const f of node.facets) {
+      switch (f.kind) {
+        case 'rekey':
+          rows.push([
+            tr.t('detail.id'),
+            [
+              h('div', { class: 'id-text' }, textPair(f.from, f.to, tr)),
+              f.score < 1
+                ? h('div', {
+                    class: 'note-line',
+                    text: tr.t('detail.matchScore', { p: formatPercent(f.score) }),
+                  })
+                : null,
+            ],
+          ]);
+          break;
+        case 'rename':
+          rows.push([tr.t('detail.name'), textPair(f.from, f.to, tr)]);
+          break;
+        case 'types':
+        case 'aliases':
+          rows.push([tr.t(`detail.${f.kind}`), items(f.added, f.removed, tr)]);
+          break;
+        case 'attrs':
+          for (const ch of f.changes) rows.push([ch.key, this.#attrChange(node.id, ch, tr)]);
+          break;
+        case 'move':
+          rows.push([tr.t('detail.hierarchy'), items(f.to.map(label), f.from.map(label), tr)]);
+          break;
+        case 'deprecate':
+          rows.push([
+            tr.t('detail.status'),
+            h('strong', {
+              text: tr.t(f.deprecated ? 'detail.deprecated' : 'detail.undeprecated'),
+            }),
+          ]);
+          break;
+        case 'replacement':
+          for (const [key, links] of [
+            ['detail.replacedBy', f.replacedBy],
+            ['detail.replaces', f.replaces],
+          ] as const) {
+            if (links.added.length > 0 || links.removed.length > 0) {
+              rows.push([tr.t(key), items(named(links.added), named(links.removed), tr)]);
+            }
+          }
+          break;
+        default:
+          // Merges and splits: the composition section.
+          break;
       }
     }
-    table.appendChild(body);
-    const toggle =
-      changes.length > 0 && unchanged.length > 0
-        ? h(
-            'button',
-            {
-              type: 'button',
-              class: 'disclosure',
-              'data-focus-key': 'attrs-more',
-              'aria-expanded': String(this.#showUnchangedAttrs),
-              onclick: () => {
-                this.#showUnchangedAttrs = !this.#showUnchangedAttrs;
-                this.#render();
-              },
-            },
-            tr.plural('detail.unchangedAttrs', unchanged.length),
-            icon('chevron-down'),
-          )
-        : null;
-    return section(tr.t('detail.attributes'), null, table, toggle);
+    return rows.length > 0
+      ? section(tr.t('detail.changes'), rows.length, table(rows, 'attrs changes'))
+      : null;
   }
 
-  #changeRow(nodeId: string, ch: AttrChange, tr: Translator): HTMLElement {
-    const empty = (): HTMLElement => h('span', { class: 'empty', text: tr.t('detail.emptyValue') });
+  /** One attribute's change: lists as set changes, short values inline, long ones a line a side. */
+  #attrChange(nodeId: string, ch: AttrChange, tr: Translator): Child[] {
     const beforeList = listItems(ch.before);
     const afterList = listItems(ch.after);
-    let before: Child | Child[];
-    let after: Child | Child[];
     if (beforeList && afterList) {
-      const a = new Set(afterList);
       const b = new Set(beforeList);
-      before = h(
-        'div',
-        { class: 'chips' },
-        beforeList.map((x) => chip(x, a.has(x) ? 'same' : 'del')),
+      const a = new Set(afterList);
+      return items(
+        afterList.filter((x) => !b.has(x)),
+        beforeList.filter((x) => !a.has(x)),
+        tr,
+        afterList.filter((x) => b.has(x)),
       );
-      after = h(
-        'div',
-        { class: 'chips' },
-        afterList.map((x) => chip(x, b.has(x) ? 'same' : 'add')),
-      );
-    } else if (typeof ch.before === 'string' && typeof ch.after === 'string') {
-      const segs = diffWords(ch.before, ch.after);
-      before = this.#value(`${nodeId}|b|${ch.key}`, ch.before, tr, marked(segs, 'before'));
-      after = this.#value(`${nodeId}|a|${ch.key}`, ch.after, tr, marked(segs, 'after'));
-    } else {
-      before =
-        ch.before === undefined
-          ? empty()
-          : this.#value(`${nodeId}|b|${ch.key}`, formatValue(ch.before), tr, [
-              h('del', { class: 'hl', text: formatValue(ch.before) }),
-            ]);
-      after =
-        ch.after === undefined
-          ? empty()
-          : this.#value(`${nodeId}|a|${ch.key}`, formatValue(ch.after), tr, [
-              h('ins', { class: 'hl', text: formatValue(ch.after) }),
-            ]);
     }
-    return h(
-      'tr',
-      { class: 'changed' },
-      h('td', { class: 'k', text: ch.key }),
-      h('td', { class: 'b' }, ...[before].flat()),
-      h('td', { class: 'a' }, ...[after].flat()),
-    );
+    const key = `${nodeId}|${ch.key}`;
+    const before = formatValue(ch.before);
+    const after = formatValue(ch.after);
+    if (ch.before === undefined) {
+      const ins = h('ins', { class: 'hl', text: after });
+      return [signed('new', this.#value(`${key}|a`, after, tr, [ins]))];
+    }
+    if (ch.after === undefined) {
+      const del = h('del', { class: 'hl', text: before });
+      return [signed('old', this.#value(`${key}|b`, before, tr, [del]))];
+    }
+    const segs: readonly DiffSegment[] =
+      typeof ch.before === 'string' && typeof ch.after === 'string'
+        ? diffWords(before, after)
+        : [
+            { op: 'delete', text: before },
+            { op: 'insert', text: after },
+          ];
+    const b = marked(segs, 'before');
+    const a = marked(segs, 'after');
+    return before.length + after.length <= INLINE_CHARS && !/\n/.test(before + after)
+      ? [pair(b, a, tr)]
+      : [
+          signed('old', this.#value(`${key}|b`, before, tr, b)),
+          signed('new', this.#value(`${key}|a`, after, tr, a)),
+        ];
+  }
+
+  /**
+   * Identity and attributes, without what the changes section shows. Folded, the attributes
+   * (all unchanged) hide behind a toggle; otherwise they get a section of their own.
+   */
+  #overview(node: UnionNode, tr: Translator, showName: boolean, fold: boolean): HTMLElement[] {
+    const has = (kind: NodeFacet['kind']): boolean => node.facets.some((f) => f.kind === kind);
+    const current = node.after ?? node.before;
+    const rows: [string, Child | Child[]][] = [];
+    if (showName && !has('rename')) rows.push([tr.t('detail.name'), node.label]);
+    if (!has('rekey')) {
+      rows.push([
+        tr.t('detail.id'),
+        h('span', { class: 'id-text', text: node.afterId ?? node.beforeId ?? node.id }),
+      ]);
+    }
+    if (!has('types') && node.types.length > 0) {
+      rows.push([tr.t('detail.types'), chips([], [], node.types)]);
+    }
+    if (!has('aliases') && current && current.aliases.length > 0) {
+      rows.push([tr.t('detail.aliases'), chips([], [], current.aliases)]);
+    }
+    const status: Child[] = [tr.t(`status.${node.status}`)];
+    if (current?.deprecated && !has('deprecate')) status.push(` · ${tr.t('detail.deprecated')}`);
+    if (current?.implicit) status.push(` · ${tr.t('detail.implicit')}`);
+    rows.push([tr.t('detail.status'), status]);
+
+    const all = current?.attrs ?? {};
+    const changed = new Set<string>();
+    for (const f of node.facets) {
+      if (f.kind === 'attrs') for (const c of f.changes) changed.add(c.key);
+    }
+    const keys = Object.keys(all)
+      .filter((k) => !changed.has(k))
+      .sort();
+    const attrs = (): HTMLElement =>
+      table(keys.map((k) => [k, this.#value(`${node.id}|u|${k}`, formatValue(all[k]), tr)]));
+    if (!fold) {
+      const out = [section(tr.t('detail.identity'), null, kv(rows))];
+      if (keys.length > 0) out.push(section(tr.t('detail.attributes'), null, attrs()));
+      return out;
+    }
+    return [
+      section(
+        tr.t('detail.identity'),
+        null,
+        kv(rows),
+        keys.length > 0
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'disclosure',
+                'data-focus-key': 'attrs-more',
+                'aria-expanded': String(this.#showUnchangedAttrs),
+                onclick: () => {
+                  this.#showUnchangedAttrs = !this.#showUnchangedAttrs;
+                  this.#render();
+                },
+              },
+              tr.plural('detail.unchangedAttrs', keys.length),
+              icon('chevron-down'),
+            )
+          : null,
+        keys.length > 0 && this.#showUnchangedAttrs ? attrs() : null,
+      ),
+    ];
   }
 
   /** A value cell, clamped to 4 lines with “Show more” when long. */

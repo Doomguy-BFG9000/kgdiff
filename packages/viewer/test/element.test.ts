@@ -208,6 +208,67 @@ describe('selection and events', () => {
     expect(table.querySelector('ins.hl')?.textContent?.trim()).toBe('loud');
   });
 
+  const sectionTitles = (el: KgdiffViewer): (string | null | undefined)[] =>
+    [...$(el, '.detail').querySelectorAll('.section > h3')].map((h3) => h3.firstChild?.textContent);
+
+  it('leads with the changes, reads set changes as edits and folds the unchanged rest', async () => {
+    const node = (aliases: string[], type: string) => ({
+      id: 'X',
+      label: 'Debtor',
+      aliases,
+      type,
+      attrs: { since: '2020', status: 'open' },
+    });
+    const el = mount();
+    await el.load({
+      before: { nodes: [node(['Deadbeat'], 'List')], edges: [] },
+      after: { nodes: [node(['Defaulter'], 'Measure')], edges: [] },
+    });
+    el.selectHunk('modify:X');
+    await tick();
+    expect(sectionTitles(el)).toEqual(['Changes', 'Overview']);
+    const rows = [...$(el, '.detail .changes').querySelectorAll('tr')].map((tr) => {
+      const p = tr.querySelector('.pair');
+      return [tr.firstChild?.textContent, p?.firstChild?.textContent, p?.lastChild?.textContent];
+    });
+    expect(rows).toEqual([
+      ['Types', 'List', 'Measure'],
+      ['Synonyms', 'Deadbeat', 'Defaulter'],
+    ]);
+    const toggle = $(el, '.detail [data-focus-key="attrs-more"]');
+    expect(toggle.textContent).toContain('2 unchanged attributes');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect($(el, '.detail').querySelectorAll('table')).toHaveLength(1);
+    toggle.click();
+    await tick();
+    const tables = $(el, '.detail').querySelectorAll('table');
+    expect(tables).toHaveLength(2);
+    expect(tables[1]?.textContent).toBe('since2020statusopen');
+  });
+
+  it('shows a relation change before the unchanged node it starts from', async () => {
+    const nodes = [
+      { id: 'A', label: 'Holder', attrs: { note: 'x' } },
+      { id: 'B', label: 'Company' },
+      { id: 'C', label: 'Listed company' },
+    ];
+    const el = mount();
+    await el.load({
+      before: { nodes, edges: [{ source: 'A', target: 'B', predicate: 'holds' }] },
+      after: { nodes, edges: [{ source: 'A', target: 'C', predicate: 'holds' }] },
+    });
+    el.next();
+    await tick();
+    expect(sectionTitles(el)).toEqual(['Relations', 'Overview']);
+    expect($(el, '.detail [data-focus-key="attrs-more"]').textContent).toContain(
+      '1 unchanged attribute',
+    );
+    // Inspected on its own, the node shows what it is first, attributes open.
+    backend.last().click({ type: 'node', index: el.controller.scene?.nodeIndex.get('A') ?? -1 });
+    await tick();
+    expect(sectionTitles(el)).toEqual(['Overview', 'Attributes', 'Relations']);
+  });
+
   it('marks hunks reviewed, persists it and fires kgdiff-review', async () => {
     const el = await loaded();
     const events: unknown[] = [];

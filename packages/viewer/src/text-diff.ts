@@ -1,6 +1,6 @@
 /**
- * Myers O((N+M)·D) sequence diff for the detail panel: character-level name diffs and
- * word-level attribute diffs. Small, deterministic, no dependencies.
+ * Myers O((N+M)·D) sequence diff for the detail panel: character-level name diffs, word-level
+ * attribute diffs and set changes read as edits. Small, deterministic, no dependencies.
  */
 
 export type DiffOp = 'equal' | 'insert' | 'delete';
@@ -205,4 +205,59 @@ export function sideOf(segs: readonly DiffSegment[], side: 'before' | 'after'): 
   let s = '';
   for (const seg of segs) if (seg.op !== skip) s += seg.text;
   return s;
+}
+
+/** A set change read as edits: removed → added pairs, and the items left over. */
+export interface PairedItems {
+  readonly pairs: readonly (readonly [removed: string, added: string])[];
+  readonly removed: readonly string[];
+  readonly added: readonly string[];
+}
+
+/** Below this share of common characters a removal and an addition stay apart. */
+const PAIR_MIN = 0.5;
+/** Above this many removal × addition candidates, only a lone pair is paired. */
+const PAIR_MAX_CANDIDATES = 400;
+
+/** 2 · common code points / total code points. */
+function closeness(a: readonly string[], b: readonly string[]): number {
+  let common = 0;
+  for (const s of diffSequences(a, b)) if (s.op === 'equal') common += s.items.length;
+  return (2 * common) / (a.length + b.length);
+}
+
+/**
+ * Read a set change (synonyms, types, parents, list values) as edits: a lone removal and a lone
+ * addition pair up (`老赖 → 失信人`); otherwise removals and additions sharing at least half
+ * their characters pair up, closest first. Pairs keep the order of `removed`.
+ */
+export function pairItems(removed: readonly string[], added: readonly string[]): PairedItems {
+  const found: [score: number, i: number, j: number][] = [];
+  if (removed.length === 1 && added.length === 1) found.push([1, 0, 0]);
+  else if (removed.length * added.length <= PAIR_MAX_CANDIDATES) {
+    const as = added.map((x) => Array.from(x));
+    removed.forEach((r, i) => {
+      const rs = Array.from(r);
+      as.forEach((a, j) => {
+        const score = closeness(rs, a);
+        if (score >= PAIR_MIN) found.push([score, i, j]);
+      });
+    });
+    found.sort((x, y) => y[0] - x[0] || x[1] - y[1] || x[2] - y[2]);
+  }
+  const usedR = new Set<number>();
+  const usedA = new Set<number>();
+  const pairs: [number, number][] = [];
+  for (const [, i, j] of found) {
+    if (usedR.has(i) || usedA.has(j)) continue;
+    usedR.add(i);
+    usedA.add(j);
+    pairs.push([i, j]);
+  }
+  pairs.sort((x, y) => x[0] - y[0]);
+  return {
+    pairs: pairs.map(([i, j]) => [removed[i] as string, added[j] as string] as const),
+    removed: removed.filter((_, i) => !usedR.has(i)),
+    added: added.filter((_, j) => !usedA.has(j)),
+  };
 }
