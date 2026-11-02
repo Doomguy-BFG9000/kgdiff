@@ -551,18 +551,14 @@
                 <div class="code-head"><span>.github/workflows/ontology.yml</span>
                   <button class="copy-btn" type="button" data-copy-from="ci-yaml" aria-label="Copy" data-i18n-attr="aria-label=copy.code"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy" /></svg><svg class="i i-check" aria-hidden="true"><use href="#i-check" /></svg></button>
                 </div>
-                <pre><code id="ci-yaml" data-highlight="yaml">- uses: actions/checkout@v4
+                <pre><code id="ci-yaml" data-highlight="yaml">- uses: actions/checkout@v7
+# Explain what changed in a pull request comment and the
+# job summary, attach the interactive report…
+- uses: iiwish/kgdiff@v0
   with:
-    fetch-depth: 0
-- run: git show origin/main:ontology.ttl &gt; main.ttl
-# Explain what changed in the job summary…
-- run: npx @kgdiff/cli main.ttl ontology.ttl --markdown &gt;&gt; "$GITHUB_STEP_SUMMARY"
-# …and attach the interactive report.
-- run: npx @kgdiff/cli main.ttl ontology.ttl -o kgdiff-report.html
-- uses: actions/upload-artifact@v4
-  with:
-    name: kgdiff-report
-    path: kgdiff-report.html</code></pre>
+    files: ontology.ttl
+    # …and fail the job when the graph changed.
+    fail-on-changes: true</code></pre>
               </div>
             </div>
             <figure class="md-card" aria-labelledby="md-caption">

@@ -69,6 +69,27 @@ Requires Node.js ≥ 22.
 
 See [docs/cli.md](docs/cli.md) and [packages/cli/README.md](packages/cli/README.md).
 
+### On pull requests (GitHub Actions)
+
+```yaml
+jobs:
+  kgdiff:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the comment
+    steps:
+      - uses: actions/checkout@v7
+      - uses: iiwish/kgdiff@v0
+        with:
+          files: ontology/*.ttl
+```
+
+The action compares each file with its version on the base branch, writes the summary into the
+job summary and a pull request comment that later pushes update in place, and uploads the
+interactive report as an artifact. Pull requests from forks get the job summary and the report.
+Options, several graphs, failing the check: [docs/guide/ci.md](docs/guide/ci.md).
+
 ### In a web page
 
 ```html
@@ -129,6 +150,7 @@ The same graph in different serializations diffs as identical. Mapping conventio
 | [`@kgdiff/viewer`](packages/viewer)     | The `<kgdiff-viewer>` web component.                                                     |
 | [`@kgdiff/g6`](packages/g6)             | Render kgdiff scenes inside AntV G6 v5 graphs.                                           |
 | [`@kgdiff/cli`](packages/cli)           | The command-line tool.                                                                   |
+| [`action.yml`](action.yml)              | The GitHub Action (`uses: iiwish/kgdiff@v0`): graph diffs on pull requests.              |
 | [`apps/site`](apps/site)                | Landing page and playground.                                                             |
 
 ## Correctness and performance

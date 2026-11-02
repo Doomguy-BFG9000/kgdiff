@@ -5,9 +5,8 @@ request, the interactive report one click away and, if you want, a failing check
 
 ## GitHub Actions
 
-This workflow runs on pull requests that edit `ontology/onto.ttl`. It compares the file with its
-version on the base branch, appends the Markdown summary to the job summary and uploads the HTML
-report as an artifact:
+The kgdiff action compares graph files in a pull request with their versions on the base
+branch:
 
 ```yaml
 # .github/workflows/graph-diff.yml
@@ -15,104 +14,141 @@ name: Graph diff
 
 on:
   pull_request:
-    paths: [ontology/onto.ttl]
+    paths: [ontology/**]
 
 permissions:
   contents: read
+  pull-requests: write # the comment
 
 jobs:
   kgdiff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: iiwish/kgdiff@v0
         with:
-          fetch-depth: 0 # the base branch too
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Diff against the base branch
-        env:
-          BASE: ${{ github.base_ref }}
-        run: |
-          git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl"
-          npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
-            --title "onto.ttl: $BASE → pull request" \
-            -o kgdiff-report.html --reproducible \
-            --markdown >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kgdiff-report
-          path: kgdiff-report.html
+          files: ontology/onto.ttl
 ```
 
-- `fetch-depth: 0` fetches the base branch so that `git show` can read the file as it was. In a
-  large repository, fetch just that branch instead: `git fetch --depth=1 origin "$BASE"`, then
-  `git show "FETCH_HEAD:ontology/onto.ttl"`.
-- The branch name reaches the script through `env`, not by expanding
-  <code v-pre>${{ github.base_ref }}</code> inside `run`, so a crafted branch name cannot inject
-  shell code.
-- `npx --yes @kgdiff/cli@0.1` runs the 0.1 release line without a prompt; pinning keeps a new release
-  from changing your CI output unannounced. Alternatively, add `@kgdiff/cli` to your devDependencies and
-  run `npx @kgdiff/cli`.
-- One run writes both outputs: the Markdown goes to standard output, appended to the job
-  summary, and `-o` writes the report. `--title` names both. `--reproducible` leaves the
-  timestamp out of the report, so identical inputs give identical files.
+On every run, the action:
 
-Reviewers read the change list in the run's summary and download `kgdiff-report` from the run's
-artifacts to explore it. The summary escapes every label and defuses GitHub's autolinking, so a
-label never mentions people, links issues or renders as HTML.
+- reads each file as it is on the base branch with Git and compares it with the file in the pull
+  request. It fetches the one commit it needs, so the checkout can stay shallow. A file the base
+  branch does not have yet is compared with an empty graph, and so is a file the pull request
+  deletes;
+- appends the Markdown summary to the job summary;
+- uploads the HTML report as an artifact: one report downloads as `kgdiff-report.html`, several
+  as a zip `kgdiff-report` with one report per file;
+- comments on the pull request once a graph has changed, and updates that comment in place on
+  every later push: a hidden marker in the comment finds it again. A pull request gets one kgdiff
+  comment, however often it is pushed to.
 
-### When the file is new
+The summary and the comment escape every label and defuse GitHub's autolinking, so a label never
+mentions people, links issues or renders as HTML.
 
-If the base branch does not have the file yet, `git show` fails. Compare with an empty graph
-instead:
+### Inputs and outputs
 
-```sh
-git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl" 2>/dev/null \
-  || : > "$RUNNER_TEMP/onto.ttl"
-npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl --allow-empty --markdown
-```
+| Input               | Default                                | What it does                                                                                                                                                                                                |
+| ------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`             | (required)                             | Graph files, one per line. A glob pattern (`ontology/*.ttl`; `**` crosses directories, as in `data/**/*.json`) matches files in the pull request and on the base branch, so deleted files are compared too. |
+| `base`              | the base branch                        | Branch, tag or commit to compare with. On `pull_request`, the default is the commit the pull request's merge commit was built on; on `push`, the commit before the push. Other events need it set.          |
+| `version`           | the action's release                   | The `@kgdiff/cli` version the action runs with `npx --yes @kgdiff/cli@<version>`: `0.2.0`, `0.2` or `latest`.                                                                                               |
+| `args`              |                                        | More kgdiff options, e.g. `--match similarity --hierarchy rdfs:subClassOf --lang zh,en --ignore-attr modified`. Split on whitespace; quotes group words; nothing is expanded.                               |
+| `comment`           | `true`                                 | Comment on the pull request. Needs `pull-requests: write`.                                                                                                                                                  |
+| `fail-on-changes`   | `false`                                | Fail when a graph changed (`--exit-code`), once the summary, the report and the comment are written.                                                                                                        |
+| `name`              | `kgdiff-report`                        | Name of the artifact. Runs of the action in one workflow that set different names keep separate artifacts and comments.                                                                                     |
+| `locale`            | `en`                                   | Language of the summary, the comment and the report: `en` or `zh-CN`.                                                                                                                                       |
+| `working-directory` | `.`                                    | The repository, when `actions/checkout` put it in a subdirectory (`path:`); `files` are relative to it.                                                                                                     |
+| `token`             | <code v-pre>${{ github.token }}</code> | Token for the comment.                                                                                                                                                                                      |
 
-`--allow-empty` reads an empty input as an empty graph instead of failing. For several files, run
-kgdiff once per file; each run appends its own section to the job summary.
+The action sets `--title`, `--locale`, `--markdown`, `-o`, `--reproducible`, `--allow-empty` and
+`--exit-code` itself. Its outputs: `changed` (`true` when at least one graph changed),
+`summary-file` (the Markdown summary, for another step to post elsewhere), `artifact-url` and
+`comment-url`.
 
-### Comment on the pull request
+### Pull requests from forks
 
-The job summary needs no extra permissions and works for pull requests from forks. To post the
-summary in the conversation instead, give the job `pull-requests: write` and use the GitHub CLI:
+A pull request from a fork runs with a read-only token. There the action skips the comment,
+writes the job summary, uploads the report and passes: reviewers read the change list in the
+run's summary and download the report from its artifacts. When a comment fails for another reason,
+such as a job without `pull-requests: write` or a Dependabot pull request, the action warns and
+goes on; the job summary has the same text.
+
+### Several graphs
+
+List several files, or glob patterns. Each file gets its own section in the summary and in the
+comment, and its own report; files that are byte for byte the same as on the base branch share
+one line.
 
 ```yaml
-permissions:
-  contents: read
-  pull-requests: write
-
-# …the checkout and setup-node steps as above, then:
-      - name: Diff against the base branch
-        env:
-          BASE: ${{ github.base_ref }}
-        run: |
-          git show "origin/$BASE:ontology/onto.ttl" > "$RUNNER_TEMP/onto.ttl"
-          npx --yes @kgdiff/cli@0.1 "$RUNNER_TEMP/onto.ttl" ontology/onto.ttl \
-            --markdown kgdiff.md -q
-      - name: Comment
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-        run: gh pr comment "$PR" --body-file kgdiff.md
+- uses: iiwish/kgdiff@v0
+  with:
+    files: |
+      ontology/*.ttl
+      data/lineage.json
+    args: --lang zh,en
 ```
 
-Each run adds a new comment. Pull requests from forks get a read-only token, so the comment step
-fails there; the job summary does not.
+To run the action more than once in a workflow (two jobs, or a matrix), give each run its own
+`name`: it names the artifact, which must be unique in a workflow run, and keeps the comments
+apart.
 
-## Fail the check when a graph changes
-
-`--exit-code` turns any difference into exit code 1, which fails the step and prints what
-changed. For example, to require that a generated graph is committed up to date:
-
-```sh
-./build-graph.sh > "$RUNNER_TEMP/graph.json"
-npx --yes @kgdiff/cli@0.1 graph.json "$RUNNER_TEMP/graph.json" --exit-code
+```yaml
+strategy:
+  matrix:
+    graph: [disease, anatomy]
+steps:
+  - uses: actions/checkout@v7
+  - uses: iiwish/kgdiff@v0
+    with:
+      files: ontology/${{ matrix.graph }}.obo
+      name: kgdiff-${{ matrix.graph }}
 ```
+
+Two runs on one pull request at the same time could both create the comment. A `concurrency`
+group keeps one run per pull request:
+
+```yaml
+concurrency:
+  group: graph-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+```
+
+### Fail the check when a graph changes
+
+`fail-on-changes: true` turns any difference into a failed check, after the summary, the report
+and the comment are in place. Comparing with `base: HEAD` checks a regenerated file against the
+committed one, for example to require that a generated graph is committed up to date:
+
+```yaml
+- run: ./build-graph.sh > graph.json
+- uses: iiwish/kgdiff@v0
+  with:
+    files: graph.json
+    base: HEAD # the committed version; the working tree is the regenerated one
+    fail-on-changes: true
+```
+
+A file kgdiff cannot read (a syntax error, a missing file) always fails the check; its error is in
+the summary.
+
+### Versions and security
+
+- `iiwish/kgdiff@v0` follows the 0.x releases. Each release moves the `v0` tag, and the action
+  runs the kgdiff version it was released with, so your CI output changes only when the tag
+  moves. Pin a release with its tag (`@v0.2.0`) or, safer, its commit (`@<sha> # v0.2.0`), which
+  Dependabot keeps up to date. `version` runs another kgdiff version with the same action.
+- The action never runs code from the pull request. It runs kgdiff from npm with `npx`, in a
+  temporary directory and without the token in its environment. Inputs reach its scripts through
+  `env`, never by expanding <code v-pre>${{ }}</code> in a shell, and branch and file names are
+  read from the event, not from the command line. kgdiff's output is fenced with
+  `::stop-commands::`, so nothing in a graph can pass for a workflow command.
+- It needs Node.js 22 or later, which GitHub-hosted runners have. On a runner with an older
+  Node.js, it sets up Node.js 24 with `actions/setup-node`, which also puts it on the `PATH` for
+  later steps.
+- When the checkout does not have the base commit, the action fetches that one commit from
+  `origin`. In a private repository this uses the credentials `actions/checkout` keeps by default;
+  with `persist-credentials: false`, check out with `fetch-depth: 0` instead.
 
 ## Other CI systems
 
@@ -127,18 +163,30 @@ graph-diff:
       changes: [ontology/onto.ttl]
   script:
     - git fetch --depth=1 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
-    - git show "FETCH_HEAD:ontology/onto.ttl" > base.ttl
-    - npx --yes @kgdiff/cli@0.1 base.ttl ontology/onto.ttl -o kgdiff-report.html --markdown kgdiff.md
+    # An empty base.ttl when the target branch does not have the file yet.
+    - git show "FETCH_HEAD:ontology/onto.ttl" > base.ttl || true
+    - npx --yes @kgdiff/cli@0.1 base.ttl ontology/onto.ttl --allow-empty
+      -o kgdiff-report.html --reproducible --markdown kgdiff.md
   artifacts:
     paths: [kgdiff-report.html, kgdiff.md]
     expose_as: kgdiff report
 ```
 
+- `npx --yes @kgdiff/cli@0.1` runs the 0.1 release line without a prompt; pinning keeps a new
+  release from changing your CI output unannounced. Alternatively, add `@kgdiff/cli` to your
+  devDependencies and run `npx @kgdiff/cli`.
+- `--allow-empty` reads an empty input as an empty graph instead of failing.
+- One run writes both outputs: `--markdown` the summary, `-o` the report. `--title` names both.
+  `--reproducible` leaves the timestamp out of the report, so identical inputs give identical
+  files.
+- `--exit-code` turns any difference into exit code 1, which fails the job and prints what
+  changed.
+
 ## Tips
 
-- Use the same options locally and in CI (`--match`, `--hierarchy`, `--lang`, `--ignore-attr`),
-  so reviewers see the diff you saw.
+- Use the same options locally and in CI (`--match`, `--hierarchy`, `--lang`, `--ignore-attr`,
+  through the action's `args`), so reviewers see the diff you saw.
 - For very large graphs, `--stat` and `--markdown` are the lightest outputs and the HTML report
   the heaviest. Inputs are limited to 1 GB after decompression; `KGDIFF_MAX_INPUT=4G` raises the
-  limit.
+  limit (on the action's step, as `env`).
 - [CLI reference](../cli.md) lists every option.

@@ -49,7 +49,7 @@ graph again and everything looks different. kgdiff compares the graphs:
 | You want to…                                  | Use                                                                     |
 | --------------------------------------------- | ----------------------------------------------------------------------- |
 | See what changed between two files            | the CLI: [Getting started](./getting-started.md)                        |
-| Explain every pull request that edits a graph | the CLI [in CI](./guide/ci.md)                                          |
+| Explain every pull request that edits a graph | the [GitHub Action](./guide/ci.md), or the CLI in any CI                |
 | Explore a diff visually                       | an HTML report (`-o report.html`) or the [playground](/playground.html) |
 | Show diffs in your own application            | the [`<kgdiff-viewer>` web component](./guide/viewer.md)                |
 | Diff graphs in code                           | the [libraries](./guide/library.md)                                     |

@@ -157,7 +157,7 @@ kgdiff committed.ttl regenerated.ttl --exit-code -q && echo "up to date"
 
 ## Next steps
 
-- [Review changes in CI](./guide/ci.md): a summary on every pull request, the report as an
-  artifact.
+- [Review changes in CI](./guide/ci.md): a summary and a comment on every pull request, the
+  report as an artifact.
 - [Use kgdiff with git](./guide/git.md): `git diff` and `git difftool` for graph files.
 - [CLI reference](./cli.md): every option.

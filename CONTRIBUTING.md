@@ -30,6 +30,8 @@ pnpm changeset                        # describe a change to a published package
 - `packages/viewer`: the `<kgdiff-viewer>` web component.
 - `packages/g6`: the AntV G6 adapter.
 - `packages/cli`: the `kgdiff` command.
+- `action.yml`, `action/`: the GitHub Action (`uses: iiwish/kgdiff@v0`); its tests run in
+  `pnpm test`, and `.github/workflows/action.yml` runs it on the example datasets.
 - `apps/site`: landing page and playground. `examples/datasets`: demo and acceptance data.
 - `docs/`: architecture, algorithms, visual language, interaction, delta format, CLI.
 

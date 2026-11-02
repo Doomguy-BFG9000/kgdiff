@@ -57,6 +57,25 @@ npx @kgdiff/cli a.ttl b.ttl --exit-code -q        # 有差异时退出码为 1
 
 详见 [docs/cli.md](docs/cli.md) 和 [packages/cli/README.md](packages/cli/README.md)。
 
+### 在 PR 上使用（GitHub Actions）
+
+```yaml
+jobs:
+  kgdiff:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # 用于评论
+    steps:
+      - uses: actions/checkout@v7
+      - uses: iiwish/kgdiff@v0
+        with:
+          files: ontology/*.ttl
+          locale: zh-CN
+```
+
+这个 action 把每个文件和它在基准分支上的版本做比较，把摘要写进作业摘要和一条 PR 评论（之后的推送会在原处更新这条评论），并把交互式报告作为工件上传。来自 fork 的 PR 能看到作业摘要和报告。选项、多个图谱、让检查失败等用法见 [docs/zh/guide/ci.md](docs/zh/guide/ci.md)。
+
 ### 在网页中使用
 
 ```html
@@ -115,6 +134,7 @@ for (const hunk of result.hunks) console.log(formatHunk(hunk, result, 'zh-CN').t
 | [`@kgdiff/viewer`](packages/viewer)     | `<kgdiff-viewer>` Web 组件。                                           |
 | [`@kgdiff/g6`](packages/g6)             | 在 AntV G6 v5 中渲染 kgdiff 场景。                                     |
 | [`@kgdiff/cli`](packages/cli)           | 命令行工具。                                                           |
+| [`action.yml`](action.yml)              | GitHub Action（`uses: iiwish/kgdiff@v0`）：在 PR 上展示图谱 diff。     |
 | [`apps/site`](apps/site)                | 官网和在线体验页。                                                     |
 
 ## 正确性与性能

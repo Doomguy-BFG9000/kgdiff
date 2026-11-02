@@ -51,6 +51,19 @@ before a first release), so a failed upstream command cannot pass for "everythin
 
 ### In CI
 
+On GitHub, the kgdiff action runs the CLI on pull requests: it compares each file with its
+version on the base branch, writes the summary into the job summary and a pull request comment
+(updated in place on later pushes) and uploads the report as an artifact. Setup and options:
+https://github.com/iiwish/kgdiff/blob/main/docs/guide/ci.md
+
+```yaml
+- uses: iiwish/kgdiff@v0
+  with:
+    files: ontology/onto.ttl
+```
+
+Anywhere else, run the CLI yourself:
+
 ```yaml
 # Fail the job when the ontology changed, and explain what changed in the job summary.
 - run: npx @kgdiff/cli main/ontology.ttl ontology.ttl --markdown >> "$GITHUB_STEP_SUMMARY"
