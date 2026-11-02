@@ -1,10 +1,16 @@
 <p align="center">
-  <img src="docs/images/replay-en.webp" alt="The kgdiff viewer replaying the changes between two versions of a schema.org-style vocabulary, one hunk at a time" width="880">
+  <a href="https://iiwish.github.io/kgdiff/playground.html"><img src="docs/images/replay-en.webp" alt="The kgdiff viewer replaying the changes between two versions of a schema.org-style vocabulary, one hunk at a time" width="880"></a>
 </p>
 
 <p align="center">
   <b>git diff for knowledge graphs.</b><br>
   See what changed between two versions of a graph — and review it like a pull request.
+</p>
+
+<p align="center">
+  <a href="https://iiwish.github.io/kgdiff/playground.html"><b>Try it in your browser</b></a> ·
+  <a href="https://iiwish.github.io/kgdiff/">Website</a> ·
+  <a href="https://iiwish.github.io/kgdiff/docs/">Docs</a>
 </p>
 
 <p align="center">
@@ -27,6 +33,9 @@ for review.
 ```sh
 npx @kgdiff/cli before.ttl after.ttl -o report.html --open
 ```
+
+Or install nothing: the [playground](https://iiwish.github.io/kgdiff/playground.html) diffs the
+example datasets, or two files of your own, in your browser. Nothing is uploaded.
 
 ## Four ideas
 

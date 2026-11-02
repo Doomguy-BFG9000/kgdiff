@@ -1,10 +1,16 @@
 <p align="center">
-  <img src="docs/images/replay-zh.webp" alt="kgdiff 查看器逐组回放企业信用知识图谱本体两个版本之间的变化" width="880">
+  <a href="https://iiwish.github.io/kgdiff/playground.html?lang=zh"><img src="docs/images/replay-zh.webp" alt="kgdiff 查看器逐组回放企业信用知识图谱本体两个版本之间的变化" width="880"></a>
 </p>
 
 <p align="center">
   <b>知识图谱的 git diff。</b><br>
   看清图谱的两个版本之间到底变了什么，并像审阅 Pull Request 一样逐项审阅。
+</p>
+
+<p align="center">
+  <a href="https://iiwish.github.io/kgdiff/playground.html?lang=zh"><b>在浏览器里试用</b></a> ·
+  <a href="https://iiwish.github.io/kgdiff/?lang=zh">官网</a> ·
+  <a href="https://iiwish.github.io/kgdiff/docs/zh/">文档</a>
 </p>
 
 <p align="center">
@@ -22,6 +28,8 @@
 ```sh
 npx @kgdiff/cli before.ttl after.ttl -o report.html --open
 ```
+
+不想装任何东西？[Playground](https://iiwish.github.io/kgdiff/playground.html?lang=zh) 可以直接在浏览器里比较示例数据，或者你自己的两个文件，不会上传任何数据。
 
 ## 四个理念
 
