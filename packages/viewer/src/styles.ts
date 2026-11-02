@@ -90,6 +90,8 @@ export const STYLES = /* css */ `
   -webkit-font-smoothing: antialiased;
 }
 :host([hidden]) { display: none; }
+/* chrome="none" shows the graph alone: small embeds (a 320 px strip) are fine. */
+:host([chrome="none"]) { min-height: 120px; }
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 button, input { font: inherit; color: inherit; letter-spacing: inherit; }
@@ -237,6 +239,15 @@ ${familyRules}
 .legend-row { display: grid; grid-template-columns: 22px auto; align-items: center; column-gap: 8px; height: 26px; padding: 0 10px 0 4px; border-radius: 6px; cursor: default; }
 .legend-row .name { font-size: 12px; font-weight: 550; color: var(--kg-text); }
 .swatch { width: 22px; height: 22px; display: block; }
+.mini-legend { display: none; }
+.stage-wrap[data-legend="mini"] .mini-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; bottom: 8px; left: 12px; max-width: calc(100% - 24px);
+  font-size: 11px; line-height: 16px; color: var(--kg-text-2);
+}
+.mini-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.mini-item .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--fam-base); }
+.mini-item[data-family="removed"] .dot { background: none; box-shadow: inset 0 0 0 1.5px var(--fam-base); }
+.stage-wrap[data-legend="mini"] .legend, .stage-wrap[data-legend="none"] .legend { display: none; }
 
 .caption {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%); max-width: min(560px, calc(100% - 200px));
@@ -594,6 +605,12 @@ ins.hl { text-decoration: none; background: var(--kg-added-soft); color: var(--k
 .keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
 .key-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; border-bottom: 1px solid var(--kg-border); font-size: 12.5px; color: var(--kg-text-2); }
 .key-row .ks { display: inline-flex; align-items: center; gap: 3px; flex: none; color: var(--kg-text-3); font-size: 11px; }
+
+/* ── chrome="none": the graph, its hover tooltip and the legend line only ──── */
+.root[data-chrome="none"] .header, .root[data-chrome="none"] .sidebar, .root[data-chrome="none"] .caption,
+.root[data-chrome="none"] .transport, .root[data-chrome="none"] .finished, .root[data-chrome="none"] .stepper,
+.root[data-chrome="none"] .map-cluster, .root[data-chrome="none"] .side-chip { display: none !important; }
+.stage-wrap[data-selectable="false"] .tooltip .t-hint { display: none; }
 
 /* ── Compact (< 760 px): bottom sheet ────────────────────────────────────── */
 .root[data-compact="true"] .body { flex-direction: column; }

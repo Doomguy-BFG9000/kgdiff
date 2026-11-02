@@ -98,7 +98,7 @@ jobs:
 </script>
 ```
 
-事件：`kgdiff-ready`、`kgdiff-select`、`kgdiff-mode`、`kgdiff-review`、`kgdiff-error`。交互细节见 [docs/interaction.md](docs/interaction.md)。
+事件：`kgdiff-ready`、`kgdiff-select`、`kgdiff-mode`、`kgdiff-review`、`kgdiff-error`、`kgdiff-replay-end`。交互细节见 [docs/interaction.md](docs/interaction.md)。
 
 <p align="center">
   <img src="docs/images/viewer-zh.webp" alt="kgdiff 查看器：两个版本画在同一张图上，变化按类别着色，右侧是待审阅的变更列表" width="880">

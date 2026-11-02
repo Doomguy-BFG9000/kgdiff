@@ -1,8 +1,9 @@
 /**
  * The canvas area and its floating chrome: replay caption and transport, swipe divider,
- * changes-only context stepper, legend, zoom controls + minimap, hover tooltip and the
- * loading / identical / error / empty states. Overlays never cover the current hunk: the
- * element reserves their space through the renderer's safe area.
+ * changes-only context stepper, legend (a card, or one line of dots for chrome-less embeds),
+ * zoom controls + minimap, hover tooltip and the loading / identical / error / empty states.
+ * Overlays never cover the current hunk: the element reserves their space through the
+ * renderer's safe area.
  */
 import { KgdiffError, type Rect } from '@kgdiff/core';
 import type { ChangeFamily, Family } from '@kgdiff/scene';
@@ -23,6 +24,9 @@ import { FAMILIES } from '../styles.js';
 import { sceneHunkGlyph, type UiContext } from './context.js';
 
 const TICK_W = 1000;
+
+/** How the legend shows: the card, one line of dots, or not at all. */
+export type LegendStyle = 'full' | 'mini' | 'none';
 
 /** Legend swatch: the node cue of each family (docs/visual-language.md §Meaning families). */
 function swatch(family: Family): SVGSVGElement {
@@ -84,6 +88,7 @@ export class Stage {
   readonly #legend: HTMLElement;
   readonly #legendHead: HTMLButtonElement;
   readonly #legendBody: HTMLElement;
+  readonly #miniLegend: HTMLElement;
   readonly #zoomIn: HTMLButtonElement;
   readonly #zoomOut: HTMLButtonElement;
   readonly #fitButton: HTMLButtonElement;
@@ -236,6 +241,7 @@ export class Stage {
       this.#legendHead,
       this.#legendBody,
     );
+    this.#miniLegend = h('div', { class: 'mini-legend float bottom-left', role: 'list' });
 
     // Zoom + minimap
     this.#zoomIn = iconButton('plus', '', () => c.zoom(1));
@@ -264,6 +270,7 @@ export class Stage {
       this.#caption,
       this.#stepper,
       this.#legend,
+      this.#miniLegend,
       this.#mapCluster,
       this.#finished,
       this.#transport,
@@ -297,6 +304,7 @@ export class Stage {
     const obstacles: Rect[] = [];
     const parts = [
       this.#legend,
+      this.#miniLegend,
       this.#mapCluster,
       this.#transport,
       this.#finished,
@@ -326,12 +334,19 @@ export class Stage {
     attr(this.#legendHead, 'aria-expanded', String(open));
   }
 
+  /** Legend style, and whether clicks select (the tooltip only hints at clicking then). */
+  setChrome(legend: LegendStyle, selectable: boolean): void {
+    this.el.dataset.legend = legend;
+    this.el.dataset.selectable = String(selectable);
+  }
+
   update(topics: ReadonlySet<Topic>): void {
     const c = this.#ctx.controller;
     const tr = this.#ctx.tr();
     const all = topics.has('status') || topics.has('data') || topics.has('locale');
     if (all) {
       this.#renderLabels(tr);
+      this.#renderMiniLegend(tr);
       this.#renderState(tr);
       this.#renderTicks();
       this.#renderCanvasLabel(tr);
@@ -378,6 +393,32 @@ export class Stage {
           h('span', { class: 'name', text: tr.t(`family.${f}`) }),
         ),
       ),
+    );
+  }
+
+  /** One line: the families this diff has, then the unchanged context. */
+  #renderMiniLegend(tr: Translator): void {
+    const scene = this.#ctx.controller.scene;
+    const present = new Set<Family>(scene?.hunks.map((x) => x.family));
+    if (scene?.nodes.some((n) => n.status === 'unchanged')) present.add('neutral');
+    attr(this.#miniLegend, 'aria-label', tr.t('legend.title'));
+    replace(
+      this.#miniLegend,
+      [...FAMILIES, 'neutral' as const]
+        .filter((f) => present.has(f))
+        .map((f) =>
+          h(
+            'span',
+            {
+              class: 'mini-item',
+              role: 'listitem',
+              'data-family': f,
+              title: tr.t(`familyHint.${f}`),
+            },
+            h('span', { class: 'dot', 'aria-hidden': 'true' }),
+            tr.t(`family.${f}`),
+          ),
+        ),
     );
   }
 

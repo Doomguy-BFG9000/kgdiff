@@ -53,7 +53,7 @@ test('pickAt: node grid + edge scan at 10k nodes / 12.7k edges', async ({ bench 
 });
 
 test('placeLabels: 5,000 labels (scales linearly, well under a frame)', async ({ bench }) => {
-  const clip = { x0: 0, y0: 0, x1: 1000, y1: 800, strictX: false };
+  const clip = { x0: 0, y0: 0, x1: 1000, y1: 800, strictX: false, strictY: false };
   const items: LabelRequest[] = [];
   for (let i = 0; i < 5000; i++) {
     items.push(

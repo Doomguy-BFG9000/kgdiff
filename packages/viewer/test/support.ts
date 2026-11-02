@@ -96,6 +96,7 @@ export class MockRenderer implements Renderer {
   frameCount = 0;
   theme: Theme;
   safeArea: { top: number; right: number; bottom: number; left: number } | null = null;
+  labelsInside: boolean;
   destroyed = false;
   private readonly listeners: Listeners = {
     hover: new Set(),
@@ -110,6 +111,7 @@ export class MockRenderer implements Renderer {
     this.canvas.setAttribute('role', 'img');
     container.appendChild(this.canvas);
     this.theme = options.theme;
+    this.labelsInside = options.labelsInside ?? false;
   }
   setFrame(frame: FrameVisuals | SplitFrame): void {
     this.frame = frame;
@@ -120,6 +122,9 @@ export class MockRenderer implements Renderer {
   }
   setSafeArea(area: { top: number; right: number; bottom: number; left: number }): void {
     this.safeArea = area;
+  }
+  setLabelsInside(inside: boolean): void {
+    this.labelsInside = inside;
   }
   pick(): PickResult | null {
     return null;
@@ -311,6 +316,7 @@ export function recordingHost(): RecordedHost {
       events.push({ type: 'review', detail: { hunk, reviewed, progress } }),
     error: (error) => events.push({ type: 'error', detail: error }),
     announce: (text) => announcements.push(text),
+    replayEnd: (loop) => events.push({ type: 'replay-end', detail: { loop } }),
   };
 }
 

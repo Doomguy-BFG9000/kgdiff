@@ -15,8 +15,9 @@ export interface View {
   x1: number;
   y0: number;
   y1: number;
-  /** Labels may not cross x0 / x1 (swipe divider). */
+  /** Labels may not cross x0 / x1 (swipe divider, labels kept inside), y0 / y1 (kept inside). */
   strictX: boolean;
+  strictY: boolean;
   stats: PaintStats;
 }
 

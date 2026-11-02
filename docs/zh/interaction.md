@@ -94,7 +94,7 @@
 </script>
 ```
 
-属性：`mode`、`theme`（`auto|light|dark`）、`palette`、`locale`（`en|zh-CN`，默认取自 `navigator.language`）、`sidebar`（`open|closed`）、`sync-hash`（深链接 `#kgdiff=hunk:<id>;mode:<mode>`）、`header`（`compact` 时标题栏不显示品牌和比较的图名，适合宿主页面自己显示这些信息的场合）。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit()`、`exportDelta()`、`reviewState()`。事件（`CustomEvent`，冒泡，composed）：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode }`、`kgdiff-review` `{ hunk, reviewed, progress }`、`kgdiff-error` `{ error }`。
+属性：`mode`、`theme`（`auto|light|dark`）、`palette`、`locale`（`en|zh-CN`，默认取自 `navigator.language`）、`sidebar`（`open|closed`）、`sync-hash`（深链接 `#kgdiff=hunk:<id>;mode:<mode>`）、`header`（`compact` 时标题栏不显示品牌和比较的图名，适合宿主页面自己显示这些信息的场合）、`chrome`（`none` 时只显示图本身，适合嵌入小块区域：不显示标题栏、变化列表、步骤说明、播放条、缩放按钮、小地图和图例卡片，保留悬停提示和一行图例；点击和快捷键不起作用，最小高度降到 120px，画布尺寸变化时和每轮循环开始时都重新放进画布）、`legend`（`auto|full|mini|none`）、`loop`（回放自动播放，播完停 `loop-delay` 毫秒后重新开始，默认 1200）、`pause-on-hover`（`false` 时鼠标停在图上也不暂停循环回放）。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit({ animate, padding })`（连同节点名称一起放进画布）、`exportDelta()`、`reviewState()`。事件（`CustomEvent`，冒泡，composed）：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode }`、`kgdiff-review` `{ hunk, reviewed, progress }`、`kgdiff-error` `{ error }`、`kgdiff-replay-end` `{ loop }`（回放播到结尾；`loop` 表示之后会重新开始）。
 
 ## 状态
 

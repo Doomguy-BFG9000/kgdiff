@@ -113,7 +113,7 @@ Options, several graphs, failing the check: [docs/guide/ci.md](docs/guide/ci.md)
 </script>
 ```
 
-Events: `kgdiff-ready`, `kgdiff-select`, `kgdiff-mode`, `kgdiff-review`, `kgdiff-error`.
+Events: `kgdiff-ready`, `kgdiff-select`, `kgdiff-mode`, `kgdiff-review`, `kgdiff-error`, `kgdiff-replay-end`.
 Behaviour: [docs/interaction.md](docs/interaction.md).
 
 <p align="center">

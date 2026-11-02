@@ -420,3 +420,131 @@ describe('lifecycle', () => {
     expect(backend.last().frameCount).toBeGreaterThan(0);
   });
 });
+
+describe('embedding a small looping replay', () => {
+  const families = (el: Element): string[] =>
+    [...(el.shadowRoot?.querySelectorAll('.mini-item') ?? [])].map(
+      (i) => i.getAttribute('data-family') ?? '',
+    );
+
+  function hover(el: KgdiffViewer, type: 'pointerenter' | 'pointerleave', pointerType = 'mouse') {
+    $(el, '.stage-wrap').dispatchEvent(new PointerEvent(type, { pointerType }));
+  }
+
+  it('chrome="none" shows the graph alone, with a one-line legend and no shortcuts', async () => {
+    const el = await loaded({ chrome: 'none' });
+    expect(el.chrome).toBe('none');
+    expect($(el, '.root').dataset.chrome).toBe('none');
+    const stage = $(el, '.stage-wrap');
+    expect(stage.dataset.legend).toBe('mini');
+    expect(stage.dataset.selectable).toBe('false');
+    // The zoo has every family but identity, then the unchanged context.
+    expect(families(el)).toEqual(['added', 'removed', 'content', 'structure', 'neutral']);
+    expect($(el, '.mini-legend').textContent).toContain('Unchanged');
+    expect(el.controller.autoFit).toBe(true);
+    expect(el.controller.selectOnClick).toBe(false);
+    expect(backend.last().labelsInside).toBe(true);
+    expect(el.shadowRoot?.querySelector('canvas')?.tabIndex).toBe(-1);
+    press(el, '2');
+    press(el, '?');
+    expect(el.mode).toBe('overlay');
+    expect($(el, '.overlay-scrim').hidden).toBe(true);
+    el.chrome = 'full';
+    expect(el.hasAttribute('chrome')).toBe(false);
+    expect(stage.dataset.legend).toBe('full');
+    expect(el.controller.autoFit).toBe(false);
+    expect(backend.last().labelsInside).toBe(false);
+    expect(el.shadowRoot?.querySelector('canvas')?.tabIndex).toBe(0);
+    press(el, '2');
+    expect(el.mode).toBe('swipe');
+  });
+
+  it('chooses the legend with the legend attribute', async () => {
+    const el = await loaded({ chrome: 'none', legend: 'none' });
+    const stage = $(el, '.stage-wrap');
+    expect(stage.dataset.legend).toBe('none');
+    el.legend = 'full';
+    expect(el.getAttribute('legend')).toBe('full');
+    expect(stage.dataset.legend).toBe('full');
+    el.setAttribute('legend', 'bogus');
+    expect(el.legend).toBe('auto');
+    expect(stage.dataset.legend).toBe('mini');
+    el.removeAttribute('chrome');
+    el.legend = 'mini';
+    expect(stage.dataset.legend).toBe('mini');
+    el.legend = 'auto';
+    expect(el.hasAttribute('legend')).toBe(false);
+    expect(stage.dataset.legend).toBe('full');
+  });
+
+  it('reflects loop, loop-delay and pause-on-hover', () => {
+    const el = mount();
+    expect([el.loop, el.loopDelay, el.pauseOnHover]).toEqual([false, 1200, true]);
+    el.loop = true;
+    el.loopDelay = 500;
+    el.pauseOnHover = false;
+    expect(el.hasAttribute('loop')).toBe(true);
+    expect(el.getAttribute('loop-delay')).toBe('500');
+    expect(el.getAttribute('pause-on-hover')).toBe('false');
+    expect(el.controller.loopDelay).toBe(500);
+    el.setAttribute('loop-delay', 'soon');
+    expect(el.loopDelay).toBe(1200);
+    expect(el.controller.loopDelay).toBe(1200);
+    el.loopDelay = -1;
+    expect(el.hasAttribute('loop-delay')).toBe(false);
+    el.loop = false;
+    el.pauseOnHover = true;
+    expect(el.hasAttribute('loop')).toBe(false);
+    expect(el.hasAttribute('pause-on-hover')).toBe(false);
+    expect(el.controller.loopDelay).toBeNull();
+  });
+
+  it('loops a replay by itself and fires kgdiff-replay-end each time it ends', async () => {
+    const el = await loaded({ mode: 'replay', chrome: 'none', loop: '', 'loop-delay': '0' });
+    const ends: boolean[] = [];
+    el.addEventListener('kgdiff-replay-end', (e) => ends.push((e as CustomEvent).detail.loop));
+    const clock = el.controller.clock;
+    expect(clock?.playing).toBe(true);
+    clock?.seek(clock.duration - 1);
+    await until(() => ends.length === 1);
+    expect(ends).toEqual([true]);
+    await until(() => el.controller.clock?.playing === true);
+    // Turned off from the listener: the replay stays at its end.
+    el.addEventListener('kgdiff-replay-end', () => {
+      el.loop = false;
+    });
+    el.controller.clock?.seek((el.controller.clock?.duration ?? 0) - 1);
+    await until(() => ends.length === 2);
+    await tick(50);
+    expect(el.controller.clock?.finished).toBe(true);
+  });
+
+  it('pauses a looping replay while a mouse is over the graph', async () => {
+    const el = await loaded({ mode: 'replay', loop: '' });
+    const clock = el.controller.clock;
+    hover(el, 'pointerenter', 'touch');
+    expect(clock?.playing).toBe(true);
+    hover(el, 'pointerenter');
+    expect(clock?.playing).toBe(false);
+    hover(el, 'pointerleave');
+    expect(clock?.playing).toBe(true);
+    el.pauseOnHover = false;
+    hover(el, 'pointerenter');
+    expect(clock?.playing).toBe(true);
+    el.pauseOnHover = true;
+    expect(clock?.playing).toBe(false);
+    el.loop = false;
+    expect(clock?.playing).toBe(true);
+    hover(el, 'pointerleave');
+    el.pause();
+    hover(el, 'pointerenter');
+    hover(el, 'pointerleave');
+    expect(clock?.playing).toBe(false);
+  });
+
+  it('fit() passes its options on', async () => {
+    const el = await loaded();
+    await el.fit({ padding: 8, animate: false });
+    expect(backend.last().camera.fitCalls.at(-1)?.options).toMatchObject({ animate: false });
+  });
+});

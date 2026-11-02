@@ -62,13 +62,34 @@ viewer.play();
 | `sync-hash`        | boolean: deep links `#kgdiff=hunk:<id>;mode:<mode>`           |                                |
 | `global-shortcuts` | boolean: shortcuts work when nothing on the page has focus    |                                |
 | `header`           | `compact`: no brand or graph names, when your page shows them |                                |
+| `chrome`           | `none`: the graph alone, for small embeds                     | `full`                         |
+| `legend`           | `auto`, `full`, `mini` (one line), `none`                     | `auto`                         |
+| `loop`             | boolean: the replay plays by itself, over and over            |                                |
+| `loop-delay`       | ms between the end of a looping replay and its restart        | `1200`                         |
+| `pause-on-hover`   | `false`: a looping replay keeps playing under the mouse       | pauses                         |
 
-`mode`, `theme`, `palette` and `locale` are also properties. Methods: `load()`,
-`selectHunk(id)`, `next()`, `prev()`, `play()`, `pause()`, `fit()`, `exportDelta()`,
-`reviewState()` and `setReviewed(id, reviewed)`. Events, all bubbling and composed:
-`kgdiff-ready` `{ stats }`, `kgdiff-select` `{ hunk, node }`, `kgdiff-mode` `{ mode }`,
-`kgdiff-review` `{ hunk, reviewed, progress }` and `kgdiff-error` `{ error }`.
+`mode`, `theme`, `palette`, `locale`, `chrome`, `legend`, `loop`, `loopDelay` and
+`pauseOnHover` are also properties. Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`,
+`play()`, `pause()`, `fit({ animate, padding })`, `exportDelta()`, `reviewState()` and
+`setReviewed(id, reviewed)`. Events, all bubbling and composed: `kgdiff-ready` `{ stats }`,
+`kgdiff-select` `{ hunk, node }`, `kgdiff-mode` `{ mode }`, `kgdiff-review`
+`{ hunk, reviewed, progress }`, `kgdiff-error` `{ error }` and `kgdiff-replay-end` `{ loop }`.
 [Viewer: interaction and API](../interaction.md#embedding-api) has the details.
+
+## Embed a small looping replay
+
+To show a graph's changes as a small strip on another page, leave the review UI out and let the
+replay loop:
+
+```html
+<kgdiff-viewer mode="replay" chrome="none" loop style="height: 320px"></kgdiff-viewer>
+```
+
+`chrome="none"` keeps the graph, its hover tooltip and a one-line legend; the header, change
+list, step caption, playback bar, zoom buttons and minimap go, clicks and shortcuts do nothing
+and the view stays fitted, labels included: no name is cut at the edge. `loop` replays the changes, pausing
+`loop-delay` ms (1.2 s) between rounds and while the mouse is over the graph.
+`kgdiff-replay-end` fires at the end of every round.
 
 ## Keep review progress
 

@@ -8,6 +8,8 @@ import {
   fitZoom,
   frameTarget,
   freeView,
+  type Insets,
+  zoomFit,
 } from '../src/framing.js';
 
 /** Screen rect of world `r` under camera `t` in a `w` × `h` canvas. */
@@ -116,5 +118,117 @@ describe('chromeInsets / frameTarget', () => {
       left: 80,
     });
     expect(view).toEqual({ x: 40, y: 10, width: 340, height: 260 });
+  });
+});
+
+/** A node with a label block centred below it (px), shown from `minZoom`. */
+interface Labelled {
+  readonly x: number;
+  readonly y: number;
+  readonly r: number;
+  readonly label: { width: number; height: number; minZoom: number } | null;
+}
+
+/** World extent of `nodes` with their labels drawn at zoom `k` (`Infinity`: discs alone). */
+function extentOf(nodes: readonly Labelled[]): (k: number) => Rect | null {
+  return (k) => {
+    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const n of nodes) {
+      x0 = Math.min(x0, n.x - n.r);
+      x1 = Math.max(x1, n.x + n.r);
+      y0 = Math.min(y0, n.y - n.r);
+      y1 = Math.max(y1, n.y + n.r);
+      const l = n.label;
+      if (!Number.isFinite(k) || !l || k < l.minZoom) continue;
+      x0 = Math.min(x0, n.x - l.width / 2 / k);
+      x1 = Math.max(x1, n.x + l.width / 2 / k);
+      y1 = Math.max(y1, n.y + n.r + (5 + l.height) / k);
+    }
+    return x0 <= x1 ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null;
+  };
+}
+
+const label = (width: number, minZoom = 0.2) => ({ width, height: 16, minZoom });
+const even = (p: number): Insets => ({ top: p, right: p, bottom: p, left: p });
+
+describe('zoomFit', () => {
+  it('keeps the outermost labels on an 800 × 320 canvas (a looping replay embed)', () => {
+    // The leftmost node carries the longest name, as `listed_top10_holder` does.
+    const extent = extentOf([
+      { x: -900, y: 40, r: 9, label: label(124) },
+      { x: -300, y: -260, r: 12, label: label(48) },
+      { x: 200, y: 0, r: 14, label: label(36) },
+      { x: 700, y: 250, r: 9, label: label(96) },
+    ]);
+    const [w, h] = [800, 320];
+    const insets = even(FRAME_PADDING);
+    const fit = zoomFit(extent, w, h, insets, 2.5);
+    if (!fit) throw new Error('no fit');
+    const t = frameTarget(fit.bounds, w, h, insets, 0.05, 2.5);
+    // It lands exactly on the zoom it solved for, where the labels are as measured.
+    expect(t.k).toBeCloseTo(fit.k, 9);
+    const s = onScreen(extent(t.k) as Rect, t, w, h);
+    expect(s.x).toBeGreaterThanOrEqual(FRAME_PADDING - 1e-6);
+    expect(s.y).toBeGreaterThanOrEqual(FRAME_PADDING - 1e-6);
+    expect(s.x + s.width).toBeLessThanOrEqual(w - FRAME_PADDING + 1e-6);
+    expect(s.y + s.height).toBeLessThanOrEqual(h - FRAME_PADDING + 1e-6);
+    // As large as it gets: a percent more and the labels no longer fit.
+    const more = extent(fit.k * 1.01) as Rect;
+    expect(fitZoom(more, w, h, insets)).toBeLessThan(fit.k * 1.01);
+    // Fitting the discs alone clips that name.
+    const discs = extent(Infinity) as Rect;
+    const naive = frameTarget(discs, w, h, insets, 0.05, 2.5);
+    expect(onScreen(extent(naive.k) as Rect, naive, w, h).x).toBeLessThan(0);
+  });
+
+  it('stops at maxZoom and falls back to the discs when no zoom has room', () => {
+    const small = extentOf([{ x: 0, y: 0, r: 10, label: label(40, 0) }]);
+    expect(zoomFit(small, 800, 600, even(24), 2.5)?.k).toBe(2.5);
+    // A label wider than the canvas at every zoom: fit the discs as before.
+    const wide = extentOf([
+      { x: 0, y: 0, r: 10, label: label(900, 0) },
+      { x: 100, y: 0, r: 10, label: null },
+    ]);
+    const fit = zoomFit(wide, 400, 300, even(24), 2.5);
+    expect(fit?.bounds).toEqual({ x: -10, y: -10, width: 120, height: 20 });
+    expect(zoomFit(() => null, 400, 300, even(24), 2.5)).toBeNull();
+  });
+
+  it('shows every label it can, inside any canvas (property)', () => {
+    const node = fc.record({
+      x: fc.double({ min: -2000, max: 2000, noNaN: true }),
+      y: fc.double({ min: -2000, max: 2000, noNaN: true }),
+      r: fc.double({ min: 2, max: 30, noNaN: true }),
+      label: fc.option(
+        fc.record({
+          width: fc.integer({ min: 4, max: 240 }),
+          height: fc.constantFrom(16, 31),
+          minZoom: fc.constantFrom(0, 0.18, 0.45),
+        }),
+      ),
+    });
+    fc.assert(
+      fc.property(
+        fc.array(node, { minLength: 1, maxLength: 12 }),
+        fc.integer({ min: 300, max: 1400 }),
+        fc.integer({ min: 200, max: 900 }),
+        fc.integer({ min: 0, max: 40 }),
+        (nodes, w, h, pad) => {
+          const extent = extentOf(nodes);
+          const insets = even(pad);
+          const fit = zoomFit(extent, w, h, insets, 2.5);
+          if (!fit) throw new Error('no fit');
+          const t = frameTarget(fit.bounds, w, h, insets, 0.05, 2.5);
+          // Labels wider than the canvas can only be shown by hiding them (zooming out).
+          if (fit.bounds === fit.content) return;
+          expect(t.k).toBeCloseTo(fit.k, 6);
+          const s = onScreen(extent(t.k) as Rect, t, w, h);
+          expect(s.x).toBeGreaterThanOrEqual(pad - 1e-6);
+          expect(s.y).toBeGreaterThanOrEqual(pad - 1e-6);
+          expect(s.x + s.width).toBeLessThanOrEqual(w - pad + 1e-6);
+          expect(s.y + s.height).toBeLessThanOrEqual(h - pad + 1e-6);
+        },
+      ),
+    );
   });
 });

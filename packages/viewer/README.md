@@ -38,9 +38,50 @@ ESM only. Runs in evergreen browsers.
   `@kgdiff/viewer/standalone/compute` add-on brings the diff engine and force layout for `load()`.
 
 Attributes: `mode` (`overlay` | `swipe` | `replay` | `changes`), `theme`, `palette`, `locale`,
-`sidebar`, `sync-hash`, `global-shortcuts`. Methods: `load`, `selectHunk`, `next`, `prev`, `play`, `pause`,
-`fit`, `exportDelta`, `reviewState`, `setReviewed`. Events: `kgdiff-ready`, `kgdiff-select`,
-`kgdiff-mode`, `kgdiff-review`, `kgdiff-error`.
+`sidebar`, `sync-hash`, `global-shortcuts`, `header`, `chrome`, `legend`, `loop`, `loop-delay`,
+`pause-on-hover`. Methods: `load`, `selectHunk`, `next`, `prev`, `play`, `pause`, `fit`,
+`exportDelta`, `reviewState`, `setReviewed`. Events: `kgdiff-ready`, `kgdiff-select`,
+`kgdiff-mode`, `kgdiff-review`, `kgdiff-error`, `kgdiff-replay-end`.
+
+## Embed a small looping replay
+
+To show a graph's changes as a small strip on another page, leave the review UI out and let the
+replay loop:
+
+```html
+<kgdiff-viewer mode="replay" chrome="none" loop style="height: 320px"></kgdiff-viewer>
+```
+
+| Attribute (property)              | Values                         | Default                                          |
+| --------------------------------- | ------------------------------ | ------------------------------------------------ |
+| `chrome` (`chrome`)               | `full`, `none`                 | `full`                                           |
+| `legend` (`legend`)               | `auto`, `full`, `mini`, `none` | `auto`: `full`, or `mini` with `chrome="none"`   |
+| `loop` (`loop`)                   | boolean                        | off                                              |
+| `loop-delay` (`loopDelay`)        | ms between the end and restart | `1200`                                           |
+| `pause-on-hover` (`pauseOnHover`) | `false` to keep playing        | on: a looping replay pauses under a mouse or pen |
+
+- `chrome="none"` shows the graph alone: no header (view switch, theme, full screen, help,
+  sidebar button), change list, step caption, playback bar, finished card, zoom buttons, minimap
+  or legend card. The hover tooltip stays, and the legend becomes one line with the families this
+  diff has, then unchanged. Clicks and keyboard shortcuts do nothing. The minimum height drops
+  from 420px to 120px. The view stays fitted: when the canvas is resized (unless the user
+  panned or zoomed since) and at the start of every loop. Labels are never cut at the edge: one
+  pushed from its spot by a neighbour moves inside the canvas or is left out (the tooltip
+  still names it).
+- `loop` plays the replay by itself (in `replay` mode) and starts it again `loop-delay` ms after
+  it ends. `pause()` stops it until `play()`; a new diff starts it again.
+- `kgdiff-replay-end` fires each time playback reaches the end, with `detail.loop` telling
+  whether it will start again. Set `loop = false` or call `pause()` in the listener to stop
+  there.
+- `fit({ padding })` fits the graph with its labels into view, keeping `padding` px around them
+  (default 24, kept for the later automatic fits); `fit({ animate: false })` jumps.
+
+```js
+let rounds = 0;
+viewer.addEventListener('kgdiff-replay-end', (event) => {
+  if (event.detail.loop && ++rounds === 3) viewer.loop = false; // three rounds, then stop
+});
+```
 
 ## Learn more
 

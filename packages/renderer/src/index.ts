@@ -102,6 +102,8 @@ export interface RendererOptions {
   readonly grid?: boolean;
   /** Insets (px) the camera keeps clear when fitting, e.g. for floating UI. */
   readonly safeArea?: { top: number; right: number; bottom: number; left: number };
+  /** Keep labels whole inside the canvas (see `Renderer.setLabelsInside`). Default false. */
+  readonly labelsInside?: boolean;
 }
 
 export interface Renderer {
@@ -111,6 +113,12 @@ export interface Renderer {
   setFrame(frame: FrameVisuals | SplitFrame): void;
   setTheme(theme: Theme): void;
   setSafeArea(area: { top: number; right: number; bottom: number; left: number }): void;
+  /**
+   * Keep labels whole inside the canvas: a label that has no free spot inside is left out, like
+   * one that collides, instead of being cut at the edge. Off by default, so labels slide off the
+   * edges while panning; for views without camera controls, fitted with `labelFootprint`.
+   */
+  setLabelsInside(inside: boolean): void;
   /** Topmost element under a screen point (px, relative to the canvas). */
   pick(x: number, y: number): PickResult | null;
   on<K extends keyof RendererEvents>(
@@ -159,3 +167,10 @@ export function createMinimap(
 ): Minimap {
   return createMinimapImpl(container, renderer, options);
 }
+
+/**
+ * What a frame covers at any zoom with every label in its first-choice spot (`footprint.at(k)`,
+ * a world rect), for fits that leave room for the labels: they keep their pixel size, so node
+ * positions alone do not say what a fit must show.
+ */
+export { type LabelFootprint, labelFootprint } from './label-footprint.js';

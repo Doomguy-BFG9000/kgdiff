@@ -104,6 +104,8 @@ export class Painter {
   readonly stats: PaintStats = createStats();
   /** Override for exports, which must contain every label in one paint. */
   rasterBudget = LABEL_RASTER_BUDGET;
+  /** Labels never cross the canvas edges (one without room inside is left out). */
+  labelsInside = false;
   private readonly labels = new LabelPass();
   private readonly badges = new BadgePass();
   private readonly grid = new CollisionGrid();
@@ -119,6 +121,7 @@ export class Painter {
     y0: 0,
     y1: 0,
     strictX: false,
+    strictY: false,
     stats: this.stats,
   };
 
@@ -148,7 +151,8 @@ export class Painter {
     v.x1 = width;
     v.y0 = 0;
     v.y1 = height;
-    v.strictX = false;
+    v.strictX = this.labelsInside;
+    v.strictY = this.labelsInside;
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;

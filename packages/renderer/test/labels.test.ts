@@ -16,7 +16,7 @@ import {
 } from '../src/labels.js';
 import { rectsOverlap } from '../src/math.js';
 
-const clip: LabelClip = { x0: 0, y0: 0, x1: 1000, y1: 800, strictX: false };
+const clip: LabelClip = { x0: 0, y0: 0, x1: 1000, y1: 800, strictX: false, strictY: false };
 
 function req(x: number, y: number, o: Partial<LabelRequest> = {}): LabelRequest {
   return Object.assign(
@@ -82,10 +82,25 @@ describe('label placement', () => {
 
   it('keeps labels from crossing a swipe divider when strictX', () => {
     const r = req(495, 100, { w: 80 });
-    placeLabels([r], grid(), { x0: 0, y0: 0, x1: 500, y1: 800, strictX: true });
+    placeLabels([r], grid(), { x0: 0, y0: 0, x1: 500, y1: 800, strictX: true, strictY: false });
     expect(r.placed).toBe(true);
     expect(r.side).toBe(SIDE_LEFT);
     expect(r.bx + r.w).toBeLessThanOrEqual(500);
+  });
+
+  it('keeps labels inside every edge when strict, leaving out one without room', () => {
+    const inside = { x0: 0, y0: 0, x1: 500, y1: 400, strictX: true, strictY: true };
+    // Below would cross the bottom edge: it goes to the right instead.
+    const low = req(100, 380);
+    placeLabels([low], grid(), inside);
+    expect(low.side).toBe(SIDE_RIGHT);
+    expect(low.by + low.h).toBeLessThanOrEqual(400);
+    // In the corner every spot crosses an edge or is taken: left out rather than cut.
+    const g = grid();
+    g.insert(400, 360, 100, 40);
+    const corner = req(480, 392, { w: 120 });
+    expect(placeLabels([corner], g, inside)).toBe(0);
+    expect(corner.placed).toBe(false);
   });
 
   it('centres point labels (edges) on their anchor', () => {
