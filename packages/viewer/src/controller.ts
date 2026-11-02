@@ -13,7 +13,14 @@
 import type { DiffResult, DiffStats, Locale, Rect, UnionId } from '@kgdiff/core';
 import { KgdiffError } from '@kgdiff/core';
 import type { LayoutResult } from '@kgdiff/layout';
-import type { Camera, CameraState, Minimap, PickResult, Renderer } from '@kgdiff/renderer';
+import {
+  type Camera,
+  type CameraState,
+  labelFootprint,
+  type Minimap,
+  type PickResult,
+  type Renderer,
+} from '@kgdiff/renderer';
 import {
   buildScene,
   type ChangeFamily,
@@ -40,6 +47,7 @@ import {
   freeView,
   type Insets,
   NO_INSETS,
+  zoomFit,
 } from './framing.js';
 import { translate } from './i18n.js';
 import type {
@@ -80,6 +88,14 @@ export interface ControllerHost {
   review(hunk: string, reviewed: boolean, progress: ReviewState): void;
   error(error: Error): void;
   announce(text: string): void;
+  /** Playback reached the end of the replay; `loop`: it starts again after the loop delay. */
+  replayEnd(loop: boolean): void;
+}
+
+export interface FitOptions {
+  readonly animate?: boolean;
+  /** Room around the content, px (default `FRAME_PADDING`); kept for later automatic fits. */
+  readonly padding?: number;
 }
 
 export interface ControllerDeps {
@@ -175,6 +191,14 @@ export class ViewerController {
   clock: ReplayClock | null = null;
   split = 0.5;
   emphasis = 1;
+  /**
+   * Keep the view fitted (embeds without controls): fit again when the canvas is resized unless
+   * the user moved the camera since, and at the start of every loop.
+   */
+  autoFit = false;
+  /** Canvas clicks select (and double clicks fly); off for embeds without controls. */
+  selectOnClick = true;
+  #labelsInside = false;
 
   #review: ReviewStore | null = null;
   #searchIndex: SearchIndex | null = null;
@@ -198,6 +222,16 @@ export class ViewerController {
   #savedCamera: CameraState | null = null;
   /** A new diff is installed but has not been fitted to a laid-out canvas yet. */
   #needsFit = false;
+  /** The user panned or zoomed since the last fit. */
+  #userMoved = false;
+  #fitPadding = FRAME_PADDING;
+  /** A finished replay starts again this long (ms) after its end; null: it plays once. */
+  #loopDelay: number | null = null;
+  /** When a finished looping replay starts again (`deps.now()` time), else NaN. */
+  #restartAt = Number.NaN;
+  /** Playback is held (pointer over the graph); `#resume`: it was playing and continues after. */
+  #held = false;
+  #resume = false;
   readonly #listeners = new Set<(topics: ReadonlySet<Topic>) => void>();
   #pendingTopics = new Set<Topic>();
   #flushQueued = false;
@@ -325,6 +359,8 @@ export class ViewerController {
   fail(error: Error): void {
     this.#loadToken++;
     this.clock?.pause();
+    this.#restartAt = Number.NaN;
+    this.#resume = false;
     this.status = 'error';
     this.error = error;
     this.step = null;
@@ -409,6 +445,7 @@ export class ViewerController {
     const pending = this.#pendingHunk;
     this.#pendingHunk = null;
     if (pending !== null) this.selectHunkById(pending.id, { fly: pending.fly });
+    else this.#autoplay();
   }
 
   /** (Re)build scene, resolver, list, clock and focus; selection is carried over by id. */
@@ -462,7 +499,10 @@ export class ViewerController {
   attach(stage: HTMLElement, minimapHost: HTMLElement | null): void {
     if (this.#renderer) return;
     const backend = renderBackend();
-    const renderer = backend.createRenderer(stage, { theme: this.theme });
+    const renderer = backend.createRenderer(stage, {
+      theme: this.theme,
+      labelsInside: this.#labelsInside,
+    });
     this.#renderer = renderer;
     // Re-attached (element moved): keep the view; this also stops the renderer's auto-fit.
     if (this.#savedCamera) renderer.camera.set(this.#savedCamera);
@@ -509,9 +549,25 @@ export class ViewerController {
     this.#chrome = provider;
   }
 
-  /** The canvas was laid out or resized: run the initial fit a new diff is waiting for. */
+  /**
+   * Keep labels whole inside the canvas (embeds without camera controls): a label pushed from
+   * its spot by a neighbour moves inside or is left out, never cut at the edge.
+   */
+  setLabelsInside(inside: boolean): void {
+    this.#labelsInside = inside;
+    this.#renderer?.setLabelsInside(inside);
+  }
+
+  /**
+   * The canvas was laid out or resized: run the initial fit a new diff is waiting for, or (with
+   * `autoFit`) fit again unless the user moved the camera since the last fit.
+   */
   layoutChanged(): void {
-    if (!this.#needsFit || this.status !== 'ready') return;
+    if (this.status !== 'ready') return;
+    if (!this.#needsFit) {
+      if (this.autoFit && !this.#userMoved) void this.fit({ animate: false });
+      return;
+    }
     // A selection made before the first layout (deep link, `kgdiff-ready` handler) wins.
     const target = this.#selectionBounds();
     if (target) {
@@ -520,17 +576,16 @@ export class ViewerController {
       this.#flyTo(target, { animate: false });
       return;
     }
-    const bounds = this.#contentBounds();
-    const padding = bounds ? this.#frameInsets(bounds, FIT_MAX_ZOOM) : null;
+    const fit = this.#fitTarget();
     const camera = this.#renderer?.camera;
-    if (!bounds || !padding || !camera) return;
-    this.#needsFit = false;
-    void camera.fit(bounds, { animate: false, padding, maxZoom: FIT_MAX_ZOOM });
+    if (!fit || !camera) return;
+    void this.#fitTo(camera, fit, { animate: false });
   }
 
   /** The user panned / zoomed: suspend replay camera follow for `USER_CAMERA_GRACE`. */
   noteUserCamera(): void {
     this.#lastUserCamera = this.#deps.now();
+    this.#userMoved = true;
   }
 
   // ─── Frame loop ───────────────────────────────────────────────────────────
@@ -559,7 +614,11 @@ export class ViewerController {
       this.#notify('replay');
       this.#follow();
       if (clock.playing) animating = true;
-      else if (clock.finished) this.#host.announce(translate(this.locale, 'announce.finished'));
+      else if (clock.finished) this.#ended();
+    }
+    if (!Number.isNaN(this.#restartAt) && !this.#held) {
+      if (now >= this.#restartAt) this.#loopAgain();
+      else animating = true;
     }
     if (this.#emphasisAnim) {
       const a = this.#emphasisAnim;
@@ -665,7 +724,11 @@ export class ViewerController {
     const mode = toMode(value);
     if (mode === null || mode === this.mode) return;
     this.mode = mode;
-    if (mode !== 'replay') this.clock?.pause();
+    if (mode !== 'replay') {
+      this.clock?.pause();
+      this.#restartAt = Number.NaN;
+      this.#resume = false;
+    }
     this.#followed = '';
     this.#updateFocus();
     this.#minimapDirty = true;
@@ -677,6 +740,7 @@ export class ViewerController {
         translate(this.locale, 'announce.mode', { mode: translate(this.locale, `mode.${mode}`) }),
       );
     }
+    if (mode === 'replay') this.#autoplay();
   }
 
   // ─── Selection ────────────────────────────────────────────────────────────
@@ -719,6 +783,8 @@ export class ViewerController {
       if (this.mode === 'replay' && this.clock) {
         const end = this.clock.windowEnd(h);
         this.clock.pause();
+        this.#restartAt = Number.NaN;
+        this.#resume = false;
         if (end !== null) this.clock.seek(end);
         this.#followed = '';
         this.#notify('replay');
@@ -933,41 +999,64 @@ export class ViewerController {
   }
 
   /**
-   * Fit everything visible (the focus in changes-only mode) into the free part of the canvas.
-   * Before the canvas is laid out it falls back to the renderer's own fit.
+   * Fit everything visible (the focus in changes-only mode), labels included, into the free part
+   * of the canvas. Before the canvas is laid out it falls back to the renderer's own fit.
    */
-  fit(options: { readonly animate?: boolean } = {}): Promise<void> {
+  fit(options: FitOptions = {}): Promise<void> {
     const camera = this.#renderer?.camera;
     if (!camera) return Promise.resolve();
-    const bounds = this.#contentBounds();
-    const padding = bounds ? this.#frameInsets(bounds, FIT_MAX_ZOOM) : null;
-    if (!bounds || !padding) return camera.fit(undefined, options);
-    this.#needsFit = false;
-    return camera.fit(bounds, { ...options, padding, maxZoom: FIT_MAX_ZOOM });
+    const { padding, ...transition } = options;
+    if (padding !== undefined) {
+      this.#fitPadding = Number.isFinite(padding) && padding >= 0 ? padding : FRAME_PADDING;
+    }
+    const fit = this.#fitTarget();
+    if (!fit) return camera.fit(undefined, transition);
+    return this.#fitTo(camera, fit, transition);
   }
 
-  /** Bounds of what is drawn: the scene, or the visible part of the changes-only focus. */
-  #contentBounds(): Rect | null {
-    const scene = this.scene;
-    if (!scene) return null;
-    const focus = this.focus;
-    if (!focus) return frameBounds(scene);
-    let x0 = Number.POSITIVE_INFINITY;
-    let y0 = Number.POSITIVE_INFINITY;
-    let x1 = Number.NEGATIVE_INFINITY;
-    let y1 = Number.NEGATIVE_INFINITY;
-    const add = (x: number, y: number, rx: number, top: number, bottom: number): void => {
-      x0 = Math.min(x0, x - rx);
-      x1 = Math.max(x1, x + rx);
-      y0 = Math.min(y0, y - top);
-      y1 = Math.max(y1, y + bottom);
-    };
-    // Labels sit centered below their node: leave room for a typical one.
-    for (const n of scene.nodes)
-      if (focus.nodes[n.index] === 1) add(n.x, n.y, n.r + 48, n.r, n.r + 24);
-    for (const g of focus.collapsed) add(g.x, g.y, 48, 12, 12);
-    if (!(x0 <= x1)) return frameBounds(scene);
-    return padRect({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, 160, 1.12);
+  #fitTo(
+    camera: Camera,
+    fit: { readonly bounds: Rect; readonly insets: Insets },
+    transition: { readonly animate?: boolean },
+  ): Promise<void> {
+    this.#needsFit = false;
+    this.#userMoved = false;
+    return camera.fit(fit.bounds, { ...transition, padding: fit.insets, maxZoom: FIT_MAX_ZOOM });
+  }
+
+  /**
+   * Bounds and insets that show everything visible (the changes-only focus) with every label
+   * in its spot below its node, clear of the chrome, or null before layout. Measured in the
+   * union layer, which holds every state a replay or swipe passes through. Insets depend on
+   * what is framed, which depends on the zoom they allow: they are settled once more.
+   */
+  #fitTarget(): { bounds: Rect; insets: Insets } | null {
+    const layout = this.#chrome?.();
+    const resolver = this.resolver;
+    if (!layout || !resolver || !(layout.width > 0) || !(layout.height > 0)) return null;
+    const frame = resolver.resolve(
+      createViewState({
+        layer: 'union',
+        focus: this.focus,
+        families: this.families,
+        reducedMotion: this.reducedMotion,
+      }),
+    );
+    const footprint = labelFootprint(frame, this.theme);
+    const extent = (k: number): Rect | null => footprint.at(k);
+    const discs = extent(Number.POSITIVE_INFINITY);
+    if (!discs) return null;
+    const { width, height } = layout;
+    const padding = this.#fitPadding;
+    let insets = chromeInsets(discs, layout, padding, FIT_MAX_ZOOM);
+    let fit = zoomFit(extent, width, height, insets, FIT_MAX_ZOOM);
+    if (!fit) return null;
+    const settled = chromeInsets(fit.content, layout, padding, FIT_MAX_ZOOM);
+    if (!sameInsets(settled, insets)) {
+      insets = settled;
+      fit = zoomFit(extent, width, height, insets, FIT_MAX_ZOOM) ?? fit;
+    }
+    return { bounds: fit.bounds, insets };
   }
 
   zoom(direction: 1 | -1): void {
@@ -1014,6 +1103,7 @@ export class ViewerController {
   }
 
   #onCanvasClick(pick: PickResult | null): void {
+    if (!this.selectOnClick) return;
     if (!pick) {
       this.clearSelection();
       return;
@@ -1038,7 +1128,7 @@ export class ViewerController {
   }
 
   #onCanvasDblClick(pick: PickResult | null): void {
-    if (pick?.type !== 'node') return;
+    if (!this.selectOnClick || pick?.type !== 'node') return;
     const n = this.scene?.nodes[pick.index];
     if (!n) return;
     if (n.hunk >= 0) this.flyToHunk(n.hunk);
@@ -1230,6 +1320,8 @@ export class ViewerController {
     const clock = this.clock;
     if (!clock || this.status !== 'ready') return;
     if (this.mode !== 'replay') this.setMode('replay');
+    this.#restartAt = Number.NaN;
+    this.#resume = false;
     clock.play();
     this.#followed = '';
     this.#lastTick = 0;
@@ -1237,7 +1329,10 @@ export class ViewerController {
     this.invalidate();
   }
 
+  /** Pause; a looping replay stays paused (until `play`, a new diff or loop turned on again). */
   pause(): void {
+    this.#restartAt = Number.NaN;
+    this.#resume = false;
     if (!this.clock?.playing) return;
     this.clock.pause();
     this.#notify('replay');
@@ -1249,9 +1344,73 @@ export class ViewerController {
     else this.play();
   }
 
+  /**
+   * Play the replay over and over: `delay` ms after it ends it starts again; null plays it
+   * once. Turning the loop on starts a replay that is shown but not playing.
+   */
+  setLoop(delay: number | null): void {
+    const was = this.#loopDelay;
+    this.#loopDelay = delay === null ? null : Number.isFinite(delay) ? Math.max(0, delay) : 0;
+    if (this.#loopDelay === null) this.#restartAt = Number.NaN;
+    else if (was === null) this.#autoplay();
+  }
+
+  get loopDelay(): number | null {
+    return this.#loopDelay;
+  }
+
+  /**
+   * Hold playback while the pointer rests on the graph (`pause-on-hover`): a playing replay
+   * pauses and continues on release; a pending loop restart waits for the release, then the
+   * full loop delay.
+   */
+  hold(held: boolean): void {
+    if (held === this.#held) return;
+    this.#held = held;
+    const clock = this.clock;
+    if (held) {
+      if (!clock?.playing) return;
+      clock.pause();
+      this.#resume = true;
+      this.#notify('replay');
+      this.invalidate();
+      return;
+    }
+    if (!Number.isNaN(this.#restartAt) && this.#loopDelay !== null) {
+      this.#restartAt = this.#deps.now() + this.#loopDelay;
+      this.#schedule();
+    }
+    if (this.#resume) this.play();
+  }
+
+  /** Looping and showing a replay that is not playing: start it (or after the hold). */
+  #autoplay(): void {
+    if (this.#loopDelay === null || this.status !== 'ready' || this.mode !== 'replay') return;
+    if (!this.clock || this.clock.playing || !Number.isNaN(this.#restartAt)) return;
+    if (this.#held) this.#resume = true;
+    else this.play();
+  }
+
+  /** Playback reached the end: announce it, tell the host and arm the loop restart. */
+  #ended(): void {
+    this.#host.announce(translate(this.locale, 'announce.finished'));
+    const loop = this.#loopDelay !== null;
+    // Armed first, so a `kgdiff-replay-end` listener can still cancel it (pause, loop off).
+    if (loop) this.#restartAt = this.#deps.now() + (this.#loopDelay ?? 0);
+    this.#host.replayEnd(loop);
+  }
+
+  #loopAgain(): void {
+    this.#restartAt = Number.NaN;
+    if (this.autoFit) void this.fit();
+    this.clock?.seek(0);
+    this.play();
+  }
+
   seek(t: number): void {
     const clock = this.clock;
     if (!clock) return;
+    this.#restartAt = Number.NaN;
     clock.seek(t);
     this.#notify('replay');
     this.#follow();
@@ -1262,6 +1421,8 @@ export class ViewerController {
     const clock = this.clock;
     if (!clock) return;
     clock.step(direction);
+    this.#restartAt = Number.NaN;
+    this.#resume = false;
     this.#followed = '';
     // Follow (and announce) the hunk that just completed: stops sit at window ends.
     const w = clock.timeline.windows[clock.position() - 1];
@@ -1383,6 +1544,10 @@ export class ViewerController {
 
 function isString(x: string | undefined): x is string {
   return x !== undefined;
+}
+
+function sameInsets(a: Insets, b: Insets): boolean {
+  return a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
 }
 
 /** Pad a small rect so a node is shown with its neighbourhood. */

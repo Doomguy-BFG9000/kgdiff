@@ -43,6 +43,11 @@ createMinimap(document.getElementById('minimap') as HTMLElement, renderer).updat
 `setFrame` only marks the view dirty; drawing happens on the next animation frame and the loop
 sleeps when nothing changes. Pass `{ split, before, after }` to `setFrame` for a swipe view.
 
+Labels keep their pixel size at any zoom and move beside their node when the spot below is
+taken, so fitting node positions alone can clip the labels of the outermost nodes.
+`labelFootprint(frame, theme).at(k)` runs the renderer's label placement at zoom `k` and returns
+the world rect the discs, labels and badges cover, for fits that keep every label in view.
+
 ## Learn more
 
 - [Visual language § Level of detail and label placement](../../docs/visual-language.md#level-of-detail-and-label-placement)

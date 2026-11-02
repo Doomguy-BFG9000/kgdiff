@@ -176,6 +176,7 @@ class CanvasRenderer implements Renderer {
     );
     this.res = new Resources(deps.surfaceFactory ?? domSurfaceFactory, this.theme, this.ctx);
     this.painter = new Painter(this.res);
+    this.painter.labelsInside = options.labelsInside ?? false;
 
     this.observeSize();
     this.watchPixelRatio();
@@ -255,6 +256,13 @@ class CanvasRenderer implements Renderer {
 
   setSafeArea(area: { top: number; right: number; bottom: number; left: number }): void {
     this.safe = { top: area.top, right: area.right, bottom: area.bottom, left: area.left };
+  }
+
+  setLabelsInside(inside: boolean): void {
+    if (this.destroyed || this.painter.labelsInside === inside) return;
+    this.painter.labelsInside = inside;
+    this.dirty = true;
+    this.requestRender();
   }
 
   pick(x: number, y: number): PickResult | null {

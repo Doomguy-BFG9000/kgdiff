@@ -27,6 +27,10 @@ import { viewerTags } from './registry.js';
 
 export type ViewerMode = 'overlay' | 'swipe' | 'replay' | 'changes';
 export type ThemePreference = 'auto' | 'light' | 'dark';
+/** `none`: the graph alone, for small embeds (see `KgdiffViewerElement.chrome`). */
+export type ViewerChrome = 'full' | 'none';
+/** The legend card, one line of dots, no legend, or `auto` (the card, one line without chrome). */
+export type ViewerLegend = 'auto' | 'full' | 'mini' | 'none';
 
 /** A precomputed diff + layout: what the CLI embeds in HTML reports. Deterministic. */
 export interface ReportPayload {
@@ -83,6 +87,18 @@ export interface KgdiffViewerEventMap {
     readonly progress: ReviewState;
   }>;
   'kgdiff-error': CustomEvent<{ readonly error: Error }>;
+  /**
+   * Playback reached the end of the replay (not fired for seeking or stepping there). `loop`:
+   * it starts again after `loopDelay` ms; set `loop = false` or call `pause()` to stop it.
+   */
+  'kgdiff-replay-end': CustomEvent<{ readonly loop: boolean }>;
+}
+
+export interface FitOptions {
+  /** Default true (false with reduced motion). */
+  readonly animate?: boolean;
+  /** Room kept around the graph and its labels, px. Default 24; later automatic fits keep it. */
+  readonly padding?: number;
 }
 
 /**
@@ -96,6 +112,9 @@ export interface KgdiffViewerEventMap {
  *
  * `header="compact"` leaves the brand and the compared names out of the header, for hosts that
  * show their own (such as the playground).
+ *
+ * A small looping replay for another page: `mode="replay" chrome="none" loop` (with a height of
+ * your choosing, such as 320px).
  */
 export interface KgdiffViewerElement extends HTMLElement {
   /** Reflected to the `mode` attribute. Default `overlay` (`changes` for large graphs). */
@@ -106,6 +125,32 @@ export interface KgdiffViewerElement extends HTMLElement {
   palette: PaletteName;
   /** Reflected to the `locale` attribute. Default from `navigator.language`. */
   locale: Locale;
+  /**
+   * Reflected to the `chrome` attribute. `none` shows the graph alone: no header, change list,
+   * step caption, playback bar, zoom buttons, minimap or legend card; the hover tooltip and a
+   * one-line legend stay. Clicks and keyboard shortcuts do nothing, the minimum height drops
+   * from 420px to 120px, and the view stays fitted: when the canvas is resized (unless the user
+   * panned or zoomed since) and at the start of every loop. Labels are never cut at the edge:
+   * one pushed from its spot by a neighbour moves inside or is left out. Default `full`.
+   */
+  chrome: ViewerChrome;
+  /**
+   * Reflected to the `legend` attribute: `full` (the card), `mini` (one line: the families this
+   * diff has, then unchanged), `none`. Default `auto`: `full`, or `mini` with `chrome="none"`.
+   */
+  legend: ViewerLegend;
+  /**
+   * Reflected to the boolean `loop` attribute. In `replay` mode the replay plays by itself and
+   * starts again `loopDelay` ms after it ends. `pause()` stops it until `play()`. Default false.
+   */
+  loop: boolean;
+  /** Reflected to `loop-delay`: ms between the end of a looping replay and its restart. Default 1200. */
+  loopDelay: number;
+  /**
+   * With `loop`, the replay pauses while the pointer is over the graph and continues when it
+   * leaves (a mouse or pen; not touch). Reflected as `pause-on-hover="false"` when off. Default true.
+   */
+  pauseOnHover: boolean;
   /** Set a precomputed report (no diff / layout work in the browser). */
   payload: ReportPayload | null;
   /** Parse (if needed), diff, lay out and show two graphs. Rejects with a KgdiffError on bad input. */
@@ -116,7 +161,8 @@ export interface KgdiffViewerElement extends HTMLElement {
   prev(): void;
   play(): void;
   pause(): void;
-  fit(): Promise<void>;
+  /** Fit the whole graph, labels included, into view. */
+  fit(options?: FitOptions): Promise<void>;
   /** The full delta of the current diff. */
   exportDelta(): Delta;
   reviewState(): ReviewState;

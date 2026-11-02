@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
 /**
  * Dev harness: every example dataset (examples/datasets + the synthetic 10k graph) with its
- * meta.json options, locale / theme / palette / width toggles, payload import / export and a
- * report round-trip through an embedded gzip-base64 payload. Choices persist in the URL.
+ * meta.json options, locale / theme / palette / width toggles, an 800 × 320 looping replay strip
+ * (`chrome="none" loop`), payload import / export and a report round-trip through an embedded
+ * gzip-base64 payload. Choices persist in the URL.
  */
 import { diffToJSON, type GraphInput, type Locale } from '@kgdiff/core';
 import { layoutToJSON } from '@kgdiff/layout';
@@ -86,6 +87,7 @@ const localeSelect = $<HTMLSelectElement>('locale');
 const themeSelect = $<HTMLSelectElement>('theme');
 const paletteSelect = $<HTMLSelectElement>('palette');
 const widthSelect = $<HTMLSelectElement>('width');
+const embedSelect = $<HTMLSelectElement>('embed');
 
 function syncUrl(): void {
   const p = new URLSearchParams();
@@ -94,6 +96,7 @@ function syncUrl(): void {
   p.set('theme', themeSelect.value);
   if (paletteSelect.value !== 'default') p.set('palette', paletteSelect.value);
   if (widthSelect.value !== 'full') p.set('width', widthSelect.value);
+  if (embedSelect.value !== 'off') p.set('embed', embedSelect.value);
   history.replaceState(null, '', `?${p.toString()}${location.hash}`);
 }
 
@@ -107,6 +110,7 @@ localeSelect.value = params.get('locale') ?? (navigator.language.startsWith('zh'
 themeSelect.value = params.get('theme') ?? 'auto';
 paletteSelect.value = params.get('palette') ?? 'default';
 widthSelect.value = params.get('width') ?? 'full';
+embedSelect.value = params.get('embed') ?? 'off';
 datasetSelect.value = params.get('dataset') ?? all[0]?.key ?? '';
 
 viewer.locale = localeSelect.value as Locale;
@@ -119,6 +123,15 @@ function applyWidth(): void {
   frame.classList.toggle('tablet', widthSelect.value === 'tablet');
 }
 applyWidth();
+
+function applyEmbed(): void {
+  const strip = embedSelect.value === 'strip';
+  $('frame').classList.toggle('strip', strip);
+  viewer.chrome = strip ? 'none' : 'full';
+  viewer.loop = strip;
+  if (strip) viewer.mode = 'replay';
+}
+applyEmbed();
 
 async function source(d: Dataset, side: 'before' | 'after'): Promise<GraphSource> {
   const file = d.meta.files[side];
@@ -200,6 +213,10 @@ widthSelect.addEventListener('change', () => {
   applyWidth();
   syncUrl();
 });
+embedSelect.addEventListener('change', () => {
+  applyEmbed();
+  syncUrl();
+});
 
 $('load-payload').addEventListener('click', () => $('file').click());
 $<HTMLInputElement>('file').addEventListener('change', async (e) => {
@@ -256,6 +273,7 @@ for (const type of [
   'kgdiff-mode',
   'kgdiff-review',
   'kgdiff-error',
+  'kgdiff-replay-end',
 ]) {
   viewer.addEventListener(type, (e) => {
     const detail = (e as CustomEvent).detail as Record<string, unknown>;

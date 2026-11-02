@@ -1,7 +1,7 @@
 import type { Rect } from '@kgdiff/core';
 import { KgdiffError } from '@kgdiff/core';
-import type { SplitFrame } from '@kgdiff/renderer';
-import type { FrameVisuals } from '@kgdiff/scene';
+import { labelFootprint, type SplitFrame } from '@kgdiff/renderer';
+import { createViewState, type FrameVisuals } from '@kgdiff/scene';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { coverage, FLY_MAX_ZOOM, USER_CAMERA_GRACE, ViewerController } from '../src/controller.js';
 import { setRenderBackend } from '../src/renderer-port.js';
@@ -533,5 +533,216 @@ describe('coverage', () => {
     expect(coverage({ x: 50, y: 0, width: 100, height: 100 }, view)).toBe(0.5);
     expect(coverage({ x: 200, y: 200, width: 10, height: 10 }, view)).toBe(0);
     expect(coverage({ x: 10, y: 10, width: 0, height: 0 }, view)).toBe(1);
+  });
+});
+
+describe('label-aware fit', () => {
+  const free = () => ({ width: VIEWPORT.width, height: VIEWPORT.height, obstacles: [] });
+
+  /** A hub whose leaves carry long names, so the outermost labels reach past their discs. */
+  function longNames() {
+    const g = hub(14);
+    const rename = (n: { id: string; label?: string }) =>
+      n.id.startsWith('L') ? { ...n, label: `listed_top10_holder_${n.id}` } : n;
+    return {
+      before: { ...g.before, nodes: g.before.nodes.map(rename) },
+      after: { ...g.after, nodes: g.after.nodes.map(rename) },
+    };
+  }
+
+  it('keeps every node label inside a short canvas', async () => {
+    const saved = { ...VIEWPORT };
+    Object.assign(VIEWPORT, { width: 800, height: 320 });
+    try {
+      c.setChrome(free);
+      await c.load(longNames());
+      await new Promise((r) => setTimeout(r, 0));
+      const cam = backend.last().camera;
+      expect(cam.fits).toBe(1);
+      const frame = c.resolver?.resolve(createViewState({ layer: 'union' })) as FrameVisuals;
+      const { x, y, k } = cam.get();
+      const box = labelFootprint(frame, c.theme).at(k) as Rect;
+      const discs = labelFootprint(frame, c.theme).at(Infinity) as Rect;
+      // Labels are shown and reach past the discs, and all of it is in the canvas.
+      expect(box.width).toBeGreaterThan(discs.width + 50 / k);
+      expect((box.x - x) * k + VIEWPORT.width / 2).toBeGreaterThanOrEqual(24 - 1e-6);
+      expect((box.y - y) * k + VIEWPORT.height / 2).toBeGreaterThanOrEqual(24 - 1e-6);
+      expect((box.x + box.width - x) * k + VIEWPORT.width / 2).toBeLessThanOrEqual(776 + 1e-6);
+      expect((box.y + box.height - y) * k + VIEWPORT.height / 2).toBeLessThanOrEqual(296 + 1e-6);
+    } finally {
+      Object.assign(VIEWPORT, saved);
+    }
+  });
+
+  it('takes a padding and keeps it for later fits', async () => {
+    c.setChrome(free);
+    await c.load(zoo());
+    await new Promise((r) => setTimeout(r, 0));
+    const cam = backend.last().camera;
+    expect(cam.fitCalls.at(-1)?.options?.padding).toEqual({
+      top: 24,
+      right: 24,
+      bottom: 24,
+      left: 24,
+    });
+    await c.fit({ padding: 4, animate: false });
+    expect(cam.fitCalls.at(-1)?.options).toMatchObject({
+      animate: false,
+      padding: { top: 4, right: 4, bottom: 4, left: 4 },
+    });
+    await c.fit();
+    expect(cam.fitCalls.at(-1)?.options?.padding).toEqual({ top: 4, right: 4, bottom: 4, left: 4 });
+  });
+
+  it('with autoFit, fits again on resize until the user moves the camera', async () => {
+    c.setChrome(free);
+    c.autoFit = true;
+    await c.load(zoo());
+    await new Promise((r) => setTimeout(r, 0));
+    const r = backend.last();
+    expect(r.camera.fits).toBe(1);
+    c.layoutChanged();
+    expect(r.camera.fits).toBe(2);
+    r.emit('camera', { ...r.camera.state, source: 'user' });
+    c.layoutChanged();
+    expect(r.camera.fits).toBe(2);
+    c.autoFit = false;
+    await c.fit();
+    c.layoutChanged();
+    expect(r.camera.fits).toBe(3);
+  });
+
+  it('ignores canvas clicks when selecting on click is off', async () => {
+    await c.load(zoo());
+    c.selectOnClick = false;
+    backend.last().click({ type: 'node', index: 0 });
+    expect(c.selectedNode).toBe(-1);
+    expect(c.selectedHunk).toBe(-1);
+  });
+});
+
+describe('looping replay', () => {
+  const ends = () => host.events.filter((e) => e.type === 'replay-end');
+
+  /** Replay chosen by the embedder (explicit, so a new diff keeps it). */
+  function replayMode(): void {
+    c.explicit.add('mode');
+    c.setMode('replay');
+  }
+
+  /** Play until the clock stops (the replay ended). */
+  function playOut(): void {
+    deps.frame(16);
+    let guard = 0;
+    while (c.clock?.playing && guard++ < 10_000) deps.frame(100);
+  }
+
+  it('reports the end of a replay played once', async () => {
+    await c.load(zoo());
+    c.play();
+    playOut();
+    expect(c.clock?.finished).toBe(true);
+    expect(ends()).toEqual([{ type: 'replay-end', detail: { loop: false } }]);
+    deps.run(5000, 100);
+    expect(c.clock?.finished).toBe(true);
+    // Seeking or stepping to the end is not playback reaching it.
+    c.seek(0);
+    c.stepReplay(1);
+    c.seek(c.clock?.duration ?? 0);
+    expect(ends()).toHaveLength(1);
+  });
+
+  it('plays by itself and starts again after the loop delay', async () => {
+    replayMode();
+    c.setLoop(1200);
+    await c.load(zoo());
+    expect(c.clock?.playing).toBe(true);
+    playOut();
+    expect(ends()).toEqual([{ type: 'replay-end', detail: { loop: true } }]);
+    deps.frame(1100);
+    expect(c.clock?.finished).toBe(true);
+    deps.frame(150);
+    expect(c.clock?.playing).toBe(true);
+    expect(c.clock?.t).toBeLessThan(200);
+    playOut();
+    expect(ends()).toHaveLength(2);
+  });
+
+  it('starts when looping is turned on or the replay is shown, not in other modes', async () => {
+    await c.load(zoo());
+    c.setLoop(500);
+    expect(c.clock?.playing).toBe(false);
+    c.setMode('replay');
+    expect(c.clock?.playing).toBe(true);
+    c.setLoop(null);
+    c.pause();
+    c.setLoop(800);
+    expect(c.clock?.playing).toBe(true);
+    expect(c.loopDelay).toBe(800);
+  });
+
+  it('pause() stops the loop, including during the pause before the restart', async () => {
+    replayMode();
+    c.setLoop(1000);
+    await c.load(zoo());
+    playOut();
+    c.pause();
+    deps.run(3000, 100);
+    expect(c.clock?.finished).toBe(true);
+    c.play();
+    expect(c.clock?.playing).toBe(true);
+    c.pause();
+    deps.run(3000, 100);
+    expect(c.clock?.playing).toBe(false);
+  });
+
+  it('holds while the pointer is over the graph and continues after', async () => {
+    replayMode();
+    c.setLoop(1000);
+    await c.load(zoo());
+    deps.frame(16);
+    deps.frame(300);
+    const t = c.clock?.t ?? 0;
+    c.hold(true);
+    expect(c.clock?.playing).toBe(false);
+    deps.run(2000, 100);
+    expect(c.clock?.t).toBe(t);
+    c.hold(false);
+    expect(c.clock?.playing).toBe(true);
+    // Held during the pause before the restart: it waits, then the full delay after release.
+    playOut();
+    c.hold(true);
+    deps.frame(5000);
+    expect(c.clock?.finished).toBe(true);
+    c.hold(false);
+    deps.frame(16);
+    deps.frame(900);
+    expect(c.clock?.finished).toBe(true);
+    deps.frame(200);
+    expect(c.clock?.playing).toBe(true);
+  });
+
+  it('a held replay that is not playing stays put on release', async () => {
+    await c.load(zoo());
+    c.setMode('replay');
+    c.hold(true);
+    c.hold(false);
+    expect(c.clock?.playing).toBe(false);
+  });
+
+  it('with autoFit, every loop starts from the fitted view', async () => {
+    c.setChrome(() => ({ width: VIEWPORT.width, height: VIEWPORT.height, obstacles: [] }));
+    c.autoFit = true;
+    replayMode();
+    c.setLoop(50);
+    await c.load(zoo());
+    await new Promise((r) => setTimeout(r, 0));
+    const cam = backend.last().camera;
+    const before = cam.fits;
+    playOut();
+    expect(cam.fits).toBe(before);
+    deps.frame(100);
+    expect(c.clock?.playing).toBe(true);
+    expect(cam.fits).toBe(before + 1);
   });
 });

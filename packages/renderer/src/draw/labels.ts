@@ -11,6 +11,7 @@ import type { Ctx2D } from '../ctx.js';
 import type { FrameCache } from '../frame-cache.js';
 import {
   type CollisionGrid,
+  candidateBox,
   createRequest,
   type LabelClip,
   type LabelRequest,
@@ -70,7 +71,14 @@ function shown(l: LabelVisual | null, k: number, ownerAlpha: number): l is Label
 export class LabelPass {
   private readonly pool: LabelRequest[] = [];
   private readonly active: LabelRequest[] = [];
-  private readonly clip: LabelClip = { x0: 0, y0: 0, x1: 0, y1: 0, strictX: false };
+  private readonly clip: LabelClip = {
+    x0: 0,
+    y0: 0,
+    x1: 0,
+    y1: 0,
+    strictX: false,
+    strictY: false,
+  };
 
   /** Reset `grid` to the region and add node discs as obstacles. */
   begin(frame: FrameVisuals, cache: FrameCache, v: View, grid: CollisionGrid): void {
@@ -102,11 +110,7 @@ export class LabelPass {
     res: LabelResources,
     grid: CollisionGrid,
   ): void {
-    this.active.length = 0;
-    this.collectNodes(frame, v, res);
-    this.collectEdges(frame, v, res);
-    this.collectGlyphs(frame, cache, v, res);
-    this.collectPills(frame, v, res);
+    this.collect(frame, cache, v, res);
     const pills = frame.collapsed.length;
     if (cache.pillShown.length < pills) cache.pillShown = new Uint8Array(pills);
     cache.pillShown.fill(0, 0, pills);
@@ -118,8 +122,32 @@ export class LabelPass {
     clip.y0 = v.y0;
     clip.y1 = v.y1;
     clip.strictX = v.strictX;
+    clip.strictY = v.strictY;
     placeLabels(this.active, grid, clip);
     for (const req of this.active) if (req.placed && req.pill >= 0) cache.pillShown[req.pill] = 1;
+  }
+
+  /** Collect and measure the labels and pills shown in `v` (the first half of `place`). */
+  collect(frame: FrameVisuals, cache: FrameCache, v: View, res: LabelResources): void {
+    this.active.length = 0;
+    this.collectNodes(frame, v, res);
+    this.collectEdges(frame, v, res);
+    this.collectGlyphs(frame, cache, v, res);
+    this.collectPills(frame, v, res);
+  }
+
+  /**
+   * Grow `box` (x0, y0, x1, y1, screen px) by every collected block in its first-choice spot:
+   * centred below its node, or centred on its anchor.
+   */
+  extend(box: Float64Array): void {
+    for (const req of this.active) {
+      const { x, y } = candidateBox(req, req.mode === MODE_NODE ? SIDE_BELOW : SIDE_CENTER);
+      box[0] = Math.min(box[0]!, x);
+      box[1] = Math.min(box[1]!, y);
+      box[2] = Math.max(box[2]!, x + req.w);
+      box[3] = Math.max(box[3]!, y + req.h);
+    }
   }
 
   /** Draw the labels placed by `place`. Returns how many were drawn. */

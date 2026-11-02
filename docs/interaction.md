@@ -127,10 +127,18 @@ Shortcuts are ignored while typing in an input.
 Attributes / properties: `mode`, `theme` (`auto|light|dark`), `palette`, `locale` (`en|zh-CN`,
 default from `navigator.language`), `sidebar` (`open|closed`), `sync-hash` (deep links
 `#kgdiff=hunk:<id>;mode:<mode>`), `header` (`compact` leaves the brand and the compared names
-out, for hosts that show their own). Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`,
-`play()`, `pause()`, `fit()`, `exportDelta()`, `reviewState()`. Events (`CustomEvent`, bubbling,
-composed): `kgdiff-ready` `{ stats }`, `kgdiff-select` `{ hunk, node }`, `kgdiff-mode`
-`{ mode }`, `kgdiff-review` `{ hunk, reviewed, progress }`, `kgdiff-error` `{ error }`.
+out, for hosts that show their own), `chrome` (`none` shows the graph alone for small embeds:
+no header, change list, step caption, playback bar, zoom buttons, minimap or legend card; the
+hover tooltip and a one-line legend stay, clicks and shortcuts do nothing, the minimum height
+drops to 120px and the view stays fitted on resize and at each loop), `legend`
+(`auto|full|mini|none`), `loop` (the replay plays by itself and starts again after `loop-delay`
+ms, default 1200), `pause-on-hover` (`false` keeps a looping replay playing under the mouse).
+Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`, `play()`, `pause()`,
+`fit({ animate, padding })` (labels included), `exportDelta()`, `reviewState()`. Events
+(`CustomEvent`, bubbling, composed): `kgdiff-ready` `{ stats }`, `kgdiff-select`
+`{ hunk, node }`, `kgdiff-mode` `{ mode }`, `kgdiff-review` `{ hunk, reviewed, progress }`,
+`kgdiff-error` `{ error }`, `kgdiff-replay-end` `{ loop }` (playback reached the end; `loop`:
+it starts again).
 
 ## States
 

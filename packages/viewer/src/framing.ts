@@ -3,7 +3,8 @@
  * float over the canvas; a fit or flight must keep its target clear of them without wasting the
  * rest of the canvas. Each obstacle can be avoided through one side (an inset); all assignments
  * are tried (4ⁿ, n ≤ ~6 visible chips) and the one that shows `bounds` largest wins, ties going
- * to the free region closest to the canvas center. Pure; all sizes in canvas px.
+ * to the free region closest to the canvas center. `zoomFit` fits content whose world extent
+ * depends on the zoom (labels). Pure; all sizes in canvas px.
  */
 import type { Rect } from '@kgdiff/core';
 
@@ -137,6 +138,69 @@ export function frameTarget(
   const cx = bounds.x + bounds.width / 2;
   const cy = bounds.y + bounds.height / 2;
   return { x: cx - (sx - width / 2) / k, y: cy - (sy - height / 2) / k, k };
+}
+
+/** Lowest zoom a fit considers (the renderer's default `minZoom`). */
+const MIN_FIT_ZOOM = 0.05;
+/** Bisection steps for the zoom of a label-aware fit (a fraction of a percent). */
+const FIT_STEPS = 16;
+
+/** A fit whose content depends on the zoom it reaches. */
+export interface ZoomFit {
+  /** The zoom the fit lands on. */
+  readonly k: number;
+  /** What it shows (world units). */
+  readonly content: Rect;
+  /** Bounds for the camera: `content` centred in a rect that a fit lands on at exactly `k`. */
+  readonly bounds: Rect;
+}
+
+/**
+ * Fit content whose world extent depends on the zoom, `extent(k)`: labels keep their pixel size
+ * (and change sides as they make room for each other), so the further out the camera, the more
+ * world they cover. Finds the largest zoom up to `maxK` at which the content fits the canvas
+ * minus `insets` at that very zoom, by bisection (what fits only grows on screen as the camera
+ * zooms in), and lands exactly there, since the labels could move at another zoom. When not
+ * even the smallest zoom has room, `extent(Infinity)` (the discs alone) is fitted plainly.
+ */
+export function zoomFit(
+  extent: (k: number) => Rect | null,
+  width: number,
+  height: number,
+  insets: Insets,
+  maxK: number,
+): ZoomFit | null {
+  const fits = (k: number): boolean => {
+    const b = extent(k);
+    return b !== null && fitZoom(b, width, height, insets) >= k;
+  };
+  let k = maxK;
+  if (!fits(k)) {
+    let lo = Math.min(MIN_FIT_ZOOM, maxK);
+    if (!fits(lo)) {
+      const discs = extent(Number.POSITIVE_INFINITY);
+      if (!discs) return null;
+      return { k: fitZoom(discs, width, height, insets), content: discs, bounds: discs };
+    }
+    let hi = k;
+    for (let i = 0; i < FIT_STEPS; i++) {
+      const mid = Math.sqrt(lo * hi);
+      if (fits(mid)) lo = mid;
+      else hi = mid;
+    }
+    k = lo;
+  }
+  const content = extent(k);
+  if (!content) return null;
+  const w = (width - insets.left - insets.right) / k;
+  const h = (height - insets.top - insets.bottom) / k;
+  const bounds = {
+    x: content.x + content.width / 2 - w / 2,
+    y: content.y + content.height / 2 - h / 2,
+    width: w,
+    height: h,
+  };
+  return { k, content, bounds };
 }
 
 /** The part of `view` (world units) not covered by `insets` at zoom `k`. */

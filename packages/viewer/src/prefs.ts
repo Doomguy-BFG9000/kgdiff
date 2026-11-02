@@ -6,11 +6,22 @@
 import type { Locale } from '@kgdiff/core';
 import type { PaletteName } from '@kgdiff/scene';
 import { normalizeLocale } from './i18n.js';
-import type { ReportPayload, ThemePreference, ViewerMode } from './index.js';
+import type {
+  ReportPayload,
+  ThemePreference,
+  ViewerChrome,
+  ViewerLegend,
+  ViewerMode,
+} from './index.js';
 
 const MODES: readonly ViewerMode[] = ['overlay', 'swipe', 'replay', 'changes'];
 const THEMES: readonly ThemePreference[] = ['auto', 'light', 'dark'];
 const PALETTES: readonly PaletteName[] = ['default', 'colorblind'];
+const CHROMES: readonly ViewerChrome[] = ['full', 'none'];
+const LEGENDS: readonly ViewerLegend[] = ['auto', 'full', 'mini', 'none'];
+
+/** Pause between the end of a looping replay and its next start, ms. */
+export const DEFAULT_LOOP_DELAY = 1200;
 
 export const THEME_PREFERENCES = THEMES;
 
@@ -28,6 +39,20 @@ export function toPalette(value: unknown): PaletteName | null {
 
 export function toLocale(value: unknown): Locale | null {
   return typeof value === 'string' ? normalizeLocale(value) : null;
+}
+
+export function toChrome(value: unknown): ViewerChrome | null {
+  return CHROMES.includes(value as ViewerChrome) ? (value as ViewerChrome) : null;
+}
+
+export function toLegend(value: unknown): ViewerLegend | null {
+  return LEGENDS.includes(value as ViewerLegend) ? (value as ViewerLegend) : null;
+}
+
+/** A delay in ms (number or numeric string), at least 0. */
+export function toDelay(value: unknown): number | null {
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 type View = NonNullable<ReportPayload['view']>;

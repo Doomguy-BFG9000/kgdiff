@@ -21,7 +21,7 @@ const BUDGET_KB = 90;
  * official Node binaries CI installs produce about 0.6 kB more than a Node linked against the
  * system zlib (Homebrew's), so the ceiling leaves room above both.
  */
-const GUARD_KB = 98;
+const GUARD_KB = 100;
 
 afterAll(() => rmSync(outDir, { recursive: true, force: true }));
 

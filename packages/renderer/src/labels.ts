@@ -98,13 +98,17 @@ export function createRequest(): LabelRequest {
   };
 }
 
-/** Region labels must stay in. With `strictX`, boxes may not cross x0 / x1 (swipe divider). */
+/**
+ * Region labels must stay in. With `strictX`, boxes may not cross x0 / x1 (swipe divider); with
+ * `strictY`, not y0 / y1 (labels kept inside the canvas).
+ */
 export interface LabelClip {
   x0: number;
   y0: number;
   x1: number;
   y1: number;
   strictX: boolean;
+  strictY: boolean;
 }
 
 /** Uniform-grid index of occupied screen rectangles. */
@@ -135,6 +139,17 @@ export class CollisionGrid {
 
   get count(): number {
     return this.n;
+  }
+
+  /** Grow `box` (x0, y0, x1, y1) by every inserted rectangle. */
+  extend(box: Float64Array): void {
+    const r = this.rects;
+    for (let o = 0; o < this.n * 4; o += 4) {
+      box[0] = Math.min(box[0]!, r[o]!);
+      box[1] = Math.min(box[1]!, r[o + 1]!);
+      box[2] = Math.max(box[2]!, r[o]! + r[o + 2]!);
+      box[3] = Math.max(box[3]!, r[o + 1]! + r[o + 3]!);
+    }
   }
 
   insert(x: number, y: number, w: number, h: number): void {
@@ -255,6 +270,7 @@ export function placeLabels(
       const { w, h } = req;
       if (bx + w < clip.x0 || bx > clip.x1 || by + h < clip.y0 || by > clip.y1) continue;
       if (clip.strictX && (bx < clip.x0 || bx + w > clip.x1)) continue;
+      if (clip.strictY && (by < clip.y0 || by + h > clip.y1)) continue;
       if (grid.overlaps(bx, by, w, h)) continue;
       grid.insert(bx - LABEL_PAD, by - LABEL_PAD, w + 2 * LABEL_PAD, h + 2 * LABEL_PAD);
       req.placed = true;

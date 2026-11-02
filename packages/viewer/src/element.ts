@@ -9,16 +9,29 @@ import { h } from './dom.js';
 import { formatHash, parseHash } from './hash-sync.js';
 import { detectLocale, translate, translator } from './i18n.js';
 import type {
+  FitOptions,
   KgdiffViewerElement,
   LoadOptions,
   ReportPayload,
   ReviewState,
   ThemePreference,
+  ViewerChrome,
+  ViewerLegend,
   ViewerMode,
 } from './index.js';
 import { isTypingTarget, keyAction } from './keyboard.js';
 import { assertPayload } from './payload.js';
-import { THEME_PREFERENCES, toLocale, toMode, toPalette, toTheme } from './prefs.js';
+import {
+  DEFAULT_LOOP_DELAY,
+  THEME_PREFERENCES,
+  toChrome,
+  toDelay,
+  toLegend,
+  toLocale,
+  toMode,
+  toPalette,
+  toTheme,
+} from './prefs.js';
 import { defaultStorage } from './review-store.js';
 import { STYLES, themeVariables } from './styles.js';
 import type { UiContext } from './ui/context.js';
@@ -32,8 +45,31 @@ export const COMPACT_WIDTH = 760;
 /** Below this width the header drops the diffstat pills and version tags. */
 const NARROW_WIDTH = 1100;
 
-const OBSERVED = ['mode', 'theme', 'palette', 'locale', 'sidebar', 'sync-hash'] as const;
-const UPGRADED = ['mode', 'theme', 'palette', 'locale', 'payload'] as const;
+const OBSERVED = [
+  'mode',
+  'theme',
+  'palette',
+  'locale',
+  'sidebar',
+  'sync-hash',
+  'chrome',
+  'legend',
+  'loop',
+  'loop-delay',
+  'pause-on-hover',
+] as const;
+const UPGRADED = [
+  'mode',
+  'theme',
+  'palette',
+  'locale',
+  'chrome',
+  'legend',
+  'loop',
+  'loopDelay',
+  'pauseOnHover',
+  'payload',
+] as const;
 
 /** Keys the page itself scrolls with: never taken at document level. */
 const PAGE_KEYS: ReadonlySet<string> = new Set([
@@ -110,6 +146,8 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
   readonly #cleanup: (() => void)[] = [];
   #lastHash = '';
   #upgraded = false;
+  /** A mouse or pen rests on the graph (holds a looping replay with `pause-on-hover`). */
+  #pointerOver = false;
 
   constructor() {
     super();
@@ -128,6 +166,7 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
         this.#emit('kgdiff-review', { hunk, reviewed, progress }),
       error: (error) => this.#emit('kgdiff-error', { error }),
       announce: (text) => this.#announce(text),
+      replayEnd: (loop) => this.#emit('kgdiff-replay-end', { loop }),
     };
     this.controller = new ViewerController(host, {
       now: () => (typeof performance !== 'undefined' ? performance.now() : Date.now()),
@@ -165,8 +204,10 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     // The graph takes keyboard focus (shortcuts apply where focus is), also on click.
     const canvas = ui.stage.canvasHost.querySelector('canvas');
     if (canvas) {
-      canvas.tabIndex = 0;
-      const focusCanvas = (): void => canvas.focus({ preventScroll: true });
+      canvas.tabIndex = this.chrome === 'none' ? -1 : 0;
+      const focusCanvas = (): void => {
+        if (this.chrome !== 'none') canvas.focus({ preventScroll: true });
+      };
       canvas.addEventListener('pointerdown', focusCanvas);
       this.#cleanup.push(() => canvas.removeEventListener('pointerdown', focusCanvas));
     }
@@ -206,6 +247,9 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     if (i >= 0) connected.splice(i, 1);
     for (const fn of this.#cleanup.splice(0)) fn();
     this.controller.detach();
+    // Moved while hovered: no pointerleave follows.
+    this.#pointerOver = false;
+    this.#applyHold();
   }
 
   attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
@@ -222,6 +266,18 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
         break;
       case 'sync-hash':
         if (value !== null) this.#readHash();
+        break;
+      case 'chrome':
+      case 'legend':
+        this.#applyChrome();
+        break;
+      case 'loop':
+      case 'loop-delay':
+        this.controller.setLoop(this.loop ? this.loopDelay : null);
+        this.#applyHold();
+        break;
+      case 'pause-on-hover':
+        this.#applyHold();
         break;
       default:
         break;
@@ -307,6 +363,52 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     this.#applyPreference('locale', value, true);
   }
 
+  get chrome(): ViewerChrome {
+    return toChrome(this.getAttribute('chrome')) ?? 'full';
+  }
+
+  set chrome(value: ViewerChrome) {
+    this.#reflect('chrome', toChrome(value) === 'none' ? 'none' : null);
+    this.#applyChrome();
+  }
+
+  get legend(): ViewerLegend {
+    return toLegend(this.getAttribute('legend')) ?? 'auto';
+  }
+
+  set legend(value: ViewerLegend) {
+    const v = toLegend(value);
+    this.#reflect('legend', v === 'auto' ? null : v);
+    this.#applyChrome();
+  }
+
+  get loop(): boolean {
+    return this.hasAttribute('loop');
+  }
+
+  set loop(value: boolean) {
+    this.toggleAttribute('loop', Boolean(value));
+  }
+
+  get loopDelay(): number {
+    return toDelay(this.getAttribute('loop-delay')) ?? DEFAULT_LOOP_DELAY;
+  }
+
+  set loopDelay(value: number) {
+    const v = toDelay(value);
+    if (v === null) this.removeAttribute('loop-delay');
+    else this.setAttribute('loop-delay', String(v));
+  }
+
+  get pauseOnHover(): boolean {
+    return this.getAttribute('pause-on-hover') !== 'false';
+  }
+
+  set pauseOnHover(value: boolean) {
+    if (value) this.removeAttribute('pause-on-hover');
+    else this.setAttribute('pause-on-hover', 'false');
+  }
+
   get payload(): ReportPayload | null {
     return this.#currentPayload;
   }
@@ -353,8 +455,8 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     this.controller.pause();
   }
 
-  fit(): Promise<void> {
-    return this.controller.fit();
+  fit(options?: FitOptions): Promise<void> {
+    return this.controller.fit(options);
   }
 
   exportDelta(): Delta {
@@ -415,6 +517,34 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     ui.header.setSidebarState(this.#sidebarOpen);
   }
 
+  /**
+   * `chrome` and `legend`: what the stage shows, whether clicks select, whether the view stays
+   * fitted. The CSS hides the rest (`.root[data-chrome="none"]`).
+   */
+  #applyChrome(): void {
+    const bare = this.chrome === 'none';
+    const c = this.controller;
+    c.autoFit = bare;
+    c.selectOnClick = !bare;
+    c.setLabelsInside(bare);
+    const ui = this.#ui;
+    if (!ui) return;
+    ui.root.dataset.chrome = this.chrome;
+    const legend = this.legend;
+    ui.stage.setChrome(legend === 'auto' ? (bare ? 'mini' : 'full') : legend, !bare);
+    const canvas = ui.stage.canvasHost.querySelector('canvas');
+    if (canvas) canvas.tabIndex = bare ? -1 : 0;
+    if (bare) {
+      ui.help.hide();
+      this.#toggleMenu(false);
+    }
+  }
+
+  /** Hold a looping replay while the pointer is over the graph (`pause-on-hover`). */
+  #applyHold(): void {
+    this.controller.hold(this.#pointerOver && this.loop && this.pauseOnHover);
+  }
+
   #build(): void {
     const style = h('style', { text: STYLES });
     const vars = h('style');
@@ -463,7 +593,15 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
       const path = e.composedPath();
       if (!path.includes(menu.el) && !path.includes(header.menuButton)) this.#toggleMenu(false);
     });
+    const hover = (over: boolean) => (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      this.#pointerOver = over;
+      this.#applyHold();
+    };
+    stage.el.addEventListener('pointerenter', hover(true));
+    stage.el.addEventListener('pointerleave', hover(false));
     this.#applySidebar();
+    this.#applyChrome();
   }
 
   /** Render, never throwing: a failure shows the error state with safe appearance defaults. */
@@ -563,13 +701,15 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
       this.controller.layoutChanged();
     });
     ro.observe(this);
+    // The canvas also changes size without the element (chrome shown or hidden).
+    if (this.#ui) ro.observe(this.#ui.stage.el);
     this.#cleanup.push(() => ro.disconnect());
   }
 
   #onKeyDown(e: KeyboardEvent): void {
     if (e.defaultPrevented || e.isComposing) return;
     const ui = this.#ui;
-    if (!ui) return;
+    if (!ui || this.chrome === 'none') return;
     const path = e.composedPath();
     if (!path.includes(this)) {
       // Outside the component only with `global-shortcuts`, when nothing else has focus, for
