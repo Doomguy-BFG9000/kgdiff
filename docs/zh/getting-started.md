@@ -144,6 +144,6 @@ kgdiff committed.ttl regenerated.ttl --exit-code -q && echo "没有变化"
 
 ## 下一步
 
-- [在 CI 中审阅变更](./guide/ci.md)：每个 PR 上都有一份摘要，报告作为工件保存。
+- [在 CI 中审阅变更](./guide/ci.md)：每个 PR 上都有摘要和评论，报告作为工件保存。
 - [配合 git 使用](./guide/git.md)：让 `git diff` 和 `git difftool` 用上 kgdiff。
 - [命令行参考](./cli.md)：全部选项。

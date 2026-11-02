@@ -1,0 +1,140 @@
+name: kgdiff
+description: Semantic diff of knowledge graph files on pull requests, as a summary, a PR comment and an interactive report.
+author: iiwish
+branding:
+  icon: git-pull-request
+  color: purple
+
+# Docs: docs/guide/ci.md. The steps run action/main.mjs; inputs reach it through `env`, never
+# through `${{ }}` inside a script.
+
+inputs:
+  files:
+    description: >-
+      Graph files to compare with their version in the base commit, one per line, relative to
+      working-directory. Glob patterns (*, **, ?, [...]) match files in the checkout and in the
+      base commit, so deleted files are compared too. A file the base does not have is compared
+      with an empty graph.
+    required: true
+  base:
+    description: >-
+      Branch, tag or commit to compare with. Default: the base branch of the pull request (the
+      commit its merge commit was built on); on push, the commit before the push.
+    required: false
+    default: ""
+  version:
+    description: >-
+      @kgdiff/cli version to run with npx: a version, range or tag. Default: the version this
+      action was released with.
+    required: false
+    default: ""
+  args:
+    description: >-
+      More kgdiff options, e.g. --match similarity --hierarchy rdfs:subClassOf --lang zh,en.
+      Split on whitespace, quotes group words, nothing is expanded.
+    required: false
+    default: ""
+  comment:
+    description: >-
+      Post the summary as a pull request comment once a graph changed, and update that comment
+      in place on later runs. Needs `pull-requests: write`; skipped for pull requests from
+      forks, whose token is read-only.
+    required: false
+    default: "true"
+  fail-on-changes:
+    description: >-
+      Fail when a graph changed (kgdiff --exit-code), once the summary, the report and the
+      comment are written.
+    required: false
+    default: "false"
+  name:
+    description: >-
+      Name of the report artifact: <name>.html for one report, a zip <name> for several. Runs of
+      the action in one workflow that set different names keep separate artifacts and comments.
+    required: false
+    default: kgdiff-report
+  locale:
+    description: Language of the summary, the comment and the report, en or zh-CN.
+    required: false
+    default: en
+  working-directory:
+    description: The Git checkout; files are relative to it.
+    required: false
+    default: .
+  token:
+    description: Token for the pull request comment.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  changed:
+    description: "`true` when at least one graph changed, else `false`."
+    value: ${{ steps.diff.outputs.changed }}
+  summary-file:
+    description: The Markdown summary, as a file.
+    value: ${{ steps.diff.outputs.summary-file }}
+  artifact-url:
+    description: Download URL of the report artifact; empty when no graph changed.
+    value: ${{ steps.upload.outputs.artifact-url }}
+  comment-url:
+    description: URL of the pull request comment, when this run created or updated it.
+    value: ${{ steps.comment.outputs.comment-url }}
+
+runs:
+  using: composite
+  steps:
+    - id: node
+      shell: bash
+      run: |
+        # kgdiff needs Node.js 22 or later.
+        if node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' 2>/dev/null; then
+          echo "setup=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "setup=true" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.node.outputs.setup == 'true'
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+        package-manager-cache: false
+
+    - id: diff
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_FAIL_ON_CHANGES: ${{ inputs.fail-on-changes }}
+        INPUT_NAME: ${{ inputs.name }}
+        INPUT_LOCALE: ${{ inputs.locale }}
+      run: node "$GITHUB_ACTION_PATH/action/main.mjs" diff
+
+    - id: upload
+      if: steps.diff.outputs.report-path != ''
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ steps.diff.outputs.report-path }}
+        # One report is uploaded as is (a click downloads the HTML file), several as a zip.
+        archive: ${{ steps.diff.outputs.archive }}
+        if-no-files-found: error
+
+    # Still comment, and still explain the result, when the upload failed.
+    - id: comment
+      if: ${{ !cancelled() && steps.diff.outputs.comment == 'true' }}
+      shell: bash
+      env:
+        KGDIFF_STATE: ${{ steps.diff.outputs.state }}
+        ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        INPUT_TOKEN: ${{ inputs.token }}
+      run: node "$GITHUB_ACTION_PATH/action/main.mjs" comment
+
+    - if: ${{ !cancelled() && steps.diff.outputs.state != '' }}
+      shell: bash
+      env:
+        KGDIFF_STATE: ${{ steps.diff.outputs.state }}
+        ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+      run: node "$GITHUB_ACTION_PATH/action/main.mjs" finish

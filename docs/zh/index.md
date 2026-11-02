@@ -39,7 +39,7 @@ kgdiff  企业信用知识图谱本体 v12 → v13                              
 | 你想要……                       | 用什么                                                                 |
 | ------------------------------ | ---------------------------------------------------------------------- |
 | 看两个文件之间变了什么         | 命令行：[快速开始](./getting-started.md)                               |
-| 在每个修改图谱的 PR 上说明变化 | [在 CI 中](./guide/ci.md)运行命令行                                    |
+| 在每个修改图谱的 PR 上说明变化 | [GitHub Action](./guide/ci.md)，或在其他 CI 中运行命令行               |
 | 直观地浏览差异                 | HTML 报告（`-o report.html`）或 [Playground](/playground.html?lang=zh) |
 | 在自己的应用里展示差异         | [`<kgdiff-viewer>` Web 组件](./guide/viewer.md)                        |
 | 在代码里比较图                 | [各个库](./guide/library.md)                                           |
