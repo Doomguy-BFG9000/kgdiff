@@ -1,10 +1,15 @@
 /**
  * Golden outputs for two featured datasets, with each dataset's meta.json options. Review the
  * files under `__snapshots__/` when the diff engine or the layout of the summary changes
- * (`pnpm vitest run packages/cli -u` updates them).
+ * (`pnpm vitest run packages/cli -u` updates them). The CLI version reads `<version>` in them,
+ * so that a release leaves them alone.
  */
 import { describe, expect, it } from 'vitest';
+import { cliVersion } from '../src/version.js';
 import { dataset, run } from './helpers.js';
+
+/** The Markdown footer names the CLI version, which every release changes. */
+const VERSION = `kgdiff ${cliVersion()}`;
 
 const CASES = [
   { id: 'enterprise-kg', locale: 'zh-CN' },
@@ -26,7 +31,8 @@ describe.each(CASES)('$id ($locale)', ({ id, locale }) => {
     const r = await run([...base, ...flags], { env: { COLUMNS: '100' } });
     expect(r.code, r.stderr).toBe(0);
     expect(r.stderr).toBe('');
-    await expect(r.stdout).toMatchFileSnapshot(`__snapshots__/${id}.${name}.${ext}`);
+    const out = r.stdout.replaceAll(VERSION, 'kgdiff <version>');
+    await expect(out).toMatchFileSnapshot(`__snapshots__/${id}.${name}.${ext}`);
   });
 
   it('summary in color (truecolor)', async () => {
