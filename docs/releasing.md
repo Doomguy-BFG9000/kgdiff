@@ -12,7 +12,8 @@ report payload ties core, layout and scene together, so "kgdiff 0.3.1" names one
    bumps. Docs-, test- and tooling-only changes need no changeset.
 2. On every push to `main`, [`release.yml`](../.github/workflows/release.yml) collects the
    pending changesets into a "chore: release packages" pull request that bumps the versions and
-   updates each `CHANGELOG.md`.
+   updates each `CHANGELOG.md` (`pnpm version-packages`: `changeset version`, then Biome formats
+   the changelogs, since a changeset with several paragraphs indents its blank lines).
 3. Merging that pull request publishes: the workflow runs `pnpm release` (`pnpm check`,
    `pnpm build`, `pnpm check:packages`, `changeset publish`), publishes every package whose
    version is not on npm yet, pushes the `<package>@<version>` tags and creates GitHub releases.
