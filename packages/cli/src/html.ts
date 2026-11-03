@@ -110,6 +110,7 @@ export function renderReportHtml(options: ReportHtmlOptions): string {
     `theme="${escapeHtml(theme)}"`,
     `locale="${escapeHtml(locale)}"`,
     ...(view.mode ? [`mode="${escapeHtml(view.mode)}"`] : []),
+    ...(view.scope ? [`scope="${escapeHtml(view.scope)}"`] : []),
   ].join(' ');
   const encodingAttr = encoded.encoding ? ` data-encoding="${encoded.encoding}"` : '';
   const style =

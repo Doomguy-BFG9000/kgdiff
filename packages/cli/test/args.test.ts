@@ -198,6 +198,7 @@ describe('validation', () => {
     expect(usageError(['a', 'b', '--color', 'yes']).hint).toMatch(/auto, always, never/);
     expect(usageError(['a', 'b', '--theme', 'blue']).message).toMatch(/--theme/);
     expect(usageError(['a', 'b', '--mode', 'side']).message).toMatch(/--mode/);
+    expect(usageError(['a', 'b', '--scope', 'some']).hint).toMatch(/all, changes/);
     expect(usageError(['a', 'b', '--edge-identity', 'key']).message).toMatch(/--edge-identity/);
   });
 

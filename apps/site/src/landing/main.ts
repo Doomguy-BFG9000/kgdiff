@@ -37,11 +37,12 @@ import { TEXT, ZH } from './strings.js';
 import { renderAnsi } from './terminal.js';
 import {
   autoplayOnce,
-  isMode,
+  isViewTab,
   type LiveViewer,
   liveViewer,
   loadViewerModule,
   modesDataset,
+  viewTab,
   whenNear,
 } from './viewers.js';
 
@@ -118,13 +119,14 @@ function showModeTab(mode: string): void {
 if (modeTabs) {
   wireTablist(modeTabs, (tab) => {
     const mode = tab.dataset.mode;
-    if (!isMode(mode)) return;
+    if (!isViewTab(mode)) return;
     showModeTab(mode);
-    modesEl.setAttribute('mode', mode);
+    modesEl.setAttribute('mode', mode === 'changes' ? 'overlay' : mode);
+    modesEl.setAttribute('scope', mode === 'changes' ? 'changes' : 'all');
     if (mode === 'replay' && !reduced && modesFrame.dataset.state === 'ready') modesEl.play();
   });
 }
-onViewer(modesEl, 'kgdiff-mode', (e) => showModeTab(e.detail.mode));
+onViewer(modesEl, 'kgdiff-mode', (e) => showModeTab(viewTab(e.detail.mode, e.detail.scope)));
 
 // ── Integration tabs ───────────────────────────────────────────────────────
 

@@ -12,9 +12,11 @@ import type {
   ViewerChrome,
   ViewerLegend,
   ViewerMode,
+  ViewerScope,
 } from './index.js';
 
-const MODES: readonly ViewerMode[] = ['overlay', 'swipe', 'replay', 'changes'];
+const MODES: readonly ViewerMode[] = ['overlay', 'swipe', 'replay'];
+const SCOPES: readonly ViewerScope[] = ['all', 'changes'];
 const THEMES: readonly ThemePreference[] = ['auto', 'light', 'dark'];
 const PALETTES: readonly PaletteName[] = ['default', 'colorblind'];
 const CHROMES: readonly ViewerChrome[] = ['full', 'none'];
@@ -28,6 +30,16 @@ export const THEME_PREFERENCES = THEMES;
 export function toMode(value: unknown): ViewerMode | null {
   return MODES.includes(value as ViewerMode) ? (value as ViewerMode) : null;
 }
+
+export function toScope(value: unknown): ViewerScope | null {
+  return SCOPES.includes(value as ViewerScope) ? (value as ViewerScope) : null;
+}
+
+/**
+ * Before scopes existed, “changes only” was a fourth mode. Attributes, properties, deep links
+ * and reports may still say `changes`: it means overlay + the `changes` scope.
+ */
+export const LEGACY_CHANGES_MODE = 'changes';
 
 export function toTheme(value: unknown): ThemePreference | null {
   return THEMES.includes(value as ThemePreference) ? (value as ThemePreference) : null;
@@ -61,18 +73,21 @@ type View = NonNullable<ReportPayload['view']>;
 export function sanitizeView(view: unknown): View | undefined {
   if (typeof view !== 'object' || view === null) return undefined;
   const v = view as Record<string, unknown>;
-  const mode = toMode(v.mode);
+  const legacy = v.mode === LEGACY_CHANGES_MODE;
+  const mode = legacy ? 'overlay' : toMode(v.mode);
+  const scope = toScope(v.scope) ?? (legacy && v.scope === undefined ? 'changes' : null);
   const theme = toTheme(v.theme);
   const palette = toPalette(v.palette);
   const locale = toLocale(v.locale);
-  const dropped = (['mode', 'theme', 'palette', 'locale'] as const).filter(
-    (k) => v[k] !== undefined && { mode, theme, palette, locale }[k] === null,
+  const dropped = (['mode', 'scope', 'theme', 'palette', 'locale'] as const).filter(
+    (k) => v[k] !== undefined && { mode, scope, theme, palette, locale }[k] === null,
   );
   if (dropped.length > 0 && typeof console !== 'undefined') {
     console.warn(`[kgdiff] ignoring invalid report view preferences: ${dropped.join(', ')}`);
   }
   return {
     ...(mode ? { mode } : {}),
+    ...(scope ? { scope } : {}),
     ...(theme ? { theme } : {}),
     ...(palette ? { palette } : {}),
     ...(locale ? { locale } : {}),

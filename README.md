@@ -48,9 +48,10 @@ example datasets, or two files of your own, in your browser. Nothing is uploaded
 
 ## What you get
 
-- **`<kgdiff-viewer>`**: a framework-agnostic web component with four views — _Overlay_,
-  _Swipe_ (drag a divider between before and after), _Replay_ (the old graph morphs into the new
-  one, hunk by hunk) and _Changes only_ (for large graphs) — plus a searchable, filterable change
+- **`<kgdiff-viewer>`**: a framework-agnostic web component with three ways to compare —
+  _Overlay_, _Swipe_ (drag a divider between before and after) and _Replay_ (the old graph morphs
+  into the new one, hunk by hunk) — each with or without _Changes only_ (on by default for large
+  graphs), plus a searchable, filterable change
   list, a detail panel with character-level diffs, review progress, deep links, keyboard
   shortcuts, light/dark themes, English and Chinese.
 - **`kgdiff` CLI**: colored terminal summaries, `--stat`, `--name-status`, `--json`, `--delta`,

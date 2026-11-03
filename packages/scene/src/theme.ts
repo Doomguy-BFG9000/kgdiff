@@ -109,7 +109,8 @@ function dark(palette: PaletteName): Theme {
     // muted: spec #737D8F measures 4.11:1 on raised; same hue, lighter → ≥ 4.5:1 everywhere.
     text: { primary: '#E7EBF3', secondary: '#A6AFBF', muted: '#7A8495' },
     accent: { base: '#7C9CFF', strong: '#A3BAFF', soft: 'rgba(124,156,255,0.16)', text: '#A9BEFF' },
-    neutral: { node: '#4B5568', nodeStroke: '#5E687C', edge: '#323A4A', label: '#8B94A6' },
+    // label: the muted text color, so unchanged context reads quieter than the changes.
+    neutral: { node: '#4B5568', nodeStroke: '#5E687C', edge: '#323A4A', label: '#7A8495' },
     family: palette === 'colorblind' ? DARK_COLORBLIND : DARK_FAMILIES,
     glow: true,
     font: FONT,
@@ -134,7 +135,7 @@ function light(palette: PaletteName): Theme {
     // muted: spec #7B8597 measures 3.50:1 on the canvas; same hue, darker → ≥ 4.5:1 everywhere.
     text: { primary: '#0F172A', secondary: '#475569', muted: '#687284' },
     accent: { base: '#3B5BDB', strong: '#2F49B5', soft: 'rgba(59,91,219,0.10)', text: '#2F49B5' },
-    neutral: { node: '#A7B0BF', nodeStroke: '#8C96A8', edge: '#D3D9E2', label: '#5F6B7D' },
+    neutral: { node: '#A7B0BF', nodeStroke: '#8C96A8', edge: '#D3D9E2', label: '#687284' },
     family: palette === 'colorblind' ? LIGHT_COLORBLIND : LIGHT_FAMILIES,
     glow: false,
     font: FONT,

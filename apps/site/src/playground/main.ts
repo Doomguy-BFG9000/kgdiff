@@ -15,7 +15,7 @@ import {
   type Locale,
 } from '@kgdiff/core';
 import { layoutToJSON } from '@kgdiff/layout';
-import type { KgdiffViewerElement, ReportPayload, ViewerMode } from '@kgdiff/viewer';
+import type { KgdiffViewerElement, ReportPayload, ViewerMode, ViewerScope } from '@kgdiff/viewer';
 import { DATASETS, type Dataset, datasetById, featuredFor } from '../shared/datasets.js';
 import { byId, copyText, h, toast } from '../shared/dom.js';
 import { applyDocumentLocale, format, translateDom } from '../shared/i18n.js';
@@ -124,8 +124,13 @@ function isStrategy(v: string | null): v is Strategy {
   return v === 'id' || v === 'auto' || v === 'similarity';
 }
 
-function isMode(v: string | null): v is ViewerMode {
+/** `changes` (the viewer's legacy mode) stays valid in old links: overlay + the changes scope. */
+function isMode(v: string | null): v is ViewerMode | 'changes' {
   return v === 'overlay' || v === 'swipe' || v === 'replay' || v === 'changes';
+}
+
+function isScope(v: string | null): v is ViewerScope {
+  return v === 'all' || v === 'changes';
 }
 
 /** Options from the URL on top of `base`. */
@@ -163,9 +168,11 @@ const fileInputs: Record<SideName, HTMLInputElement> = {
 
 const params = new URLSearchParams(location.search);
 const initialMode = params.get('mode');
+const initialScope = params.get('scope');
 viewer.setAttribute('theme', state.theme);
 viewer.setAttribute('locale', state.locale);
 if (isMode(initialMode)) viewer.setAttribute('mode', initialMode);
+if (isScope(initialScope)) viewer.setAttribute('scope', initialScope);
 if (window.innerWidth < 900) viewer.setAttribute('sidebar', 'closed');
 state.hunk = params.get('hunk');
 
@@ -527,8 +534,11 @@ function syncUrl(): void {
     if (state.swapped) p.set('swap', '1');
   }
   // Before the element is defined, `mode` is not an accessor yet: fall back to the attribute.
-  const mode = customElements.get('kgdiff-viewer') ? viewer.mode : viewer.getAttribute('mode');
+  const defined = customElements.get('kgdiff-viewer') !== undefined;
+  const mode = defined ? viewer.mode : viewer.getAttribute('mode');
+  const scope = defined ? viewer.scope : viewer.getAttribute('scope');
   if (isMode(mode)) p.set('mode', mode);
+  if (isScope(scope)) p.set('scope', scope);
   if (state.hunk) p.set('hunk', state.hunk);
   const o = state.options;
   const base = state.defaults;
@@ -586,7 +596,7 @@ downloadBtn.addEventListener('click', async () => {
         before: { name: c.names.before, format: c.beforeFormat },
         after: { name: c.names.after, format: c.afterFormat },
       },
-      view: { mode: viewer.mode, theme: state.theme, locale: state.locale },
+      view: { mode: viewer.mode, scope: viewer.scope, theme: state.theme, locale: state.locale },
     };
     const [bundle, computeBundle] = await Promise.all([
       fetchText(viewerUrl),

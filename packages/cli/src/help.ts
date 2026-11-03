@@ -104,7 +104,12 @@ const MAIN: readonly Section[] = [
         text: 'Language of hunk titles and the report: en, zh-CN',
         default: 'from LANG, else en',
       },
-      { flags: '--mode <mode>', text: 'Initial viewer mode: overlay, swipe, replay, changes' },
+      { flags: '--mode <mode>', text: 'Initial viewer mode: overlay, swipe, replay' },
+      {
+        flags: '--scope <scope>',
+        text: 'Show the whole graph or only the changes (in any mode): all, changes',
+        default: 'changes for large graphs, else all',
+      },
       {
         flags: '--reproducible',
         text: 'Omit the timestamp: byte-identical reports for identical input',

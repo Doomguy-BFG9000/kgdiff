@@ -13,7 +13,7 @@
 
 import { viewerUrl } from 'virtual:kgdiff/standalone';
 import type { Locale } from '@kgdiff/core';
-import type { KgdiffViewerElement, ReportPayload, ViewerMode } from '@kgdiff/viewer';
+import type { KgdiffViewerElement, ReportPayload, ViewerMode, ViewerScope } from '@kgdiff/viewer';
 import { type Dataset, datasetById } from '../shared/datasets.js';
 import { prefersReducedMotion } from '../shared/dom.js';
 import type { SiteTheme } from '../shared/prefs.js';
@@ -201,6 +201,14 @@ export function modesDataset(): Dataset {
   return d;
 }
 
-export function isMode(value: string | undefined): value is ViewerMode {
+/** The views demo's tabs: the three modes over the whole graph, and the changes scope. */
+export type ViewTab = ViewerMode | 'changes';
+
+export function isViewTab(value: string | undefined): value is ViewTab {
   return value === 'overlay' || value === 'swipe' || value === 'replay' || value === 'changes';
+}
+
+/** The tab showing a view: the changes scope in overlay is “changes”, anything else its mode. */
+export function viewTab(mode: ViewerMode, scope: ViewerScope): ViewTab {
+  return scope === 'changes' && mode === 'overlay' ? 'changes' : mode;
 }

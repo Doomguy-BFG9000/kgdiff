@@ -74,14 +74,15 @@ writes into a fresh private temporary directory (`mkdtemp`).
 
 ### Report options
 
-| Option                                     | Meaning                                                                    |
-| ------------------------------------------ | -------------------------------------------------------------------------- |
-| `--title <text>`                           | Report title (default `<before> → <after>`)                                |
-| `--theme <auto\|light\|dark>`              | Initial theme (default auto)                                               |
-| `--locale <en\|zh-CN>`                     | UI and hunk-title language (default from `LANG`, else `en`)                |
-| `--mode <overlay\|swipe\|replay\|changes>` | Initial viewer mode                                                        |
-| `--reproducible`                           | Omit the generation timestamp (byte-identical reports for identical input) |
-| `--no-compute`                             | Never inline the viewer's compute add-on (see §HTML report)                |
+| Option                            | Meaning                                                                    |
+| --------------------------------- | -------------------------------------------------------------------------- |
+| `--title <text>`                  | Report title (default `<before> → <after>`)                                |
+| `--theme <auto\|light\|dark>`     | Initial theme (default auto)                                               |
+| `--locale <en\|zh-CN>`            | UI and hunk-title language (default from `LANG`, else `en`)                |
+| `--mode <overlay\|swipe\|replay>` | Initial viewer mode (`changes`: overlay + `--scope changes`)               |
+| `--scope <all\|changes>`          | Whole graph or only the changes, in any mode (default `changes` if large)  |
+| `--reproducible`                  | Omit the generation timestamp (byte-identical reports for identical input) |
+| `--no-compute`                    | Never inline the viewer's compute add-on (see §HTML report)                |
 
 ### Behaviour
 

@@ -12,7 +12,7 @@
 import { parseArgs } from 'node:util';
 import type { DiffOptions, EdgeIdentity, Locale, MatchOptions } from '@kgdiff/core';
 import type { FormatId } from '@kgdiff/formats';
-import type { ThemePreference, ViewerMode } from '@kgdiff/viewer';
+import type { ThemePreference, ViewerMode, ViewerScope } from '@kgdiff/viewer';
 import { CliError } from './errors.js';
 import { matchLocale } from './locale.js';
 import type { ColorMode } from './style.js';
@@ -34,7 +34,9 @@ export const FORMATS: readonly (FormatId | 'auto')[] = [
 const MATCH_STRATEGIES = ['id', 'auto', 'similarity'] as const;
 const EDGE_IDENTITIES: readonly EdgeIdentity[] = ['structure', 'id'];
 const THEMES: readonly ThemePreference[] = ['auto', 'light', 'dark'];
-const MODES: readonly ViewerMode[] = ['overlay', 'swipe', 'replay', 'changes'];
+/** `changes` is the viewer's legacy mode: overlay + `--scope changes`. */
+const MODES: readonly (ViewerMode | 'changes')[] = ['overlay', 'swipe', 'replay', 'changes'];
+const SCOPES: readonly ViewerScope[] = ['all', 'changes'];
 const COLOR_MODES: readonly ColorMode[] = ['auto', 'always', 'never'];
 
 /** Default `--limit`. */
@@ -67,6 +69,7 @@ export interface DiffCommandOptions extends CommonOptions {
   readonly title?: string;
   readonly theme?: ThemePreference;
   readonly mode?: ViewerMode;
+  readonly scope?: ViewerScope;
   readonly reproducible: boolean;
   /** `--allow-empty`: an empty input is an empty graph instead of an error. */
   readonly allowEmpty: boolean;
@@ -139,6 +142,7 @@ export const DIFF_OPTIONS: Readonly<Record<string, OptionSpec>> = {
   title: { type: 'string' },
   theme: { type: 'string' },
   mode: { type: 'string' },
+  scope: { type: 'string' },
   reproducible: { type: 'boolean' },
   'no-compute': { type: 'boolean' },
   'allow-empty': { type: 'boolean' },
@@ -479,7 +483,15 @@ function parseDiff(argv: readonly string[]): Command {
   };
 
   const theme = v.string('theme');
-  const mode = v.string('mode');
+  const modeArg = v.string('mode');
+  const mode = modeArg === undefined ? undefined : choice('mode', modeArg, MODES);
+  const scopeArg = v.string('scope');
+  const scope =
+    scopeArg !== undefined
+      ? choice('scope', scopeArg, SCOPES)
+      : mode === 'changes'
+        ? 'changes'
+        : undefined;
   const limit = v.string('limit');
   const languages = parseLanguages(v);
   const title = v.string('title');
@@ -505,7 +517,8 @@ function parseDiff(argv: readonly string[]): Command {
     pretty: v.flag('pretty'),
     ...(title !== undefined ? { title } : {}),
     ...(theme !== undefined ? { theme: choice('theme', theme, THEMES) } : {}),
-    ...(mode !== undefined ? { mode: choice('mode', mode, MODES) } : {}),
+    ...(mode !== undefined ? { mode: mode === 'changes' ? 'overlay' : mode } : {}),
+    ...(scope !== undefined ? { scope } : {}),
     reproducible: v.flag('reproducible'),
     compute: !v.flag('no-compute'),
     allowEmpty: v.flag('allow-empty'),

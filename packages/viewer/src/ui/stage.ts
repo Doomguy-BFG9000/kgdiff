@@ -1,9 +1,9 @@
 /**
- * The canvas area and its floating chrome: replay caption and transport, swipe divider,
- * changes-only context stepper, legend (a card, or one line of dots for chrome-less embeds),
- * zoom controls + minimap, hover tooltip and the loading / identical / error / empty states.
- * Overlays never cover the current hunk: the element reserves their space through the
- * renderer's safe area.
+ * The canvas area and its floating chrome: the view dock (with replay's caption and transport
+ * stacked above it), swipe divider, legend (a card, or one line of dots for chrome-less embeds),
+ * zoom controls + minimap (shown only while part of the content is out of view), hover tooltip
+ * and the loading / identical / error / empty states. Overlays never cover the current hunk:
+ * fits and flights frame it in the free part of the canvas.
  */
 import { KgdiffError, type Rect } from '@kgdiff/core';
 import type { ChangeFamily, Family } from '@kgdiff/scene';
@@ -22,38 +22,13 @@ import type { ChromeLayout } from '../framing.js';
 import type { Translator } from '../i18n.js';
 import { FAMILIES } from '../styles.js';
 import { sceneHunkGlyph, type UiContext } from './context.js';
+import { Dock } from './dock.js';
+import { swatch } from './swatch.js';
 
 const TICK_W = 1000;
 
 /** How the legend shows: the card, one line of dots, or not at all. */
 export type LegendStyle = 'full' | 'mini' | 'none';
-
-/** Legend swatch: the node cue of each family (docs/visual-language.md §Meaning families). */
-function swatch(family: Family): SVGSVGElement {
-  const v = (name: string) => `var(--kg-${name})`;
-  const c = family === 'neutral' ? v('neutral') : v(family);
-  let body: string;
-  switch (family) {
-    case 'added':
-      body = `<circle cx="11" cy="11" r="8.5" fill="none" stroke="${c}" stroke-opacity=".35" stroke-width="2"/><circle cx="11" cy="11" r="5" fill="${c}"/>`;
-      break;
-    case 'removed':
-      body = `<circle cx="11" cy="11" r="5.25" fill="none" stroke="${c}" stroke-width="1.5" stroke-dasharray="3 2.5"/>`;
-      break;
-    case 'identity':
-      body = `<circle cx="11" cy="11" r="9.5" fill="none" stroke="${c}" stroke-opacity=".3" stroke-width="1.5"/><circle cx="11" cy="11" r="7.25" fill="none" stroke="${c}" stroke-width="1.5"/><circle cx="11" cy="11" r="4.25" fill="${c}"/>`;
-      break;
-    case 'content':
-    case 'structure':
-      body = `<circle cx="11" cy="11" r="7.75" fill="none" stroke="${c}" stroke-width="1.5"/><circle cx="11" cy="11" r="4.5" fill="${c}"/>`;
-      break;
-    default:
-      body = `<circle cx="11" cy="11" r="3.5" fill="${c}"/>`;
-  }
-  const tpl = document.createElement('template');
-  tpl.innerHTML = `<svg class="swatch" viewBox="0 0 22 22" aria-hidden="true" focusable="false">${body}</svg>`;
-  return tpl.content.firstElementChild as SVGSVGElement;
-}
 
 export class Stage {
   readonly el: HTMLElement;
@@ -80,10 +55,9 @@ export class Stage {
   readonly #divider: HTMLElement;
   readonly #chipBefore: HTMLElement;
   readonly #chipAfter: HTMLElement;
-  // Changes
-  readonly #stepper: HTMLElement;
-  readonly #hopButtons: HTMLButtonElement[] = [];
-  readonly #expandButton: HTMLButtonElement;
+  // Dock
+  readonly dock: Dock;
+  readonly #dockWrap: HTMLElement;
   // Chrome
   readonly #legend: HTMLElement;
   readonly #legendHead: HTMLButtonElement;
@@ -93,12 +67,13 @@ export class Stage {
   readonly #zoomOut: HTMLButtonElement;
   readonly #fitButton: HTMLButtonElement;
   readonly #mapCluster: HTMLElement;
+  readonly #zoomBar: HTMLElement;
   readonly tooltip: HTMLElement;
   readonly #state: HTMLElement;
   #pointer: { x: number; y: number } | null = null;
   #scrubbing: number | null = null;
   #dragging: number | null = null;
-  #legendOpen: boolean | null = null;
+  #legendOpen = false;
   #stateKey = '';
 
   readonly #ctx: UiContext;
@@ -187,39 +162,15 @@ export class Stage {
       this.#divider,
     );
 
-    // Changes-only context stepper
-    const opts = h('span', { class: 'opts', role: 'radiogroup' });
-    for (let n = 0; n <= 2; n++) {
-      const b = h('button', {
-        type: 'button',
-        class: 'opt',
-        role: 'radio',
-        text: String(n),
-        onclick: () => c.setHops(n),
-      });
-      this.#hopButtons.push(b);
-      opts.appendChild(b);
-    }
-    opts.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      e.preventDefault();
-      e.stopPropagation();
-      const next = Math.max(0, Math.min(2, c.hops + (e.key === 'ArrowRight' ? 1 : -1)));
-      c.setHops(next);
-      this.#hopButtons[next]?.focus();
-    });
-    this.#expandButton = h(
-      'button',
-      { type: 'button', class: 'expand', onclick: () => c.expandNearest() },
-      icon('plus'),
-      h('span', { class: 'n' }),
-    );
-    this.#stepper = h(
+    // View dock, with replay's finished pill, caption and transport stacked above it.
+    this.dock = new Dock(ctx);
+    this.#dockWrap = h(
       'div',
-      { class: 'stepper card float top-left', hidden: true },
-      h('span', { class: 'label' }),
-      opts,
-      this.#expandButton,
+      { class: 'dock' },
+      this.#finished,
+      this.#caption,
+      this.#transport,
+      this.dock.el,
     );
 
     // Legend
@@ -228,7 +179,8 @@ export class Stage {
       {
         type: 'button',
         class: 'legend-head',
-        onclick: () => this.#setLegend(!(this.#legendOpen ?? true)),
+        'aria-expanded': 'false',
+        onclick: () => this.#setLegend(!this.#legendOpen),
       },
       h('span', { class: 'lbl' }),
       icon('chevron-down'),
@@ -237,7 +189,7 @@ export class Stage {
     attr(this.#legendHead, 'aria-controls', 'kg-legend');
     this.#legend = h(
       'div',
-      { class: 'legend card float bottom-left', 'data-open': 'true' },
+      { class: 'legend card float bottom-left', 'data-open': 'false' },
       this.#legendHead,
       this.#legendBody,
     );
@@ -248,16 +200,17 @@ export class Stage {
     this.#zoomOut = iconButton('minus', '', () => c.zoom(-1));
     this.#fitButton = iconButton('fit', '', () => void c.fit());
     this.minimapHost = h('div', { class: 'minimap-host' });
+    this.#zoomBar = h(
+      'div',
+      { class: 'zoom-bar card', role: 'toolbar' },
+      this.#zoomIn,
+      this.#zoomOut,
+      this.#fitButton,
+    );
     this.#mapCluster = h(
       'div',
       { class: 'map-cluster float bottom-right' },
-      h(
-        'div',
-        { class: 'zoom-bar card', role: 'toolbar' },
-        this.#zoomIn,
-        this.#zoomOut,
-        this.#fitButton,
-      ),
+      this.#zoomBar,
       this.minimapHost,
     );
 
@@ -267,13 +220,10 @@ export class Stage {
       'div',
       { class: 'chrome' },
       this.#swipe,
-      this.#caption,
-      this.#stepper,
       this.#legend,
       this.#miniLegend,
       this.#mapCluster,
-      this.#finished,
-      this.#transport,
+      this.#dockWrap,
       this.tooltip,
     );
     this.el = h(
@@ -305,16 +255,19 @@ export class Stage {
     const parts = [
       this.#legend,
       this.#miniLegend,
-      this.#mapCluster,
+      this.#zoomBar,
+      this.dock.el,
       this.#transport,
       this.#finished,
-      this.#stepper,
       this.#chipBefore,
       this.#chipAfter,
     ];
     if (this.#caption.dataset.empty !== 'true') parts.push(this.#caption);
+    if (this.minimapHost.dataset.hidden !== 'true') parts.push(this.minimapHost);
+    // The HUD (title, actions) floats over the canvas too.
+    for (const el of this.el.querySelectorAll<HTMLElement>('.hud .card')) parts.push(el);
     for (const el of parts) {
-      if (el.hidden) continue;
+      if (el.hidden || el.closest('[hidden]')) continue;
       const b = el.getBoundingClientRect();
       if (b.width <= 0 || b.height <= 0) continue;
       obstacles.push({ x: b.left - r.left, y: b.top - r.top, width: b.width, height: b.height });
@@ -322,10 +275,9 @@ export class Stage {
     return { width: r.width, height: r.height, obstacles };
   }
 
-  /** Whether the stage is tall enough to show the legend expanded by default. */
-  #defaultLegendOpen(): boolean {
-    const hgt = this.el.clientHeight;
-    return hgt === 0 || hgt >= 560;
+  /** Re-measure what depends on rendered sizes (fonts, resizes). */
+  layout(): void {
+    this.dock.layout();
   }
 
   #setLegend(open: boolean): void {
@@ -350,10 +302,11 @@ export class Stage {
       this.#renderState(tr);
       this.#renderTicks();
       this.#renderCanvasLabel(tr);
-      if (this.#legendOpen === null) this.#setLegend(this.#defaultLegendOpen());
     }
-    if (all || topics.has('mode') || topics.has('focus') || topics.has('selection')) {
-      this.#renderMode(tr);
+    this.dock.update(topics);
+    if (all || topics.has('mode')) this.#renderMode();
+    if (all || topics.has('overview')) {
+      attr(this.minimapHost, 'data-hidden', String(c.overview));
     }
     if (all || topics.has('mode') || topics.has('replay')) this.#renderReplay(tr);
     if (all || topics.has('mode') || topics.has('swipe')) this.#renderSwipe();
@@ -373,8 +326,6 @@ export class Stage {
     setText(this.#chipBefore, tr.t('detail.before'));
     setText(this.#chipAfter, tr.t('detail.after'));
     attr(this.#divider, 'aria-label', tr.t('swipe.divider'));
-    setText(this.#stepper.querySelector('.label') as Element, tr.t('focus.context'));
-    attr(this.#stepper.querySelector('.opts') as Element, 'aria-label', tr.t('focus.hops'));
     setText(this.#legendHead.querySelector('.lbl') as Element, tr.t('legend.title'));
     attr(this.#legendHead, 'aria-label', tr.t('legend.toggle'));
     relabel(this.#zoomIn, `${tr.t('action.zoomIn')} (+)`);
@@ -437,26 +388,8 @@ export class Stage {
     setText(this.#liveCanvasLabel, '');
   }
 
-  #renderMode(tr: Translator): void {
-    const c = this.#ctx.controller;
-    const mode = c.mode;
-    this.#stepper.hidden = mode !== 'changes';
-    this.#hopButtons.forEach((b, n) => {
-      attr(b, 'aria-checked', String(n === c.hops));
-      b.tabIndex = n === c.hops ? 0 : -1;
-      attr(b, 'aria-label', `${tr.t('focus.hops')}: ${n}`);
-    });
-    const group = c.focus?.collapsed[c.nearestGroup()];
-    this.#expandButton.hidden = !group;
-    if (group) {
-      const usable = c.canExpand(c.nearestGroup()) || group.nodes.length > 0;
-      this.#expandButton.disabled = !usable;
-      setText(this.#expandButton.querySelector('.n') as Element, tr.num(group.count));
-      relabel(
-        this.#expandButton,
-        `${usable ? tr.t('focus.expandNearest') : tr.t('focus.expandUnavailable')}: ${group.label} (E)`,
-      );
-    }
+  #renderMode(): void {
+    const mode = this.#ctx.controller.mode;
     this.#transport.hidden = mode !== 'replay';
     this.#caption.hidden = mode !== 'replay';
     this.#swipe.hidden = mode !== 'swipe';
@@ -532,6 +465,8 @@ export class Stage {
     }
     const finished = clock.finished;
     this.#finished.hidden = !finished;
+    // The finished pill takes the caption's place above the transport.
+    this.#caption.hidden = finished;
     if (finished && this.#finished.childElementCount === 0) {
       replace(
         this.#finished,

@@ -1,7 +1,7 @@
 # @kgdiff/viewer
 
-`<kgdiff-viewer>`, a framework-agnostic web component for reviewing graph diffs. Four views
-(Overlay, Swipe, Replay and Changes only), a searchable change list, a detail panel with
+`<kgdiff-viewer>`, a framework-agnostic web component for reviewing graph diffs. Three ways to
+compare (Overlay, Swipe, Replay), each with or without Changes only, a searchable change list, a detail panel with
 character-level diffs, review progress, deep links, keyboard shortcuts, light and dark themes, and
 an English and Chinese UI.
 
@@ -37,9 +37,10 @@ ESM only. Runs in evergreen browsers.
   self-contained script that defines the element and shows embedded payloads. The optional
   `@kgdiff/viewer/standalone/compute` add-on brings the diff engine and force layout for `load()`.
 
-Attributes: `mode` (`overlay` | `swipe` | `replay` | `changes`), `theme`, `palette`, `locale`,
-`sidebar`, `sync-hash`, `global-shortcuts`, `header`, `chrome`, `legend`, `loop`, `loop-delay`,
-`pause-on-hover`. Methods: `load`, `selectHunk`, `next`, `prev`, `play`, `pause`, `fit`,
+Attributes: `mode` (`overlay` | `swipe` | `replay`), `scope` (`all` | `changes`), `theme`,
+`palette`, `locale`, `sidebar`, `sync-hash`, `global-shortcuts`, `header`, `chrome`, `legend`,
+`loop`, `loop-delay`, `pause-on-hover`. The legacy `mode="changes"` still works: it means
+`overlay` with `scope="changes"`. Methods: `load`, `selectHunk`, `next`, `prev`, `play`, `pause`, `fit`,
 `exportDelta`, `reviewState`, `setReviewed`. Events: `kgdiff-ready`, `kgdiff-select`,
 `kgdiff-mode`, `kgdiff-review`, `kgdiff-error`, `kgdiff-replay-end`.
 
@@ -60,9 +61,9 @@ replay loop:
 | `loop-delay` (`loopDelay`)        | ms between the end and restart | `1200`                                           |
 | `pause-on-hover` (`pauseOnHover`) | `false` to keep playing        | on: a looping replay pauses under a mouse or pen |
 
-- `chrome="none"` shows the graph alone: no header (view switch, theme, full screen, help,
-  sidebar button), change list, step caption, playback bar, finished card, zoom buttons, minimap
-  or legend card. The hover tooltip stays, and the legend becomes one line with the families this
+- `chrome="none"` shows the graph alone: no title, actions (theme, help, sidebar button), view
+  dock (with its step caption, playback bar and finished card), change list, zoom buttons,
+  minimap or legend card. The hover tooltip stays, and the legend becomes one line with the families this
   diff has, then unchanged. Clicks and keyboard shortcuts do nothing. The minimum height drops
   from 420px to 120px. The view stays fitted: when the canvas is resized (unless the user
   panned or zoomed since) and at the start of every loop. Labels are never cut at the edge: one

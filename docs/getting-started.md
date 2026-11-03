@@ -88,9 +88,10 @@ as a static page.
 
 In the report:
 
-- Switch between the four views with `1` to `4`: **Overlay** (both versions on one map),
-  **Swipe** (drag a divider between before and after), **Replay** (the old graph morphs into the
-  new one, hunk by hunk) and **Changes only** (for large graphs).
+- Pick how to compare with `1` to `3` in the dock at the bottom: **Overlay** (both versions on
+  one map), **Swipe** (drag a divider between before and after) or **Replay** (the old graph
+  morphs into the new one, hunk by hunk). `4` turns **Changes only** on or off in any of them
+  (on by default for large graphs).
 - Step through the changes with `j` and `k`, mark one reviewed with `x`, search with `/`.
 - Select a change to see the before and after of every label, attribute and relation.
 - Press `?` for all shortcuts.

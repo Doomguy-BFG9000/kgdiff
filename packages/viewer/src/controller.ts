@@ -2,8 +2,9 @@
  * Viewer state and orchestration, independent of the UI:
  *
  * - load pipeline with progress steps (sources or a precomputed report);
- * - mode, selection (with an animated spotlight `emphasis`), family filters, review progress;
- * - changes-only focus with expandable collapsed groups (`extendLayout` + scene rebuild);
+ * - view (mode × scope), selection (with an animated spotlight `emphasis`), family filters,
+ *   review progress;
+ * - the `changes` scope's focus with expandable collapsed groups (`extendLayout` + scene rebuild);
  * - replay clock driven by one requestAnimationFrame loop that sleeps when idle, with a camera
  *   that follows the playing hunk / chapter unless the user moved it in the last 2 s;
  * - swipe position, hover, theme / palette / locale (rebuilding the scene when they change).
@@ -56,10 +57,11 @@ import type {
   ReviewState,
   ThemePreference,
   ViewerMode,
+  ViewerScope,
 } from './index.js';
 import { buildList, EMPTY_LIST, type ListModel, stepHunk } from './list-model.js';
 import { type LoadedDiff, type LoadStep, readPayload, runLoad } from './pipeline.js';
-import { toLocale, toMode, toPalette, toTheme } from './prefs.js';
+import { LEGACY_CHANGES_MODE, toLocale, toMode, toPalette, toScope, toTheme } from './prefs.js';
 import { renderBackend } from './renderer-port.js';
 import { ReplayClock } from './replay.js';
 import { ReviewStore, reviewKey, type StorageLike } from './review-store.js';
@@ -79,12 +81,13 @@ export type Topic =
   | 'theme'
   | 'locale'
   | 'focus'
-  | 'swipe';
+  | 'swipe'
+  | 'overview';
 
 export interface ControllerHost {
   ready(stats: DiffStats): void;
   select(hunk: string | null, node: string | null): void;
-  mode(mode: ViewerMode): void;
+  mode(mode: ViewerMode, scope: ViewerScope): void;
   review(hunk: string, reviewed: boolean, progress: ReviewState): void;
   error(error: Error): void;
   announce(text: string): void;
@@ -107,7 +110,7 @@ export interface ControllerDeps {
   readonly storage: StorageLike | null;
 }
 
-export type Preference = 'mode' | 'theme' | 'palette' | 'locale';
+export type Preference = 'mode' | 'scope' | 'theme' | 'palette' | 'locale';
 
 /** Camera follow is suppressed this long after the user moved the camera (ms). */
 export const USER_CAMERA_GRACE = 2000;
@@ -121,6 +124,8 @@ export const FLY_MAX_ZOOM = 1.8;
 export const FIT_MAX_ZOOM = 2.5;
 /** Minimap marks are re-rasterized at most this often while replaying (ms). */
 const MINIMAP_INTERVAL = 200;
+/** Everything counts as in view (the minimap hides) from this share of the content bounds on. */
+export const OVERVIEW_COVERAGE = 0.98;
 
 class Superseded extends Error {}
 
@@ -169,6 +174,7 @@ export class ViewerController {
   list: ListModel = EMPTY_LIST;
 
   mode: ViewerMode = 'overlay';
+  scope: ViewerScope = 'all';
   themePreference: ThemePreference = 'auto';
   palette: PaletteName = 'default';
   locale: Locale = 'en';
@@ -199,6 +205,8 @@ export class ViewerController {
   /** Canvas clicks select (and double clicks fly); off for embeds without controls. */
   selectOnClick = true;
   #labelsInside = false;
+  /** The whole content is in view (the minimap has nothing to add). */
+  overview = true;
 
   #review: ReviewStore | null = null;
   #searchIndex: SearchIndex | null = null;
@@ -217,6 +225,11 @@ export class ViewerController {
   #followed = '';
   #loadToken = 0;
   #pendingHunk: { readonly id: string; readonly fly: boolean } | null = null;
+  #boundsCache: {
+    readonly scene: Scene;
+    readonly focus: FocusState | null;
+    readonly rect: Rect | null;
+  } | null = null;
   #chrome: (() => ChromeLayout) | null = null;
   /** Camera kept across detach / attach (element moved in the DOM). */
   #savedCamera: CameraState | null = null;
@@ -402,10 +415,14 @@ export class ViewerController {
       if (view.locale && !this.explicit.has('locale')) this.locale = view.locale;
     }
     const previousMode = this.mode;
-    if (!this.explicit.has('mode')) {
+    const previousScope = this.scope;
+    if (!this.explicit.has('mode')) this.mode = view?.mode ?? 'overlay';
+    if (layout.scope === 'changes') {
+      // Only the changes are laid out: there is no whole graph to show.
+      this.scope = 'changes';
+    } else if (!this.explicit.has('scope')) {
       const threshold = loaded.layoutOptions?.largeGraphThreshold ?? 3000;
-      const large = layout.scope === 'changes' || diff.nodes.length > threshold;
-      this.mode = view?.mode ?? (large ? 'changes' : 'overlay');
+      this.scope = view?.scope ?? (diff.nodes.length > threshold ? 'changes' : 'all');
     }
     this.#review = new ReviewStore(
       this.#deps.storage,
@@ -434,6 +451,7 @@ export class ViewerController {
       'locale',
       'focus',
       'swipe',
+      'overview',
     );
     // A new diff starts fitted, after the UI has shown its chrome (the notification above is
     // delivered first) and once the canvas has a size (see `layoutChanged`).
@@ -441,7 +459,9 @@ export class ViewerController {
     this.#savedCamera = null;
     queueMicrotask(() => this.layoutChanged());
     this.#host.ready(diff.stats);
-    if (this.mode !== previousMode) this.#host.mode(this.mode);
+    if (this.mode !== previousMode || this.scope !== previousScope) {
+      this.#host.mode(this.mode, this.scope);
+    }
     const pending = this.#pendingHunk;
     this.#pendingHunk = null;
     if (pending !== null) this.selectHunkById(pending.id, { fly: pending.fly });
@@ -482,7 +502,7 @@ export class ViewerController {
 
   #updateFocus(): void {
     const scene = this.scene;
-    if (!scene || this.mode !== 'changes') {
+    if (!scene || this.scope !== 'changes') {
       this.focus = null;
       return;
     }
@@ -513,6 +533,7 @@ export class ViewerController {
       renderer.on('dblclick', ({ pick }) => this.#onCanvasDblClick(pick)),
       renderer.on('camera', ({ source }) => {
         if (source === 'user') this.noteUserCamera();
+        this.#updateOverview();
       }),
     );
     this.#minimapDirty = true;
@@ -563,6 +584,7 @@ export class ViewerController {
    * `autoFit`) fit again unless the user moved the camera since the last fit.
    */
   layoutChanged(): void {
+    this.#updateOverview();
     if (this.status !== 'ready') return;
     if (!this.#needsFit) {
       if (this.autoFit && !this.#userMoved) void this.fit({ animate: false });
@@ -718,29 +740,74 @@ export class ViewerController {
     };
   }
 
-  // ─── Mode ─────────────────────────────────────────────────────────────────
+  // ─── View: mode × scope ───────────────────────────────────────────────────
 
-  setMode(value: ViewerMode): void {
+  /** Whether the scope is fixed to `changes` (the layout covers only the changes). */
+  get scopeLocked(): boolean {
+    return this.layout?.scope === 'changes';
+  }
+
+  /** Switch how the versions are compared. The legacy `changes` means overlay + `changes` scope. */
+  setMode(value: ViewerMode | typeof LEGACY_CHANGES_MODE): void {
+    if (value === LEGACY_CHANGES_MODE) {
+      this.setView('overlay', 'changes');
+      return;
+    }
     const mode = toMode(value);
-    if (mode === null || mode === this.mode) return;
+    if (mode !== null) this.setView(mode, this.scope);
+  }
+
+  /** Show the whole graph or only the changes, in any mode. */
+  setScope(value: ViewerScope): void {
+    const scope = toScope(value);
+    if (scope !== null) this.setView(this.mode, scope);
+  }
+
+  /** Toggle the `changes` scope (key `4`); says why when the scope is locked. */
+  toggleScope(): void {
+    if (this.scopeLocked) {
+      this.#host.announce(translate(this.locale, 'scope.locked'));
+      return;
+    }
+    this.setScope(this.scope === 'changes' ? 'all' : 'changes');
+  }
+
+  /** Set mode and scope together (one notification, one `kgdiff-mode` event). */
+  setView(mode: ViewerMode, scope: ViewerScope): void {
+    const nextScope: ViewerScope = this.scopeLocked ? 'changes' : scope;
+    const modeChanged = mode !== this.mode;
+    const scopeChanged = nextScope !== this.scope;
+    if (!modeChanged && !scopeChanged) return;
     this.mode = mode;
+    this.scope = nextScope;
     if (mode !== 'replay') {
       this.clock?.pause();
       this.#restartAt = Number.NaN;
       this.#resume = false;
     }
     this.#followed = '';
-    this.#updateFocus();
+    if (scopeChanged) {
+      this.#updateFocus();
+      this.#updateOverview();
+    }
     this.#minimapDirty = true;
     this.#notify('mode', 'focus', 'replay');
     this.invalidate();
     if (this.status === 'ready') {
-      this.#host.mode(mode);
-      this.#host.announce(
-        translate(this.locale, 'announce.mode', { mode: translate(this.locale, `mode.${mode}`) }),
-      );
+      this.#host.mode(mode, nextScope);
+      const parts: string[] = [];
+      if (modeChanged) {
+        parts.push(
+          translate(this.locale, 'announce.mode', { mode: translate(this.locale, `mode.${mode}`) }),
+        );
+      }
+      if (scopeChanged) {
+        parts.push(translate(this.locale, nextScope === 'changes' ? 'scope.on' : 'scope.off'));
+      }
+      this.#host.announce(parts.join(' · '));
     }
-    if (mode === 'replay') this.#autoplay();
+    // Switching to replay starts a looping replay; toggling the scope leaves playback alone.
+    if (modeChanged && mode === 'replay') this.#autoplay();
   }
 
   // ─── Selection ────────────────────────────────────────────────────────────
@@ -1059,6 +1126,28 @@ export class ViewerController {
     return { bounds: fit.bounds, insets };
   }
 
+  /** Bounds of what is drawn: the scene, or the visible part of the `changes` scope's focus. */
+  #contentBounds(): Rect | null {
+    const scene = this.scene;
+    if (!scene) return null;
+    const focus = this.focus;
+    const cached = this.#boundsCache;
+    if (cached && cached.scene === scene && cached.focus === focus) return cached.rect;
+    const rect = focus ? focusBounds(scene, focus) : frameBounds(scene);
+    this.#boundsCache = { scene, focus, rect };
+    return rect;
+  }
+
+  /** Whether everything drawn is in view; the minimap hides while it is. */
+  #updateOverview(): void {
+    const bounds = this.#contentBounds();
+    const view = this.#renderer?.camera.viewport();
+    const next = !bounds || !view || coverage(bounds, view) >= OVERVIEW_COVERAGE;
+    if (next === this.overview) return;
+    this.overview = next;
+    this.#notify('overview');
+  }
+
   zoom(direction: 1 | -1): void {
     this.noteUserCamera();
     this.#renderer?.camera.zoomBy(direction > 0 ? 1.4 : 1 / 1.4);
@@ -1164,6 +1253,7 @@ export class ViewerController {
     if (h === this.hops) return;
     this.hops = h;
     this.#updateFocus();
+    this.#updateOverview();
     this.#minimapDirty = true;
     this.#notify('focus');
     this.invalidate();
@@ -1290,6 +1380,7 @@ export class ViewerController {
 
   #focusChanged(): void {
     this.#updateFocus();
+    this.#updateOverview();
     this.#minimapDirty = true;
     this.#notify('focus');
     this.invalidate();
@@ -1548,6 +1639,26 @@ function isString(x: string | undefined): x is string {
 
 function sameInsets(a: Insets, b: Insets): boolean {
   return a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
+}
+
+/** Bounds of the visible part of `focus`, with room for labels and the collapsed pills. */
+function focusBounds(scene: Scene, focus: FocusState): Rect {
+  let x0 = Number.POSITIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  const add = (x: number, y: number, rx: number, top: number, bottom: number): void => {
+    x0 = Math.min(x0, x - rx);
+    x1 = Math.max(x1, x + rx);
+    y0 = Math.min(y0, y - top);
+    y1 = Math.max(y1, y + bottom);
+  };
+  // Labels sit centered below their node: leave room for a typical one.
+  for (const n of scene.nodes)
+    if (focus.nodes[n.index] === 1) add(n.x, n.y, n.r + 48, n.r, n.r + 24);
+  for (const g of focus.collapsed) add(g.x, g.y, 48, 12, 12);
+  if (!(x0 <= x1)) return frameBounds(scene);
+  return padRect({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, 160, 1.12);
 }
 
 /** Pad a small rect so a node is shown with its neighbourhood. */

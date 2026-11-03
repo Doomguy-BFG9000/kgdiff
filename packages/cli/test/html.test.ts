@@ -78,6 +78,22 @@ describe('HTML report', () => {
     const dark = await report(['--theme', 'dark', '--mode', 'replay']);
     expect(dark).not.toContain('prefers-color-scheme');
     expect(dark).toContain('mode="replay"');
+    expect(dark).not.toContain('scope=');
+  });
+
+  it('sets the scope, and reads the legacy --mode changes as overlay + --scope changes', async () => {
+    const scoped = await report(['--mode', 'swipe', '--scope', 'changes']);
+    expect(scoped).toContain('mode="swipe" scope="changes"');
+    expect((extractPayload(scoped) as { payload: ReportPayload }).payload.view).toMatchObject({
+      mode: 'swipe',
+      scope: 'changes',
+    });
+    const legacy = await report(['--mode', 'changes']);
+    expect(legacy).toContain('mode="overlay" scope="changes"');
+    // An explicit --scope wins over the one the legacy mode implies.
+    expect(await report(['--mode', 'changes', '--scope', 'all'])).toContain(
+      'mode="overlay" scope="all"',
+    );
   });
 
   it('embeds the precomputed diff, layout, meta and view preferences', async () => {

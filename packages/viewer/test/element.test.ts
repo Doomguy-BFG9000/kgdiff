@@ -85,6 +85,26 @@ describe('registration', () => {
 });
 
 describe('attributes and properties', () => {
+  it('combines any mode with the changes scope, and maps the legacy changes mode', async () => {
+    const el = await loaded();
+    el.mode = 'swipe';
+    el.scope = 'changes';
+    expect([el.mode, el.scope]).toEqual(['swipe', 'changes']);
+    expect(el.getAttribute('scope')).toBe('changes');
+    expect(el.controller.focus).not.toBeNull();
+    el.setAttribute('scope', 'all');
+    expect(el.controller.focus).toBeNull();
+    el.setAttribute('scope', 'bogus');
+    expect(el.scope).toBe('all');
+    // `changes` used to be a mode: it now means overlay + the changes scope.
+    el.setAttribute('mode', 'changes');
+    expect([el.mode, el.scope]).toEqual(['overlay', 'changes']);
+    expect(el.getAttribute('mode')).toBe('overlay');
+    expect(el.getAttribute('scope')).toBe('changes');
+    el.mode = 'replay';
+    expect([el.mode, el.scope]).toEqual(['replay', 'changes']);
+  });
+
   it('reflects mode, theme, palette and locale both ways', async () => {
     const el = mount({ locale: 'zh' });
     expect(el.locale).toBe('zh-CN');
@@ -291,13 +311,16 @@ describe('selection and events', () => {
     expect(live.textContent).toMatch(/^Change 1 of 5: /);
   });
 
-  it('emits kgdiff-mode on mode changes', async () => {
+  it('emits kgdiff-mode on mode and scope changes', async () => {
     const el = await loaded();
-    const modes: string[] = [];
-    el.addEventListener('kgdiff-mode', (e) => modes.push((e as CustomEvent).detail.mode));
-    el.mode = 'changes';
+    const views: unknown[] = [];
+    el.addEventListener('kgdiff-mode', (e) => views.push((e as CustomEvent).detail));
+    el.scope = 'changes';
     el.play();
-    expect(modes).toEqual(['changes', 'replay']);
+    expect(views).toEqual([
+      { mode: 'overlay', scope: 'changes' },
+      { mode: 'replay', scope: 'changes' },
+    ]);
     el.pause();
     await expect(el.fit()).resolves.toBeUndefined();
     expect(backend.last().camera.fits).toBe(1);
@@ -326,6 +349,20 @@ describe('keyboard', () => {
     expect(el.controller.selectedHunk).toBe(-1);
     press(el, '+');
     expect(backend.last().camera.zooms).toEqual([1.4]);
+  });
+
+  it('toggles the changes scope with 4, keeping the mode', async () => {
+    const el = await loaded();
+    press(el, '3');
+    press(el, '4');
+    expect([el.mode, el.scope]).toEqual(['replay', 'changes']);
+    await tick();
+    expect($(el, '.dock-bar .scope-btn').getAttribute('aria-pressed')).toBe('true');
+    expect($(el, '.dock-bar .context').hidden).toBe(false);
+    press(el, '4');
+    expect([el.mode, el.scope]).toEqual(['replay', 'all']);
+    await tick();
+    expect($(el, '.dock-bar .context').hidden).toBe(true);
   });
 
   it('plays and steps the replay with space and arrows', async () => {
@@ -389,16 +426,22 @@ describe('keyboard', () => {
 
 describe('sync-hash', () => {
   it('writes and reads #kgdiff deep links', async () => {
+    // Links from before scopes existed keep working.
     history.replaceState(null, '', '#kgdiff=hunk:add%3AG;mode:changes');
     const el = await loaded({ 'sync-hash': '' });
-    expect(el.mode).toBe('changes');
+    expect([el.mode, el.scope]).toEqual(['overlay', 'changes']);
     expect(el.controller.scene?.hunks[el.controller.selectedHunk]?.id).toBe('add:G');
     el.selectHunk('remove:E');
-    expect(location.hash).toBe('#kgdiff=hunk:remove%3AE;mode:changes');
+    expect(location.hash).toBe('#kgdiff=hunk:remove%3AE;mode:overlay;scope:changes');
     history.replaceState(null, '', '#kgdiff=hunk:modify%3AC;mode:swipe');
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     await until(() => el.mode === 'swipe');
+    expect(el.scope).toBe('changes');
     expect(el.controller.scene?.hunks[el.controller.selectedHunk]?.id).toBe('modify:C');
+    history.replaceState(null, '', '#kgdiff=mode:replay;scope:all');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await until(() => el.mode === 'replay');
+    expect(el.scope).toBe('all');
   });
 
   it('leaves the hash alone without the attribute', async () => {

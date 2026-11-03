@@ -48,23 +48,26 @@ viewer.mode = 'replay';
 viewer.play();
 ```
 
-| 属性               | 取值                                                    | 默认                          |
-| ------------------ | ------------------------------------------------------- | ----------------------------- |
-| `mode`             | `overlay`、`swipe`、`replay`、`changes`                 | `overlay`（大图为 `changes`） |
-| `theme`            | `auto`、`light`、`dark`                                 | `auto`                        |
-| `palette`          | `default`、`colorblind`                                 | `default`                     |
-| `locale`           | `en`、`zh-CN`                                           | 取自 `navigator.language`     |
-| `sidebar`          | `open`、`closed`                                        |                               |
-| `sync-hash`        | 布尔值：深链接 `#kgdiff=hunk:<id>;mode:<mode>`          |                               |
-| `global-shortcuts` | 布尔值：页面上没有焦点时快捷键也生效                    |                               |
-| `header`           | `compact`：不显示品牌和图名，适合页面自己显示这些信息时 |                               |
-| `chrome`           | `none`：只显示图本身，适合嵌入小块区域                  | `full`                        |
-| `legend`           | `auto`、`full`、`mini`（一行）、`none`                  | `auto`                        |
-| `loop`             | 布尔值：回放自动播放、循环往复                          |                               |
-| `loop-delay`       | 循环回放播完到重新开始之间的毫秒数                      | `1200`                        |
-| `pause-on-hover`   | `false`：鼠标停在图上时循环回放也不暂停                 | 暂停                          |
+| 属性               | 取值                                                    | 默认                      |
+| ------------------ | ------------------------------------------------------- | ------------------------- |
+| `mode`             | `overlay`、`swipe`、`replay`（旧值 `changes` 见下文）   | `overlay`                 |
+| `scope`            | `all`、`changes`：只看变更，可配合任意对比方式          | `all`（大图为 `changes`） |
+| `theme`            | `auto`、`light`、`dark`                                 | `auto`                    |
+| `palette`          | `default`、`colorblind`                                 | `default`                 |
+| `locale`           | `en`、`zh-CN`                                           | 取自 `navigator.language` |
+| `sidebar`          | `open`、`closed`                                        |                           |
+| `sync-hash`        | 布尔值：深链接 `#kgdiff=hunk:<id>;mode:<m>;scope:<s>`   |                           |
+| `global-shortcuts` | 布尔值：页面上没有焦点时快捷键也生效                    |                           |
+| `header`           | `compact`：不显示品牌和图名，适合页面自己显示这些信息时 |                           |
+| `chrome`           | `none`：只显示图本身，适合嵌入小块区域                  | `full`                    |
+| `legend`           | `auto`、`full`、`mini`（一行）、`none`                  | `auto`                    |
+| `loop`             | 布尔值：回放自动播放、循环往复                          |                           |
+| `loop-delay`       | 循环回放播完到重新开始之间的毫秒数                      | `1200`                    |
+| `pause-on-hover`   | `false`：鼠标停在图上时循环回放也不暂停                 | 暂停                      |
 
-`mode`、`theme`、`palette`、`locale`、`chrome`、`legend`、`loop`、`loopDelay` 和 `pauseOnHover` 同时也是 JavaScript 属性。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit({ animate, padding })`、`exportDelta()`、`reviewState()` 和 `setReviewed(id, reviewed)`。事件都会冒泡并穿过 Shadow DOM：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode }`、`kgdiff-review` `{ hunk, reviewed, progress }`、`kgdiff-error` `{ error }` 和 `kgdiff-replay-end` `{ loop }`。详见[查看器：交互与 API](../interaction.md#嵌入-api)。
+加入 `scope` 之前的写法 `mode="changes"` 仍然有效：它表示 `overlay` 加 `scope="changes"`，属性会被改写成这两个值。
+
+`mode`、`scope`、`theme`、`palette`、`locale`、`chrome`、`legend`、`loop`、`loopDelay` 和 `pauseOnHover` 同时也是 JavaScript 属性。方法：`load()`、`selectHunk(id)`、`next()`、`prev()`、`play()`、`pause()`、`fit({ animate, padding })`、`exportDelta()`、`reviewState()` 和 `setReviewed(id, reviewed)`。事件都会冒泡并穿过 Shadow DOM：`kgdiff-ready` `{ stats }`、`kgdiff-select` `{ hunk, node }`、`kgdiff-mode` `{ mode, scope }`、`kgdiff-review` `{ hunk, reviewed, progress }`、`kgdiff-error` `{ error }` 和 `kgdiff-replay-end` `{ loop }`。详见[查看器：交互与 API](../interaction.md#嵌入-api)。
 
 ## 嵌入一段循环回放
 
@@ -74,7 +77,7 @@ viewer.play();
 <kgdiff-viewer mode="replay" chrome="none" loop style="height: 320px"></kgdiff-viewer>
 ```
 
-`chrome="none"` 只留下图、鼠标悬停时的提示和一行图例；标题栏、变化列表、步骤说明、播放条、缩放按钮和小地图都不显示，点击和快捷键不起作用，视野始终连同节点名称一起完整放进画布，不会有名字被画布边缘切掉。`loop` 让回放一轮接一轮地播放，每轮之间停 `loop-delay` 毫秒（默认 1.2 秒），鼠标停在图上时也会暂停。每轮播完都会触发 `kgdiff-replay-end`。
+`chrome="none"` 只留下图、鼠标悬停时的提示和一行图例；标题、操作按钮、视图坞（连同步骤说明和播放条）、变化列表、缩放按钮和小地图都不显示，点击和快捷键不起作用，视野始终连同节点名称一起完整放进画布，不会有名字被画布边缘切掉。`loop` 让回放一轮接一轮地播放，每轮之间停 `loop-delay` 毫秒（默认 1.2 秒），鼠标停在图上时也会暂停。每轮播完都会触发 `kgdiff-replay-end`。
 
 ## 保存审阅进度
 
@@ -155,4 +158,4 @@ const onSelect = (event) => emit('select', event.detail.hunk);
 
 ## 大图
 
-对于大图，查看器会以“仅看变更”视图打开，只为变化及其周边布局，而不是整张图。在浏览器里计算一份大 diff 及其布局需要时间；命令行生成的 HTML 报告提前完成了这些工作，所以打开就能看。
+对于大图，查看器打开时会开启“仅看变更”，只为变化及其周边布局，而不是整张图。在浏览器里计算一份大 diff 及其布局需要时间；命令行生成的 HTML 报告提前完成了这些工作，所以打开就能看。

@@ -168,7 +168,7 @@ describe('3 · focus survives detail and menu re-renders', () => {
   it('keeps focus on the chosen menu item', async () => {
     const el = mount({ theme: 'dark' });
     await ready(el, payload());
-    ($(el, '.header [aria-haspopup="menu"]') as HTMLButtonElement).click();
+    ($(el, '.hud [aria-haspopup="menu"]') as HTMLButtonElement).click();
     const light = $(el, '.menu [data-focus-key="light"]') as HTMLButtonElement;
     light.focus();
     light.click();
@@ -195,17 +195,18 @@ describe('5 · listbox semantics', () => {
 });
 
 describe('6 · hidden context is keyboard-expandable', () => {
-  it('e (and the toolbar button) expands the group nearest the selection', async () => {
-    expect(keyAction({ key: 'e' }, 'changes')).toEqual({ type: 'expand' });
+  it('e (and the dock button) expands the group nearest the selection', async () => {
+    expect(keyAction({ key: 'e' }, 'overlay', 'changes')).toEqual({ type: 'expand' });
+    expect(keyAction({ key: 'e' }, 'replay', 'changes')).toEqual({ type: 'expand' });
     expect(keyAction({ key: 'e' }, 'overlay')).toBeNull();
     const el = mount();
     await ready(el, payload(undefined, hub(6)));
-    el.mode = 'changes';
+    el.scope = 'changes';
     el.controller.setHops(0);
     await tick();
     const before = el.controller.focus?.collapsed.length ?? 0;
     expect(before).toBeGreaterThan(0);
-    const button = $(el, '.stepper .expand') as HTMLButtonElement;
+    const button = $(el, '.dock-bar .context .expand') as HTMLButtonElement;
     expect(button.hidden).toBe(false);
     press(el, 'e');
     expect(el.controller.focus?.collapsed.length ?? 0).toBeLessThan(before);
@@ -239,8 +240,8 @@ describe('8 · bottom sheet handle', () => {
   });
 });
 
-describe('9 · header diffstat', () => {
-  it('counts hunks per family, like the filter chips, also for edge-only diffs', async () => {
+describe('9 · filter chips', () => {
+  it('count hunks per family, also for edge-only diffs, and wear the legend swatches', async () => {
     const el = mount();
     const edgeOnly = {
       before: { nodes: [{ id: 'a' }, { id: 'b' }], edges: [] },
@@ -250,13 +251,16 @@ describe('9 · header diffstat', () => {
       },
     };
     await ready(el, payload(undefined, edgeOnly));
-    const stats = $(el, '.stats');
-    expect(stats.hidden).toBe(false);
+    const filters = $(el, '.filters');
+    expect(filters.hidden).toBe(false);
     const counts = familyCounts(el.controller.scene as never);
-    const shown = [...stats.querySelectorAll<HTMLElement>('.stat:not([hidden]) .n')].map(
-      (n) => n.textContent,
+    const chips = [...filters.querySelectorAll<HTMLElement>('.fchip:not([hidden])')];
+    expect(chips.map((c) => c.querySelector('.n')?.textContent)).toEqual(
+      Object.values(counts)
+        .filter((n) => n > 0)
+        .map(String),
     );
-    expect(shown).toEqual([String(counts.structure + counts.identity)]);
+    for (const chip of chips) expect(chip.querySelector('svg.swatch')).not.toBeNull();
   });
 });
 

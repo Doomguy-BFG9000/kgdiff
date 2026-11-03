@@ -58,14 +58,15 @@ kgdiff --help | --version | help [apply]
 
 ### 报告选项
 
-| 选项                                       | 含义                                                   |
-| ------------------------------------------ | ------------------------------------------------------ |
-| `--title <text>`                           | 报告标题（默认为 `<before> → <after>`）                |
-| `--theme <auto\|light\|dark>`              | 初始主题（默认 auto）                                  |
-| `--locale <en\|zh-CN>`                     | 界面和变更组标题的语言（默认取自 `LANG`，否则为 `en`） |
-| `--mode <overlay\|swipe\|replay\|changes>` | 查看器的初始视图                                       |
-| `--reproducible`                           | 不写生成时间（输入相同时，报告逐字节相同）             |
-| `--no-compute`                             | 从不内联查看器的计算插件（见 §HTML 报告）              |
+| 选项                              | 含义                                                             |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `--title <text>`                  | 报告标题（默认为 `<before> → <after>`）                          |
+| `--theme <auto\|light\|dark>`     | 初始主题（默认 auto）                                            |
+| `--locale <en\|zh-CN>`            | 界面和变更组标题的语言（默认取自 `LANG`，否则为 `en`）           |
+| `--mode <overlay\|swipe\|replay>` | 查看器的初始对比方式（`changes` 等于叠加加 `--scope changes`）   |
+| `--scope <all\|changes>`          | 显示整张图还是只看变更，可配合任意对比方式（大图默认 `changes`） |
+| `--reproducible`                  | 不写生成时间（输入相同时，报告逐字节相同）                       |
+| `--no-compute`                    | 从不内联查看器的计算插件（见 §HTML 报告）                        |
 
 ### 行为
 

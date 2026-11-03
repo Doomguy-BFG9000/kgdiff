@@ -7,7 +7,7 @@ describe('keyboard map', () => {
       ['1', { type: 'mode', mode: 'overlay' }],
       ['2', { type: 'mode', mode: 'swipe' }],
       ['3', { type: 'mode', mode: 'replay' }],
-      ['4', { type: 'mode', mode: 'changes' }],
+      ['4', { type: 'scope' }],
       ['j', { type: 'next' }],
       ['ArrowDown', { type: 'next' }],
       ['k', { type: 'prev' }],

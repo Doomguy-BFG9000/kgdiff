@@ -311,7 +311,7 @@ export function recordingHost(): RecordedHost {
     announcements,
     ready: (stats) => events.push({ type: 'ready', detail: stats }),
     select: (hunk, node) => events.push({ type: 'select', detail: { hunk, node } }),
-    mode: (mode) => events.push({ type: 'mode', detail: mode }),
+    mode: (mode, scope) => events.push({ type: 'mode', detail: { mode, scope } }),
     review: (hunk, reviewed, progress) =>
       events.push({ type: 'review', detail: { hunk, reviewed, progress } }),
     error: (error) => events.push({ type: 'error', detail: error }),

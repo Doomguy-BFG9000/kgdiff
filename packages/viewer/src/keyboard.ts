@@ -2,10 +2,11 @@
  * The keyboard map (docs/interaction.md §Keyboard map), as a pure function from a key event to
  * an action, so it can be tested without a DOM.
  */
-import type { ViewerMode } from './index.js';
+import type { ViewerMode, ViewerScope } from './index.js';
 
 export type KeyAction =
   | { readonly type: 'mode'; readonly mode: ViewerMode }
+  | { readonly type: 'scope' }
   | { readonly type: 'next' }
   | { readonly type: 'prev' }
   | { readonly type: 'first' }
@@ -36,7 +37,6 @@ const MODE_KEYS: Readonly<Record<string, ViewerMode>> = {
   '1': 'overlay',
   '2': 'swipe',
   '3': 'replay',
-  '4': 'changes',
 };
 
 /** Divider steps for swipe, as a fraction of the width. */
@@ -44,15 +44,21 @@ export const DIVIDER_STEP = 0.02;
 export const DIVIDER_STEP_LARGE = 0.1;
 
 /**
- * Map a key press to an action in `mode`, or null when the key means nothing here. Chords with
- * Ctrl / Meta / Alt are never handled (they belong to the browser and the host page).
+ * Map a key press to an action in `mode` and `scope`, or null when the key means nothing here.
+ * Chords with Ctrl / Meta / Alt are never handled (they belong to the browser and the host page).
  */
-export function keyAction(e: KeyLike, mode: ViewerMode): KeyAction | null {
+export function keyAction(
+  e: KeyLike,
+  mode: ViewerMode,
+  scope: ViewerScope = 'all',
+): KeyAction | null {
   if (e.ctrlKey || e.metaKey || e.altKey) return null;
   const key = e.key;
   const mapped = MODE_KEYS[key];
   if (mapped !== undefined) return { type: 'mode', mode: mapped };
   switch (key) {
+    case '4':
+      return { type: 'scope' };
     case 'j':
     case 'ArrowDown':
       return { type: 'next' };
@@ -104,7 +110,7 @@ export function keyAction(e: KeyLike, mode: ViewerMode): KeyAction | null {
       return { type: 'theme' };
     case 'e':
     case 'E':
-      return mode === 'changes' ? { type: 'expand' } : null;
+      return scope === 'changes' ? { type: 'expand' } : null;
     case '?':
       return { type: 'help' };
     default:
