@@ -97,6 +97,7 @@ export async function renderReportHtml(options: ReportHtmlOptions): Promise<stri
     `theme="${escapeHtml(theme)}"`,
     `locale="${escapeHtml(locale)}"`,
     ...(view.mode ? [`mode="${escapeHtml(view.mode)}"`] : []),
+    ...(view.scope ? [`scope="${escapeHtml(view.scope)}"`] : []),
   ].join(' ');
   const encodingAttr = encoded.encoding ? ` data-encoding="${encoded.encoding}"` : '';
   const style =

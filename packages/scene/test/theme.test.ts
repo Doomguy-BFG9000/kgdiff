@@ -126,7 +126,7 @@ describe('getTheme', () => {
       node: '#4B5568',
       nodeStroke: '#5E687C',
       edge: '#323A4A',
-      label: '#8B94A6',
+      label: '#7A8495',
     });
     expect(t.family.added).toEqual({
       base: '#34D399',

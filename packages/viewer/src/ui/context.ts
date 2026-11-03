@@ -12,6 +12,8 @@ export interface UiContext {
   readonly controller: ViewerController;
   readonly tr: () => Translator;
   setMode(mode: ViewerMode): void;
+  /** Toggle the `changes` scope (explains itself when it is locked). */
+  toggleScope(): void;
   setThemePreference(pref: ThemePreference): void;
   setPalette(palette: PaletteName): void;
   setLocale(locale: Locale): void;

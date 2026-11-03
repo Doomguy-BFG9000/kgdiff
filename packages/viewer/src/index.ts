@@ -25,7 +25,10 @@ import { KgdiffViewer } from './element.js';
 import { hydrate } from './payload.js';
 import { viewerTags } from './registry.js';
 
-export type ViewerMode = 'overlay' | 'swipe' | 'replay' | 'changes';
+/** How the two versions are told apart: by color (overlay), side by side (swipe) or over time (replay). */
+export type ViewerMode = 'overlay' | 'swipe' | 'replay';
+/** What is drawn, in any mode: the whole graph, or only the changes with a few hops of context. */
+export type ViewerScope = 'all' | 'changes';
 export type ThemePreference = 'auto' | 'light' | 'dark';
 /** `none`: the graph alone, for small embeds (see `KgdiffViewerElement.chrome`). */
 export type ViewerChrome = 'full' | 'none';
@@ -49,7 +52,9 @@ export interface ReportPayload {
   };
   /** Initial view preferences. */
   readonly view?: {
+    /** `changes` (from reports made before scopes existed) means `overlay` + scope `changes`. */
     readonly mode?: ViewerMode;
+    readonly scope?: ViewerScope;
     readonly theme?: ThemePreference;
     readonly palette?: PaletteName;
     readonly locale?: Locale;
@@ -80,7 +85,7 @@ export interface ReviewState {
 export interface KgdiffViewerEventMap {
   'kgdiff-ready': CustomEvent<{ readonly stats: DiffStats }>;
   'kgdiff-select': CustomEvent<{ readonly hunk: string | null; readonly node: string | null }>;
-  'kgdiff-mode': CustomEvent<{ readonly mode: ViewerMode }>;
+  'kgdiff-mode': CustomEvent<{ readonly mode: ViewerMode; readonly scope: ViewerScope }>;
   'kgdiff-review': CustomEvent<{
     readonly hunk: string;
     readonly reviewed: boolean;
@@ -104,21 +109,28 @@ export interface FitOptions {
 /**
  * Public surface of the `<kgdiff-viewer>` element.
  *
- * Boolean attributes: `sync-hash` (deep links `#kgdiff=hunk:<id>;mode:<mode>`) and
+ * Boolean attributes: `sync-hash` (deep links `#kgdiff=hunk:<id>;mode:<mode>;scope:<scope>`) and
  * `global-shortcuts`: keyboard shortcuts normally apply only while focus is inside the viewer;
  * with this attribute they also apply when nothing on the page has focus (for full-page
  * viewers such as HTML reports), except the keys pages scroll with (arrows, Home / End, Page
  * Up / Down, Space).
  *
- * `header="compact"` leaves the brand and the compared names out of the header, for hosts that
+ * `header="compact"` leaves the brand and the compared names out of the canvas, for hosts that
  * show their own (such as the playground).
  *
  * A small looping replay for another page: `mode="replay" chrome="none" loop` (with a height of
  * your choosing, such as 320px).
  */
 export interface KgdiffViewerElement extends HTMLElement {
-  /** Reflected to the `mode` attribute. Default `overlay` (`changes` for large graphs). */
-  mode: ViewerMode;
+  /** Reflected to the `mode` attribute. Default `overlay`. */
+  get mode(): ViewerMode;
+  /** The legacy `changes` mode sets `overlay` + scope `changes`. */
+  set mode(value: ViewerMode | 'changes');
+  /**
+   * Reflected to the `scope` attribute. Default `all` (`changes` for large graphs). Fixed to
+   * `changes` when the layout covers only the changes.
+   */
+  scope: ViewerScope;
   /** Reflected to the `theme` attribute. Default `auto`. */
   theme: ThemePreference;
   /** Reflected to the `palette` attribute. Default `default`. */
@@ -126,9 +138,9 @@ export interface KgdiffViewerElement extends HTMLElement {
   /** Reflected to the `locale` attribute. Default from `navigator.language`. */
   locale: Locale;
   /**
-   * Reflected to the `chrome` attribute. `none` shows the graph alone: no header, change list,
-   * step caption, playback bar, zoom buttons, minimap or legend card; the hover tooltip and a
-   * one-line legend stay. Clicks and keyboard shortcuts do nothing, the minimum height drops
+   * Reflected to the `chrome` attribute. `none` shows the graph alone: no title, actions, view
+   * dock (with the step caption and playback bar), change list, zoom buttons, minimap or legend
+   * card; the hover tooltip and a one-line legend stay. Clicks and keyboard shortcuts do nothing, the minimum height drops
    * from 420px to 120px, and the view stays fitted: when the canvas is resized (unless the user
    * panned or zoomed since) and at the start of every loop. Labels are never cut at the edge:
    * one pushed from its spot by a neighbour moves inside or is left out. Default `full`.

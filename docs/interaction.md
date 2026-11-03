@@ -6,33 +6,43 @@ from [visual-language.md](visual-language.md).
 ## Layout
 
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ ◆ kgdiff   go.obo  v2026-09 → v2026-10     ⟨Overlay│Swipe│Replay│Changes⟩   +12 −3 ~8  ◐ ? │  header 52px
-├──────────────────────────────────────────────────────────────────┬─────────────────────┤
-│                                                                  │ Changes  23   ⌕     │
-│                                                                  │ ●Added ●Removed …   │  filter chips
-│                          canvas                                  │ ▍Merged “A” into “B”│
-│                                                                  │ ▍Renamed “x” → “y”  │  hunk list
+┌──────────────────────────────────────────────────────────────────┬─────────────────────┐
+│ ⟨◆ kgdiff │ go.obo  v2026-09 → v2026-10⟩                ⟨◐ ? ▥⟩ │ Changes  23   ⌕     │
+│                                                                  │ ◉Added ◌Removed …   │  filter chips
+│                                                                  │ ▍Merged “A” into “B”│
+│                          canvas                                  │ ▍Renamed “x” → “y”  │  hunk list
 │                                                                  │ …                   │
-│  ┌legend┐                                          ┌minimap┐     ├─────────────────────┤
-│  └──────┘        ⟨ ◀  ▶‖  ▶  ━━━●━━━━━━━  3/23  1× ⟩ └───────┘     │ detail panel        │
+│               ⟨ ◀  ▶‖  ▶  ━━━●━━━━━━━  3/23  1× ⟩    (replay)   │                     │
+│ ⟨Legend ▾⟩  ⟨Overlay│Swipe│Replay ┊ ◎ Changes only  0 1 2⟩  ┌map┐├─────────────────────┤
+│                                                         ⟨+−⤢⟩└───┘│ detail panel        │
 └──────────────────────────────────────────────────────────────────┴─────────────────────┘
 ```
 
-- Sidebar 360 px (collapsible with `\` or the header button). Below 760 px wide it becomes a
-  bottom sheet (40% height, draggable handle) and the mode control shows icons only.
-- Floating chrome (legend, minimap, transport) uses overlay surfaces and never covers the
-  current hunk: the renderer's `safeArea` reserves their space when fitting.
+- Sidebar 360 px, full height (collapsible with `\` or the sidebar button). Below 760 px wide it
+  becomes a bottom sheet (40% height, draggable handle).
+- Everything else floats over the canvas on overlay surfaces and never covers the current hunk:
+  fits and flights frame it in the free part of the canvas.
 
-## Header
+## Canvas chrome
 
-- Brand mark + "before → after" names (from graph meta / file names), version tags.
-- Mode segmented control: **Overlay** (`1`), **Swipe** (`2`), **Replay** (`3`), **Changes only**
-  (`4`). Changing mode keeps the camera.
-- Diffstat pills (family colors): `+N` added, `−N` removed, `~N` modified, `⇄N` restructured,
-  each a filter shortcut.
-- Theme toggle (auto / light / dark), palette toggle (default / color-blind safe) in a menu,
-  fit-to-view, help (`?`).
+- **Title** (top left): brand mark + "before → after" names (from graph meta / file names),
+  version tags. `header="compact"` leaves it out, for hosts that show their own.
+- **Actions** (top right): appearance menu (theme auto / light / dark, palette default /
+  color-blind safe, language), help (`?`), sidebar toggle.
+- **View dock** (bottom center) holds two independent choices:
+  - **Mode**: **Overlay** (`1`), **Swipe** (`2`), **Replay** (`3`). They tell before from after
+    by color, by space and by time, so exactly one is active. Changing mode keeps the camera.
+  - **Changes only** (`4`): a scope that works with any mode. While on, the dock shows the
+    context hops 0 / 1 / 2 and “+N”, which expands the hidden context nearest the selection
+    (`e`). It stays on when the layout covers only the changes (large graphs); the toggle
+    then says why.
+  - Replay's caption (the playing hunk) and transport stack above the dock; at the end
+    "Replay finished · Restart" takes the caption's place.
+  - Narrower canvases drop the labels (each control keeps its name as a tooltip).
+- **Legend** (bottom left), collapsed by default: the sidebar's filter chips wear the same
+  swatches.
+- **Zoom** (+ / − / fit) bottom right. The **minimap** next to it appears only while part of
+  the content is out of view.
 
 ## Modes
 
@@ -41,7 +51,8 @@ Click: select its hunk (or the node if unchanged). Click empty canvas: clear sel
 
 **Swipe.** Before on the left, after on the right of a vertical divider (default 50%). Drag
 the handle (or the divider anywhere along it), `←` / `→` move 2% (`Shift` 10%), double-click
-resets. "Before" / "After" chips in the top corners. Selection still works on both sides.
+resets. "Before" / "After" chips under the title and the actions. Selection still works on both
+sides.
 
 **Replay.** The before graph morphs into the after graph hunk by hunk (timeline from the
 scene). Transport: previous / play-pause / next, scrubber with one tick per hunk (family
@@ -50,10 +61,10 @@ color, hover shows the title), position `3 / 23`, speed `0.5× 1× 2× 4×`. `Sp
 the current hunk unless the user has panned/zoomed in the last 2 s. Reaching the end shows
 "Replay finished · Restart".
 
-**Changes only.** Focus view: changed elements + 1 hop of context (stepper 0 / 1 / 2 in the
-canvas toolbar); hidden nodes summarized as "+38 unchanged" pills; click a pill to expand it
-(positions via `extendLayout`, so nothing else moves). Default for graphs above the large-graph
-threshold.
+**Changes only (scope).** Focus view in any mode: changed elements + 1 hop of context (0 / 1 /
+2 in the dock); hidden nodes summarized as "+38 unchanged" pills; click a pill to expand it
+(positions via `extendLayout`, so nothing else moves). Swipe focuses both sides; replay plays
+within the focus. Default for graphs above the large-graph threshold.
 
 ## Change list (sidebar)
 
@@ -94,28 +105,30 @@ For the selected hunk (or node), what changed comes first and the unchanged rest
 
 ## Keyboard map
 
-| Key               | Action                                  |
-| ----------------- | --------------------------------------- |
-| `1` `2` `3` `4`   | Overlay / Swipe / Replay / Changes only |
-| `j` `↓` / `k` `↑` | Next / previous change                  |
-| `Enter`           | Fly to the selected change              |
-| `Esc`             | Clear selection, close popovers         |
-| `Space`           | Play / pause (replay)                   |
-| `←` `→`           | Step (replay) · move divider (swipe)    |
-| `f`               | Fit everything                          |
-| `+` `−`           | Zoom in / out                           |
-| `/`               | Search                                  |
-| `x`               | Toggle reviewed                         |
-| `\`               | Toggle sidebar                          |
-| `t`               | Cycle theme                             |
-| `?`               | Shortcut help                           |
+| Key               | Action                               |
+| ----------------- | ------------------------------------ |
+| `1` `2` `3`       | Overlay / Swipe / Replay             |
+| `4`               | Changes only (on / off, in any mode) |
+| `e`               | Expand hidden context (changes only) |
+| `j` `↓` / `k` `↑` | Next / previous change               |
+| `Enter`           | Fly to the selected change           |
+| `Esc`             | Clear selection, close popovers      |
+| `Space`           | Play / pause (replay)                |
+| `←` `→`           | Step (replay) · move divider (swipe) |
+| `f`               | Fit everything                       |
+| `+` `−`           | Zoom in / out                        |
+| `/`               | Search                               |
+| `x`               | Toggle reviewed                      |
+| `\`               | Toggle sidebar                       |
+| `t`               | Cycle theme                          |
+| `?`               | Shortcut help                        |
 
 Shortcuts are ignored while typing in an input.
 
 ## Embedding API
 
 ```html
-<kgdiff-viewer theme="auto" locale="zh-CN" mode="overlay"></kgdiff-viewer>
+<kgdiff-viewer theme="auto" locale="zh-CN" mode="replay" scope="changes"></kgdiff-viewer>
 <script type="module">
   import '@kgdiff/viewer';
   const viewer = document.querySelector('kgdiff-viewer');
@@ -124,21 +137,24 @@ Shortcuts are ignored while typing in an input.
 </script>
 ```
 
-Attributes / properties: `mode`, `theme` (`auto|light|dark`), `palette`, `locale` (`en|zh-CN`,
-default from `navigator.language`), `sidebar` (`open|closed`), `sync-hash` (deep links
-`#kgdiff=hunk:<id>;mode:<mode>`), `header` (`compact` leaves the brand and the compared names
-out, for hosts that show their own), `chrome` (`none` shows the graph alone for small embeds:
-no header, change list, step caption, playback bar, zoom buttons, minimap or legend card; the
-hover tooltip and a one-line legend stay, clicks and shortcuts do nothing, the minimum height
-drops to 120px and the view stays fitted on resize and at each loop), `legend`
+Attributes / properties: `mode` (`overlay|swipe|replay`; the legacy `changes` reads as
+`overlay` + `scope="changes"`), `scope` (`all|changes`, default `changes` for large graphs),
+`theme` (`auto|light|dark`), `palette`, `locale` (`en|zh-CN`, default from
+`navigator.language`), `sidebar` (`open|closed`), `sync-hash` (deep links
+`#kgdiff=hunk:<id>;mode:<mode>;scope:<scope>`; old `mode:changes` links still work), `header`
+(`compact` leaves the brand and the compared names out, for hosts that show their own),
+`chrome` (`none` shows the graph alone for small embeds: no title, actions, view dock with its
+step caption and playback bar, change list, zoom buttons, minimap or legend card; the hover
+tooltip and a one-line legend stay, clicks and shortcuts do nothing, the minimum height drops
+to 120px and the view stays fitted on resize and at each loop), `legend`
 (`auto|full|mini|none`), `loop` (the replay plays by itself and starts again after `loop-delay`
 ms, default 1200), `pause-on-hover` (`false` keeps a looping replay playing under the mouse).
 Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`, `play()`, `pause()`,
 `fit({ animate, padding })` (labels included), `exportDelta()`, `reviewState()`. Events
 (`CustomEvent`, bubbling, composed): `kgdiff-ready` `{ stats }`, `kgdiff-select`
-`{ hunk, node }`, `kgdiff-mode` `{ mode }`, `kgdiff-review` `{ hunk, reviewed, progress }`,
-`kgdiff-error` `{ error }`, `kgdiff-replay-end` `{ loop }` (playback reached the end; `loop`:
-it starts again).
+`{ hunk, node }`, `kgdiff-mode` `{ mode, scope }`, `kgdiff-review`
+`{ hunk, reviewed, progress }`, `kgdiff-error` `{ error }`, `kgdiff-replay-end` `{ loop }`
+(playback reached the end; `loop`: it starts again).
 
 ## States
 

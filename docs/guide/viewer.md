@@ -52,27 +52,31 @@ viewer.mode = 'replay';
 viewer.play();
 ```
 
-| Attribute          | Values                                                        | Default                        |
-| ------------------ | ------------------------------------------------------------- | ------------------------------ |
-| `mode`             | `overlay`, `swipe`, `replay`, `changes`                       | `overlay` (`changes` if large) |
-| `theme`            | `auto`, `light`, `dark`                                       | `auto`                         |
-| `palette`          | `default`, `colorblind`                                       | `default`                      |
-| `locale`           | `en`, `zh-CN`                                                 | from `navigator.language`      |
-| `sidebar`          | `open`, `closed`                                              |                                |
-| `sync-hash`        | boolean: deep links `#kgdiff=hunk:<id>;mode:<mode>`           |                                |
-| `global-shortcuts` | boolean: shortcuts work when nothing on the page has focus    |                                |
-| `header`           | `compact`: no brand or graph names, when your page shows them |                                |
-| `chrome`           | `none`: the graph alone, for small embeds                     | `full`                         |
-| `legend`           | `auto`, `full`, `mini` (one line), `none`                     | `auto`                         |
-| `loop`             | boolean: the replay plays by itself, over and over            |                                |
-| `loop-delay`       | ms between the end of a looping replay and its restart        | `1200`                         |
-| `pause-on-hover`   | `false`: a looping replay keeps playing under the mouse       | pauses                         |
+| Attribute          | Values                                                        | Default                    |
+| ------------------ | ------------------------------------------------------------- | -------------------------- |
+| `mode`             | `overlay`, `swipe`, `replay` (legacy `changes`, see below)    | `overlay`                  |
+| `scope`            | `all`, `changes`: only the changes, in any mode               | `all` (`changes` if large) |
+| `theme`            | `auto`, `light`, `dark`                                       | `auto`                     |
+| `palette`          | `default`, `colorblind`                                       | `default`                  |
+| `locale`           | `en`, `zh-CN`                                                 | from `navigator.language`  |
+| `sidebar`          | `open`, `closed`                                              |                            |
+| `sync-hash`        | boolean: deep links `#kgdiff=hunk:<id>;mode:<m>;scope:<s>`    |                            |
+| `global-shortcuts` | boolean: shortcuts work when nothing on the page has focus    |                            |
+| `header`           | `compact`: no brand or graph names, when your page shows them |                            |
+| `chrome`           | `none`: the graph alone, for small embeds                     | `full`                     |
+| `legend`           | `auto`, `full`, `mini` (one line), `none`                     | `auto`                     |
+| `loop`             | boolean: the replay plays by itself, over and over            |                            |
+| `loop-delay`       | ms between the end of a looping replay and its restart        | `1200`                     |
+| `pause-on-hover`   | `false`: a looping replay keeps playing under the mouse       | pauses                     |
 
-`mode`, `theme`, `palette`, `locale`, `chrome`, `legend`, `loop`, `loopDelay` and
+`mode="changes"`, from before scopes existed, still works: it means `overlay` with
+`scope="changes"`, and the attributes are rewritten to say so.
+
+`mode`, `scope`, `theme`, `palette`, `locale`, `chrome`, `legend`, `loop`, `loopDelay` and
 `pauseOnHover` are also properties. Methods: `load()`, `selectHunk(id)`, `next()`, `prev()`,
 `play()`, `pause()`, `fit({ animate, padding })`, `exportDelta()`, `reviewState()` and
 `setReviewed(id, reviewed)`. Events, all bubbling and composed: `kgdiff-ready` `{ stats }`,
-`kgdiff-select` `{ hunk, node }`, `kgdiff-mode` `{ mode }`, `kgdiff-review`
+`kgdiff-select` `{ hunk, node }`, `kgdiff-mode` `{ mode, scope }`, `kgdiff-review`
 `{ hunk, reviewed, progress }`, `kgdiff-error` `{ error }` and `kgdiff-replay-end` `{ loop }`.
 [Viewer: interaction and API](../interaction.md#embedding-api) has the details.
 
@@ -177,6 +181,6 @@ and a bundler.
 
 ## Large graphs
 
-For large graphs the viewer opens in Changes only, which lays out the changes and their
+For large graphs the viewer opens with Changes only on, which lays out the changes and their
 neighbourhood instead of the whole graph. Computing a big diff and its layout takes time in the
 browser; the CLI's HTML report does that work ahead of time and opens instantly.

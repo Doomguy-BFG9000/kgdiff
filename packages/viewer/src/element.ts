@@ -18,11 +18,13 @@ import type {
   ViewerChrome,
   ViewerLegend,
   ViewerMode,
+  ViewerScope,
 } from './index.js';
 import { isTypingTarget, keyAction } from './keyboard.js';
 import { assertPayload } from './payload.js';
 import {
   DEFAULT_LOOP_DELAY,
+  LEGACY_CHANGES_MODE,
   THEME_PREFERENCES,
   toChrome,
   toDelay,
@@ -30,6 +32,7 @@ import {
   toLocale,
   toMode,
   toPalette,
+  toScope,
   toTheme,
 } from './prefs.js';
 import { defaultStorage } from './review-store.js';
@@ -40,13 +43,14 @@ import { HelpDialog, Menu } from './ui/popovers.js';
 import { Sidebar } from './ui/sidebar.js';
 import { Stage } from './ui/stage.js';
 
-/** Below this width the sidebar becomes a bottom sheet and the mode control shows icons. */
+/** Below this width the sidebar becomes a bottom sheet. */
 export const COMPACT_WIDTH = 760;
-/** Below this width the header drops the diffstat pills and version tags. */
+/** Below this width the title drops the version tags. */
 const NARROW_WIDTH = 1100;
 
 const OBSERVED = [
   'mode',
+  'scope',
   'theme',
   'palette',
   'locale',
@@ -60,6 +64,7 @@ const OBSERVED = [
 ] as const;
 const UPGRADED = [
   'mode',
+  'scope',
   'theme',
   'palette',
   'locale',
@@ -158,8 +163,8 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
         this.#emit('kgdiff-select', { hunk, node });
         this.#writeHash();
       },
-      mode: (mode) => {
-        this.#emit('kgdiff-mode', { mode });
+      mode: (mode, scope) => {
+        this.#emit('kgdiff-mode', { mode, scope });
         this.#writeHash();
       },
       review: (hunk, reviewed, progress) =>
@@ -223,7 +228,7 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     window.addEventListener('hashchange', onHash);
     this.#cleanup.push(() => window.removeEventListener('hashchange', onHash));
     this.controller.setChrome(() => ui.stage.chromeLayout());
-    document.fonts?.ready?.then(() => this.#ui?.header.layout()).catch(() => undefined);
+    document.fonts?.ready?.then(() => this.#ui?.stage.layout()).catch(() => undefined);
     this.#readHash();
     this.#render(
       new Set<Topic>([
@@ -238,6 +243,7 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
         'focus',
         'swipe',
         'replay',
+        'overview',
       ]),
     );
   }
@@ -256,6 +262,7 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     if (this.#reflecting) return;
     switch (name) {
       case 'mode':
+      case 'scope':
       case 'theme':
       case 'palette':
       case 'locale':
@@ -286,21 +293,37 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
 
   /**
    * Apply a preference from an attribute or a property. Valid values are explicit (a report's
-   * `view` does not override them); invalid ones fall back to the default (`overlay`, `auto`,
-   * `default`, the browser's language). Properties reflect the normalized value.
+   * `view` does not override them); invalid ones fall back to the default (`overlay`, `all`,
+   * `auto`, `default`, the browser's language). Properties reflect the normalized value; the
+   * legacy mode `changes` reflects as `overlay` + scope `changes`.
    */
   #applyPreference(
-    name: 'mode' | 'theme' | 'palette' | 'locale',
+    name: 'mode' | 'scope' | 'theme' | 'palette' | 'locale',
     raw: unknown,
     reflect: boolean,
   ): void {
     const c = this.controller;
+    // `mode="changes"` is rewritten to the attribute pair it stands for.
+    const legacy = name === 'mode' && raw === LEGACY_CHANGES_MODE;
     let value: string | null;
     switch (name) {
       case 'mode': {
+        if (legacy) {
+          c.explicit.add('scope');
+          c.setView('overlay', 'changes');
+          value = 'overlay';
+          break;
+        }
         const v = toMode(raw);
         c.setMode(v ?? 'overlay');
         value = v;
+        break;
+      }
+      case 'scope': {
+        const v = toScope(raw);
+        c.setScope(v ?? 'all');
+        // A locked scope stays `changes`: the attribute says what is shown.
+        value = v === null ? null : c.scope;
         break;
       }
       case 'theme': {
@@ -326,7 +349,8 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     }
     if (value === null) c.explicit.delete(name);
     else c.explicit.add(name);
-    if (reflect) this.#reflect(name, value);
+    if (reflect || legacy) this.#reflect(name, value);
+    if (legacy) this.#reflect('scope', c.scope);
   }
 
   // ─── Properties ───────────────────────────────────────────────────────────
@@ -335,8 +359,16 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     return this.controller.mode;
   }
 
-  set mode(value: ViewerMode) {
+  set mode(value: ViewerMode | typeof LEGACY_CHANGES_MODE) {
     this.#applyPreference('mode', value, true);
+  }
+
+  get scope(): ViewerScope {
+    return this.controller.scope;
+  }
+
+  set scope(value: ViewerScope) {
+    this.#applyPreference('scope', value, true);
   }
 
   get theme(): ThemePreference {
@@ -555,6 +587,9 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
       setMode: (mode) => {
         this.controller.setMode(mode);
       },
+      toggleScope: () => {
+        this.controller.toggleScope();
+      },
       setThemePreference: (pref) => {
         this.theme = pref;
       },
@@ -576,12 +611,13 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     const menu = new Menu(ctx);
     const help = new HelpDialog(ctx);
     const live = h('div', { class: 'sr-only', 'aria-live': 'polite', 'aria-atomic': 'true' });
+    // The title and the actions float over the canvas; the menu drops from the actions.
+    header.attachMenu(menu.el);
+    stage.el.appendChild(header.el);
     const root = h(
       'div',
       { class: 'root' },
-      header.el,
       h('div', { class: 'body' }, stage.el, sidebar.el),
-      menu.el,
       help.el,
       live,
     );
@@ -624,7 +660,10 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
   #renderTopics(topics: ReadonlySet<Topic>): void {
     const ui = this.#ui;
     const c = this.controller;
-    if (topics.has('mode')) this.#reflect('mode', c.mode);
+    if (topics.has('mode')) {
+      this.#reflect('mode', c.mode);
+      this.#reflect('scope', c.scope);
+    }
     if (topics.has('theme')) {
       this.#reflect(
         'theme',
@@ -645,7 +684,10 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     ui.header.update(topics);
     ui.sidebar.update(topics);
     ui.stage.update(topics);
-    if (topics.has('mode') || topics.has('status')) ui.root.dataset.mode = c.mode;
+    if (topics.has('mode') || topics.has('status')) {
+      ui.root.dataset.mode = c.mode;
+      ui.root.dataset.scope = c.scope;
+    }
   }
 
   #toggleSidebar(open?: boolean): void {
@@ -695,7 +737,7 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
         this.#compact = compact;
         ui.root.dataset.compact = String(compact);
       }
-      ui.header.layout();
+      ui.stage.layout();
       ui.sidebar.renderWindow();
       if (compact) ui.sidebar.syncSheet();
       this.controller.layoutChanged();
@@ -730,7 +772,7 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     const target = path[0] ?? null;
     if (isTypingTarget(target)) return;
     const c = this.controller;
-    const action = keyAction(e, c.mode);
+    const action = keyAction(e, c.mode, c.scope);
     if (!action) return;
     // Enter / Space on a focused control activate that control.
     const el = target as Element | null;
@@ -746,6 +788,9 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     switch (action.type) {
       case 'mode':
         c.setMode(action.mode);
+        break;
+      case 'scope':
+        c.toggleScope();
         break;
       case 'next':
         c.next();
@@ -813,10 +858,12 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     const state = parseHash(location.hash);
     this.#lastHash = location.hash;
     if (!state) return;
-    if (state.mode) {
-      // A deep link outranks the large-graph default and a report's preferred mode.
-      this.controller.explicit.add('mode');
-      this.controller.setMode(state.mode);
+    if (state.mode || state.scope) {
+      // A deep link outranks the large-graph default and a report's preferred view.
+      const c = this.controller;
+      if (state.mode) c.explicit.add('mode');
+      if (state.scope) c.explicit.add('scope');
+      c.setView(state.mode ?? c.mode, state.scope ?? c.scope);
     }
     if (state.hunk) this.controller.selectHunkById(state.hunk, { fly: true });
   }
@@ -825,7 +872,11 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
     if (!this.hasAttribute('sync-hash') || typeof location === 'undefined') return;
     const c = this.controller;
     const hunk = c.selectedHunk >= 0 ? c.scene?.hunks[c.selectedHunk]?.id : undefined;
-    const hash = formatHash({ ...(hunk !== undefined ? { hunk } : {}), mode: c.mode });
+    const hash = formatHash({
+      ...(hunk !== undefined ? { hunk } : {}),
+      mode: c.mode,
+      scope: c.scope,
+    });
     if (hash === location.hash) return;
     this.#lastHash = hash;
     try {

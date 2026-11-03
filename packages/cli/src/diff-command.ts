@@ -252,6 +252,7 @@ export async function runDiff(o: DiffCommandOptions, io: CliIO): Promise<number>
         after: { name: graphLabel(after.graph.meta, afterInput), format: after.format },
         view: {
           ...(o.mode ? { mode: o.mode } : {}),
+          ...(o.scope ? { scope: o.scope } : {}),
           ...(o.theme ? { theme: o.theme } : {}),
           locale: ctx.locale,
         },

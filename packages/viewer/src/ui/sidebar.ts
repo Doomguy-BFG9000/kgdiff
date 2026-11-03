@@ -11,6 +11,7 @@ import type { SearchHit } from '../search.js';
 import { FAMILIES } from '../styles.js';
 import { sceneHunkGlyph, type UiContext } from './context.js';
 import { Detail } from './detail.js';
+import { swatch } from './swatch.js';
 
 /** Row slot and group-header heights (px); rows are 52 px tall inside a 56 px slot. */
 export const ROW_SLOT = 56;
@@ -96,7 +97,7 @@ export class Sidebar {
           'aria-pressed': 'false',
           onclick: () => c.toggleFamily(f),
         },
-        h('span', { class: 'dot', 'aria-hidden': 'true' }),
+        swatch(f),
         h('span', { class: 'lbl' }),
         h('span', { class: 'n' }),
       );

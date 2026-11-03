@@ -24,7 +24,7 @@ export const darkTheme: Theme = {
   },
   text: { primary: '#E7EBF3', secondary: '#A6AFBF', muted: '#737D8F' },
   accent: { base: '#7C9CFF', strong: '#A3BAFF', soft: 'rgba(124,156,255,0.16)', text: '#A9BEFF' },
-  neutral: { node: '#4B5568', nodeStroke: '#5E687C', edge: '#323A4A', label: '#8B94A6' },
+  neutral: { node: '#4B5568', nodeStroke: '#5E687C', edge: '#323A4A', label: '#7A8495' },
   family: {
     added: { base: '#34D399', strong: '#6EE7B7', soft: 'rgba(52,211,153,0.16)', text: '#6EE7B7' },
     removed: {
@@ -67,7 +67,7 @@ export const lightTheme: Theme = {
   },
   text: { primary: '#0F172A', secondary: '#475569', muted: '#7B8597' },
   accent: { base: '#3B5BDB', strong: '#2F49B5', soft: 'rgba(59,91,219,0.10)', text: '#2F49B5' },
-  neutral: { node: '#A7B0BF', nodeStroke: '#8C96A8', edge: '#D3D9E2', label: '#5F6B7D' },
+  neutral: { node: '#A7B0BF', nodeStroke: '#8C96A8', edge: '#D3D9E2', label: '#687284' },
   family: {
     added: { base: '#16A34A', strong: '#15803D', soft: 'rgba(22,163,74,0.11)', text: '#15803D' },
     removed: { base: '#DC2626', strong: '#B91C1C', soft: 'rgba(220,38,38,0.09)', text: '#B91C1C' },

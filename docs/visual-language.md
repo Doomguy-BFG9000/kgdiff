@@ -51,7 +51,7 @@ Values are final unless a contrast test fails; tests in `@kgdiff/scene` assert:
 | surface.shadow                           | `0 8px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset`             |
 | text primary / secondary / muted         | `#E7EBF3` / `#A6AFBF` / `#7A8495`                                               |
 | accent base / strong / soft / text       | `#7C9CFF` / `#A3BAFF` / `rgba(124,156,255,0.16)` / `#A9BEFF`                    |
-| neutral node / nodeStroke / edge / label | `#4B5568` / `#5E687C` / `#323A4A` / `#8B94A6`                                   |
+| neutral node / nodeStroke / edge / label | `#4B5568` / `#5E687C` / `#323A4A` / `#7A8495`                                   |
 | added                                    | base `#34D399`, strong `#6EE7B7`, soft `rgba(52,211,153,0.16)`, text `#6EE7B7`  |
 | removed                                  | base `#F87171`, strong `#FCA5A5`, soft `rgba(248,113,113,0.15)`, text `#FCA5A5` |
 | content                                  | base `#FBBF24`, strong `#FCD34D`, soft `rgba(251,191,36,0.15)`, text `#FCD34D`  |
@@ -70,7 +70,7 @@ Values are final unless a contrast test fails; tests in `@kgdiff/scene` assert:
 | surface.shadow                           | `0 8px 28px rgba(15,23,42,0.10), 0 1px 2px rgba(15,23,42,0.06)`                |
 | text primary / secondary / muted         | `#0F172A` / `#475569` / `#687284`                                              |
 | accent                                   | base `#3B5BDB`, strong `#2F49B5`, soft `rgba(59,91,219,0.10)`, text `#2F49B5`  |
-| neutral node / nodeStroke / edge / label | `#A7B0BF` / `#8C96A8` / `#D3D9E2` / `#5F6B7D`                                  |
+| neutral node / nodeStroke / edge / label | `#A7B0BF` / `#8C96A8` / `#D3D9E2` / `#687284`                                  |
 | added                                    | base `#16A34A`, strong `#15803D`, soft `rgba(22,163,74,0.11)`, text `#147A3A`  |
 | removed                                  | base `#DC2626`, strong `#B91C1C`, soft `rgba(220,38,38,0.09)`, text `#B91C1C`  |
 | content                                  | base `#D87506`, strong `#B45309`, soft `rgba(217,119,6,0.11)`, text `#92400E`  |
@@ -175,7 +175,8 @@ are inside the viewport (van Wijk–Nuij, ρ = √2, duration `clamp(S·620 ms, 
   spacing) to avoid moiré.
 - Minimap: 184 × 128 px floating card (overlay surface, 12 px radius); neutral nodes as 1 px dots
   at 35%, changed nodes as 2 px dots in family color, viewport as a 1.25 px accent rectangle with
-  soft fill; click / drag to navigate.
+  soft fill; click / drag to navigate. Shown only while part of the content is out of view (with
+  everything in view it has nothing to add).
 - Floating chrome uses `surface.overlay` + blur, 12 px radius, `surface.shadow`, 1 px
   `surface.border`.
 

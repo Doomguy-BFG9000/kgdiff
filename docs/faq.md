@@ -12,7 +12,7 @@ The diff engine handles graphs with hundreds of thousands of nodes: the budget f
 and 300,000 edges with exact ids is under 2 seconds. Memory grows with the size of the graphs and
 with how much changed; expect several gigabytes around a million triples, with the HTML report
 needing the most. For very large graphs, `--stat` and `--markdown` are the lightest outputs, and
-the viewer opens in Changes only. [Architecture: budgets](./architecture.md#budgets) lists the
+the viewer opens with Changes only on. [Architecture: budgets](./architecture.md#budgets) lists the
 targets.
 
 ## Why is a change reported as a merge or a move rather than as removed and added?

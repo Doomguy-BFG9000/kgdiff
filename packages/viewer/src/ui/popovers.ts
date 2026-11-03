@@ -146,9 +146,10 @@ type Label = MessageKey | readonly MessageKey[];
 /** Shortcut rows; labels reuse the controls' own names where they exist. */
 const SHORTCUTS: readonly (readonly [readonly (readonly string[])[], Label])[] = [
   [
-    [['1'], ['2'], ['3'], ['4']],
-    ['mode.overlay', 'mode.swipe', 'mode.replay', 'mode.changes'],
+    [['1'], ['2'], ['3']],
+    ['mode.overlay', 'mode.swipe', 'mode.replay'],
   ],
+  [[['4']], 'mode.changes'],
   [[['j'], ['↓']], 'detail.next'],
   [[['k'], ['↑']], 'detail.prev'],
   [[['Home'], ['End']], 'help.homeEnd'],

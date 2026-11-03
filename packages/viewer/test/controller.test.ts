@@ -95,18 +95,24 @@ describe('load pipeline', () => {
     expect(host.events.filter((e) => e.type === 'ready')).toHaveLength(1);
   });
 
-  it('starts in changes mode when the layout is scoped to changes', async () => {
+  it('starts in the changes scope when the layout is scoped to changes', async () => {
     await c.load({ ...hub(12), layout: { largeGraphThreshold: 4 } });
     expect(c.layout?.scope).toBe('changes');
-    expect(c.mode).toBe('changes');
+    expect([c.mode, c.scope]).toEqual(['overlay', 'changes']);
     expect(c.focus).not.toBeNull();
   });
 
-  it('keeps an explicitly chosen mode for large graphs', async () => {
+  it('keeps an explicitly chosen mode for large graphs, but not the whole-graph scope', async () => {
     c.explicit.add('mode');
-    c.setMode('overlay');
+    c.explicit.add('scope');
+    c.setView('swipe', 'all');
     await c.load({ ...hub(12), layout: { largeGraphThreshold: 4 } });
-    expect(c.mode).toBe('overlay');
+    // Only the changes are laid out: there is no whole graph to show.
+    expect([c.mode, c.scope]).toEqual(['swipe', 'changes']);
+    expect(c.scopeLocked).toBe(true);
+    c.toggleScope();
+    expect(c.scope).toBe('changes');
+    expect(host.announcements.at(-1)).toMatch(/laid out around its changes only/);
   });
 });
 
@@ -303,20 +309,42 @@ describe('modes and frames', () => {
     await c.load(zoo());
   });
 
-  it('switches modes without moving the camera and emits mode events', () => {
+  it('switches modes and scopes without moving the camera and emits mode events', () => {
     const cam = backend.last().camera;
     cam.state = { x: 12, y: 34, k: 1.5 };
     c.setMode('swipe');
     c.setMode('replay');
+    c.setScope('changes');
     c.setMode('changes');
     expect(cam.get()).toEqual({ x: 12, y: 34, k: 1.5 });
     expect(host.events.filter((e) => e.type === 'mode').map((e) => e.detail)).toEqual([
-      'swipe',
-      'replay',
-      'changes',
+      { mode: 'swipe', scope: 'all' },
+      { mode: 'replay', scope: 'all' },
+      { mode: 'replay', scope: 'changes' },
+      // The legacy `changes` mode: overlay + the changes scope.
+      { mode: 'overlay', scope: 'changes' },
     ]);
-    c.setMode('changes');
-    expect(host.events.filter((e) => e.type === 'mode')).toHaveLength(3);
+    c.setView('overlay', 'changes');
+    expect(host.events.filter((e) => e.type === 'mode')).toHaveLength(4);
+  });
+
+  it('keeps the changes-scope focus in every mode', async () => {
+    await c.load(hub(6));
+    c.setScope('changes');
+    c.setHops(0);
+    const focus = c.focus;
+    expect(focus).not.toBeNull();
+    for (const mode of ['swipe', 'replay', 'overlay'] as const) {
+      c.setMode(mode);
+      expect(c.focus, mode).toBe(focus);
+    }
+    c.setMode('swipe');
+    deps.frame();
+    const f = backend.last().frame as SplitFrame;
+    const hidden = (c.focus?.nodes ?? []).filter((v) => v === 0).length;
+    expect(hidden).toBeGreaterThan(0);
+    expect(f.before.collapsed).toBe(c.focus?.collapsed);
+    expect(f.after.collapsed).toBe(c.focus?.collapsed);
   });
 
   it('draws a split frame in swipe mode and moves the divider', () => {
@@ -330,15 +358,32 @@ describe('modes and frames', () => {
     expect(c.split).toBe(1);
   });
 
-  it('computes the changes-only focus with a hop stepper', () => {
-    c.setMode('changes');
+  it('computes the changes-scope focus with a hop stepper', () => {
+    c.setScope('changes');
     expect(c.focus).not.toBeNull();
     const visible1 = c.focus?.nodes.reduce((a, b) => a + b, 0) ?? 0;
     c.setHops(0);
     const visible0 = c.focus?.nodes.reduce((a, b) => a + b, 0) ?? 0;
     expect(visible0).toBeLessThanOrEqual(visible1);
-    c.setMode('overlay');
+    c.setScope('all');
     expect(c.focus).toBeNull();
+  });
+
+  it('tracks whether everything is in view (the minimap hides then)', () => {
+    const r = backend.last();
+    const cam = r.camera;
+    const b = c.scene?.bounds ?? { x: 0, y: 0, width: 0, height: 0 };
+    const center = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    cam.state = { ...center, k: 0.01 };
+    r.emit('camera', { ...cam.state, source: 'user' });
+    expect(c.overview).toBe(true);
+    cam.state = { ...center, k: 40 };
+    r.emit('camera', { ...cam.state, source: 'user' });
+    expect(c.overview).toBe(false);
+    c.flush();
+    cam.state = { ...center, k: 0.01 };
+    r.emit('camera', { ...cam.state, source: 'program' });
+    expect(c.overview).toBe(true);
   });
 
   it('rebuilds the scene for theme and locale changes, keeping the selection', () => {
@@ -422,7 +467,7 @@ describe('replay', () => {
 describe('focus expansion', () => {
   it('expands a collapsed group of in-scene nodes', async () => {
     await c.load(hub(6));
-    c.setMode('changes');
+    c.setScope('changes');
     c.setHops(0);
     const group = c.focus?.collapsed.find((g) => g.nodes.length > 0);
     expect(group).toBeDefined();
