@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { KgdiffViewer } from '../src/element.js';
 import { defineViewer, type KgdiffViewerElement } from '../src/index.js';
 import { setRenderBackend } from '../src/renderer-port.js';
-import { mockBackend, tick, until, zoo } from './support.js';
+import { hub, mockBackend, tick, until, zoo } from './support.js';
 
 let backend: ReturnType<typeof mockBackend>;
 
@@ -103,6 +103,17 @@ describe('attributes and properties', () => {
     expect(el.getAttribute('scope')).toBe('changes');
     el.mode = 'replay';
     expect([el.mode, el.scope]).toEqual(['replay', 'changes']);
+  });
+
+  it('keeps the scope attribute on changes while a changes-scoped layout locks it', async () => {
+    const el = mount();
+    await el.load({ ...hub(12), layout: { largeGraphThreshold: 4 } });
+    await tick();
+    expect(el.scope).toBe('changes');
+    el.scope = 'all';
+    expect(el.scope).toBe('changes');
+    expect(el.getAttribute('scope')).toBe('changes');
+    expect($(el, '.dock-bar .scope-btn').getAttribute('aria-disabled')).toBe('true');
   });
 
   it('reflects mode, theme, palette and locale both ways', async () => {

@@ -322,7 +322,8 @@ export class KgdiffViewer extends HTMLElement implements KgdiffViewerElement {
       case 'scope': {
         const v = toScope(raw);
         c.setScope(v ?? 'all');
-        value = v;
+        // A locked scope stays `changes`: the attribute says what is shown.
+        value = v === null ? null : c.scope;
         break;
       }
       case 'theme': {
