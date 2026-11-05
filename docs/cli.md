@@ -152,6 +152,12 @@ Colors follow the families of `docs/visual-language.md` (truecolor, ANSI 256 or 
 
 ## Inputs and `apply`
 
+Unexpected errors include a link to the bug-report form, prefilled with the CLI version,
+operating-system platform, architecture and Node.js version. The link never includes the
+error message or input paths; review any diagnostic output before sharing it. Expected usage,
+input and output errors keep their existing hints. The pure `describeError` and `formatError`
+helpers accept an optional bug-report URL; callers that omit it retain the existing hint.
+
 Inputs may be gzip-compressed or UTF-16 (detected); invalid UTF-8 is an error. `kgdiff apply`
 accepts a `Delta` or a full `DiffJSON` (from `--json`) as the patch, from a file or stdin, and
 writes kgdiff JSON (`graphToJSON`, with its `kgdiff.graph` format marker), so apply chains
